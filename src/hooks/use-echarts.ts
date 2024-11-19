@@ -1,187 +1,150 @@
 import { useEffect, useRef, useCallback } from "react";
 import * as echarts from "echarts";
-import type { EChartsOption, SetOptionOpts } from "echarts";
+import type { ECharts, EChartsOption, SetOptionOpts } from "echarts";
 import type { UseEchartsOptions, UseEchartsReturn } from "../types";
 
 /**
- * A React hook for using Apache ECharts
- * React Hook 用于使用 Apache ECharts
- * 
- * @param options - Configuration options for the chart
- * @param options.option - Chart configuration options
- * @param options.theme - Chart theme
- * @param options.notMerge - Whether to merge options or not
- * @param options.lazyUpdate - Whether to update chart lazily or not
- * @param options.showLoading - Whether to show loading animation or not
- * @param options.loadingOption - Loading animation configuration options
- * @param options.onEvents - Event handlers for the chart
- * @returns Object containing chart reference and control functions
- * 
- * @example
- * ```typescript
- * const { chartRef, setOption, getInstance } = useEcharts({
- *   option: {
- *     xAxis: { type: 'category', data: ['A', 'B', 'C'] },
- *     yAxis: { type: 'value' },
- *     series: [{ data: [120, 200, 150], type: 'line' }]
- *   },
- *   onEvents: {
- *     'click': {
- *       handler: (params) => console.log('clicked', params)
- *     }
- *   }
- * });
- * 
- * return <div ref={chartRef} style={{ width: '100%', height: '400px' }} />;
- * ```
+ * React hook for Apache ECharts integration
+ * @param options Configuration object
+ * @param options.option Chart configuration
+ * @param options.theme Chart theme name
+ * @param options.notMerge Skip merging with previous options
+ * @param options.lazyUpdate Enable lazy update mode
+ * @param options.showLoading Display loading animation
+ * @param options.loadingOption Loading animation config
+ * @param options.onEvents Event handlers map
+ * @returns Chart control methods and ref
  */
 const useEcharts = ({
-  /**
-   * Chart configuration options
-   * 图表配置选项
-   */
+  /** Chart configuration */
   option,
-  /**
-   * Chart theme
-   * 图表主题
-   */
+  /** Theme name */
   theme,
-  /**
-   * Whether to merge options or not
-   * 是否合并选项
-   * @default false
-   */
+  /** Skip merging with previous options */
   notMerge = false,
-  /**
-   * Whether to update chart lazily or not
-   * 是否懒更新图表
-   * @default false
-   */
+  /** Enable lazy update mode */
   lazyUpdate = false,
-  /**
-   * Whether to show loading animation or not
-   * 是否显示加载动画
-   * @default false
-   */
+  /** Display loading animation */
   showLoading = false,
-  /**
-   * Loading animation configuration options
-   * 加载动画配置选项
-   */
+  /** Loading animation config */
   loadingOption,
-  /**
-   * Event handlers for the chart
-   * 图表事件处理函数
-   */
+  /** Event handlers map */
   onEvents,
 }: UseEchartsOptions): UseEchartsReturn => {
   const chartRef = useRef<HTMLDivElement>(null);
-  const chartInstance = useRef<echarts.ECharts>();
+  const chartInstance = useRef<ECharts>();
 
   /**
-   * Get chart instance
-   * 获取图表实例
+   * Get the current chart instance
    */
-  const getInstance = useCallback(() => chartInstance.current, []);
+  const getInstance = () => chartInstance.current;
 
   /**
-   * Update chart options
-   * 更新图表配置
-   * 
-   * @param option - New chart configuration options
-   * @param opts - Update options
+   * Initialize the chart instance and bind events
+   */
+  const initChart = useCallback(() => {
+    if (chartRef.current && !chartInstance.current) {
+      const instance = echarts.init(chartRef.current, theme);
+      chartInstance.current = instance;
+
+      // Bind events if provided
+      if (onEvents) {
+        Object.entries(onEvents).forEach(
+          ([eventName, { handler, query, context }]) => {
+            if (query) {
+              instance.on(eventName, query, handler, context);
+            } else {
+              instance.on(eventName, handler, context);
+            }
+          }
+        );
+      }
+
+      // Apply initial options
+      if (showLoading) {
+        instance.showLoading(loadingOption);
+      } else {
+        instance.hideLoading();
+      }
+      instance.setOption(option, { notMerge, lazyUpdate });
+
+      return instance;
+    }
+    return chartInstance.current;
+  }, [
+    option,
+    theme,
+    notMerge,
+    lazyUpdate,
+    showLoading,
+    loadingOption,
+    onEvents,
+  ]);
+
+  /**
+   * Set new options for the chart
    */
   const setOption = useCallback(
-    (option: EChartsOption, opts?: SetOptionOpts) => {
-      chartInstance.current?.setOption(option, opts);
+    (newOption: EChartsOption, opts?: SetOptionOpts) => {
+      requestAnimationFrame(() => {
+        const instance = chartInstance.current || initChart();
+        if (instance) {
+          instance.setOption(newOption, opts);
+        }
+      });
     },
-    []
+    [initChart]
   );
 
   /**
-   * Initialize chart
-   * 初始化图表
+   * Handle chart resize and cleanup
    */
   useEffect(() => {
-    if (!chartRef.current) return;
+    const instance = chartInstance.current;
+    if (!instance) return;
 
-    // Create instance
-    // 创建实例
-    if (!chartInstance.current) {
-      chartInstance.current = echarts.init(chartRef.current, theme);
-    }
-
-    // Bind events
-    // 绑定事件
-    if (onEvents && chartInstance.current) {
-      Object.entries(onEvents).forEach(([eventName, eventConfig]) => {
-        const { handler, query, context } = eventConfig;
-        if (query) {
-          chartInstance.current?.on(eventName, query, handler, context);
-        } else {
-          chartInstance.current?.on(eventName, handler, context);
-        }
-      });
-    }
-
-    // Cleanup function
-    // 清理函数
-    return () => {
-      if (chartInstance.current) {
-        // Unbind events
-        // 解绑事件
-        if (onEvents) {
-          Object.entries(onEvents).forEach(([eventName, eventConfig]) => {
-            const { handler } = eventConfig;
-            chartInstance.current?.off(eventName, handler);
-          });
-        }
-        // Dispose instance
-        // 销毁实例
-        chartInstance.current.dispose();
-        chartInstance.current = undefined;
-      }
-    };
-  }, [theme, onEvents]);
-
-  /**
-   * Update options
-   * 更新配置
-   */
-  useEffect(() => {
-    if (chartInstance.current) {
-      // Handle loading state
-      // 处理加载状态
-      if (showLoading) {
-        chartInstance.current.showLoading(loadingOption);
-      } else {
-        chartInstance.current.hideLoading();
-      }
-      
-      // Update options
-      // 更新配置
-      chartInstance.current.setOption(option, { 
-        notMerge, 
-        lazyUpdate 
-      });
-    }
-  }, [option, notMerge, lazyUpdate, showLoading, loadingOption]);
-
-  /**
-   * Handle window resize
-   * 处理窗口大小变化
-   */
-  useEffect(() => {
+    // Debounced resize handling
     const handleResize = () => {
-      chartInstance.current?.resize();
+      const resizeTimer = setTimeout(() => {
+        instance?.resize();
+      }, 250);
+      return () => clearTimeout(resizeTimer);
     };
 
+    const resizeCleanup = handleResize();
     window.addEventListener("resize", handleResize);
 
+    // Cleanup function
     return () => {
+      // Unbind events
+      if (onEvents) {
+        Object.entries(onEvents).forEach(([eventName, { handler }]) => {
+          instance.off(eventName, handler);
+        });
+      }
+
+      // Remove resize listener
       window.removeEventListener("resize", handleResize);
+
+      // Dispose instance
+      instance.dispose();
+      chartInstance.current = undefined;
+
+      // Clear resize timer
+      resizeCleanup();
     };
-  }, []);
+  }, [onEvents]);
+
+  /**
+   * Initialize chart on chartRef changes
+   */
+  useEffect(() => {
+    if (chartRef.current) {
+      requestAnimationFrame(() => {
+        initChart();
+      });
+    }
+  }, [chartRef, initChart]);
 
   return {
     chartRef,
