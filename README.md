@@ -1,17 +1,21 @@
 # react-use-echarts
 
-A powerful React hooks library for Apache ECharts, making it easy to use ECharts in your React applications.
+[![NPM version](https://img.shields.io/npm/v/react-use-echarts.svg)](https://www.npmjs.com/package/react-use-echarts)
+[![NPM downloads](https://img.shields.io/npm/dm/react-use-echarts.svg)](https://www.npmjs.com/package/react-use-echarts)
+[![GitHub license](https://img.shields.io/github/license/chensid/react-use-echarts.svg)](https://github.com/chensid/react-use-echarts/blob/main/LICENSE.txt)
 
-## Features
+A powerful React hooks library for Apache ECharts, making it easy to use ECharts in your React applications with minimal boilerplate.
 
-- **Easy to use** - Simple and intuitive API
-- **TypeScript support** - Written in TypeScript with complete type definitions
-- **Lightweight** - Zero dependencies except for React and ECharts
-- **Flexible** - Full access to ECharts instance and options
-- **Auto-updating** - Automatically updates chart when data or options change
-- **Responsive** - Handles container resizing automatically
+## ✨ Features
 
-## Installation
+- 🎨 **Easy to use** - Simple and intuitive API with React Hooks
+- 🚀 **TypeScript support** - Written in TypeScript with complete type definitions
+- 📦 **Lightweight** - Zero dependencies except for React and ECharts
+- 🛠 **Flexible** - Full access to ECharts instance and options
+- ⚡ **Auto-updating** - Automatically updates chart when data or options change
+- 📱 **Responsive** - Handles container resizing automatically
+
+## 📦 Installation
 
 ```bash
 # Using npm
@@ -24,7 +28,7 @@ yarn add react-use-echarts echarts
 pnpm add react-use-echarts echarts
 ```
 
-## Usage
+## 🔨 Usage
 
 ```tsx
 import { useECharts } from 'react-use-echarts';
@@ -50,7 +54,7 @@ function MyChart() {
 }
 ```
 
-## API
+## 📖 API
 
 ### useECharts
 
@@ -72,6 +76,14 @@ const { chartRef, instance, setOption } = useECharts(options, theme?, opts?);
 - `instance`: ECharts instance (available after component mounts)
 - `setOption`: Function to update chart options
 
-## License
+## 🤝 Contributing
 
-MIT [chin](https://github.com/chensid)
+We welcome all contributions. Please read our [contributing guidelines](CONTRIBUTING.md) first. You can submit any ideas as [pull requests](https://github.com/chensid/react-use-echarts/pulls) or as [GitHub issues](https://github.com/chensid/react-use-echarts/issues).
+
+## 📝 Changelog
+
+Detailed changes for each release are documented in the [release notes](https://github.com/chensid/react-use-echarts/releases).
+
+## 📄 License
+
+[MIT](./LICENSE.txt) © [chin](https://github.com/chensid)
