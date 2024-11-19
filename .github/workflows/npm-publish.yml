@@ -9,6 +9,9 @@ on:
 jobs:
   publish:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -18,8 +21,9 @@ jobs:
       - uses: pnpm/action-setup@v2
         with:
           version: 9
-      - run: pnpm install
+      - run: rm -rf node_modules
+      - run: pnpm install --frozen-lockfile
       - run: pnpm build
-      - run: pnpm publish
+      - run: pnpm publish --provenance --access public
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
