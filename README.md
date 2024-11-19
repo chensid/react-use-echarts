@@ -31,10 +31,10 @@ pnpm add react-use-echarts echarts
 ## 🔨 Usage
 
 ```tsx
-import { useEcharts } from 'react-use-echarts';
+import { useEcharts, UseEchartsOptions } from 'react-use-echarts';
 
 function MyChart() {
-  const options = {
+  const options: UseEchartsOptions['option'] = {
     xAxis: {
       type: 'category',
       data: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
@@ -64,7 +64,7 @@ The main hook for using ECharts in React components.
 
 ```tsx
 const { chartRef, setOption, getInstance } = useEcharts({
-  option: EChartsOption;      // ECharts options configuration (required)
+  option: UseEchartsOptions['option'];      // ECharts options configuration (required)
   theme?: string | object;    // ECharts theme name or configuration
   notMerge?: boolean;        // Whether to not merge with previous options
   lazyUpdate?: boolean;      // Whether to update chart lazily
