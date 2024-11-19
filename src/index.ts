@@ -10,7 +10,7 @@
  * Main hook for using ECharts in React components
  * 在 React 组件中使用 ECharts 的主要 Hook
  */
-export { default as useEcharts } from './hooks/useEcharts';
+export { default as useEcharts } from './hooks/use-echarts';
 
 /**
  * Type definitions for the library
