@@ -14,6 +14,10 @@
   "type": "module",
   "author": "chin",
   "license": "MIT",
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
+  },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/chensid/react-use-echarts.git"
