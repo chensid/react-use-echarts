@@ -1,7 +1,7 @@
 import { useEffect, useRef, useCallback } from "react";
 import * as echarts from "echarts";
 import type { EChartsOption, SetOptionOpts } from "echarts";
-import type { UseEChartsOptions, UseEChartsReturn } from "../types";
+import type { UseEchartsOptions, UseEchartsReturn } from "../types";
 
 /**
  * A React hook for using Apache ECharts
@@ -19,7 +19,7 @@ import type { UseEChartsOptions, UseEChartsReturn } from "../types";
  * 
  * @example
  * ```typescript
- * const { chartRef, setOption, getInstance } = useECharts({
+ * const { chartRef, setOption, getInstance } = useEcharts({
  *   option: {
  *     xAxis: { type: 'category', data: ['A', 'B', 'C'] },
  *     yAxis: { type: 'value' },
@@ -35,7 +35,7 @@ import type { UseEChartsOptions, UseEChartsReturn } from "../types";
  * return <div ref={chartRef} style={{ width: '100%', height: '400px' }} />;
  * ```
  */
-const useECharts = ({
+const useEcharts = ({
   /**
    * Chart configuration options
    * 图表配置选项
@@ -74,7 +74,7 @@ const useECharts = ({
    * 图表事件处理函数
    */
   onEvents,
-}: UseEChartsOptions): UseEChartsReturn => {
+}: UseEchartsOptions): UseEchartsReturn => {
   const chartRef = useRef<HTMLDivElement>(null);
   const chartInstance = useRef<echarts.ECharts>();
 
@@ -190,4 +190,4 @@ const useECharts = ({
   };
 };
 
-export default useECharts;
+export default useEcharts;
