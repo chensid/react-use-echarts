@@ -1,29 +1,69 @@
 {
   "name": "react-use-echarts",
   "private": false,
-  "version": "0.0.0",
+  "version": "0.0.1",
+  "description": "A powerful React hooks library for Apache ECharts",
+  "keywords": [
+    "react",
+    "hooks",
+    "echarts",
+    "charts",
+    "data-visualization",
+    "typescript"
+  ],
   "type": "module",
+  "author": "chin",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/chensid/react-use-echarts.git"
+  },
+  "homepage": "https://github.com/chensid/react-use-echarts#readme",
+  "bugs": {
+    "url": "https://github.com/chensid/react-use-echarts/issues"
+  },
+  "sideEffects": false,
+  "main": "./dist/index.umd.js",
+  "module": "./dist/index.es.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.es.js",
+      "require": "./dist/index.umd.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
-  },
-  "dependencies": {
-    "react": "^18.3.1",
-    "react-dom": "^18.3.1"
+    "prepare": "pnpm build",
+    "typecheck": "tsc -b"
   },
   "devDependencies": {
     "@eslint/js": "^9.15.0",
+    "@types/node": "^22.9.0",
     "@types/react": "^18.3.12",
     "@types/react-dom": "^18.3.1",
     "@vitejs/plugin-react-swc": "^3.7.1",
+    "echarts": "^5.5.1",
     "eslint": "^9.15.0",
     "eslint-plugin-react-hooks": "^5.0.0",
     "eslint-plugin-react-refresh": "^0.4.14",
     "globals": "^15.12.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
     "typescript": "~5.6.3",
     "typescript-eslint": "^8.15.0",
-    "vite": "^5.4.11"
+    "vite": "^5.4.11",
+    "vite-plugin-dts": "^4.3.0"
+  },
+  "peerDependencies": {
+    "echarts": "^5.5.1",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
   }
 }
