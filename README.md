@@ -1,50 +1,77 @@
-# React + TypeScript + Vite
+# react-use-echarts
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A powerful React hooks library for Apache ECharts, making it easy to use ECharts in your React applications.
 
-Currently, two official plugins are available:
+## Features
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react/README.md) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+- **Easy to use** - Simple and intuitive API
+- **TypeScript support** - Written in TypeScript with complete type definitions
+- **Lightweight** - Zero dependencies except for React and ECharts
+- **Flexible** - Full access to ECharts instance and options
+- **Auto-updating** - Automatically updates chart when data or options change
+- **Responsive** - Handles container resizing automatically
 
-## Expanding the ESLint configuration
+## Installation
 
-If you are developing a production application, we recommend updating the configuration to enable type aware lint rules:
+```bash
+# Using npm
+npm install react-use-echarts echarts
 
-- Configure the top-level `parserOptions` property like this:
+# Using yarn
+yarn add react-use-echarts echarts
 
-```js
-export default tseslint.config({
-  languageOptions: {
-    // other options...
-    parserOptions: {
-      project: ['./tsconfig.node.json', './tsconfig.app.json'],
-      tsconfigRootDir: import.meta.dirname,
+# Using pnpm
+pnpm add react-use-echarts echarts
+```
+
+## Usage
+
+```tsx
+import { useECharts } from 'react-use-echarts';
+
+function MyChart() {
+  const options = {
+    xAxis: {
+      type: 'category',
+      data: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
     },
-  },
-})
+    yAxis: {
+      type: 'value'
+    },
+    series: [{
+      data: [820, 932, 901, 934, 1290, 1330, 1320],
+      type: 'line'
+    }]
+  };
+
+  const { chartRef } = useECharts(options);
+
+  return <div ref={chartRef} style={{ width: '100%', height: '400px' }} />;
+}
 ```
 
-- Replace `tseslint.configs.recommended` to `tseslint.configs.recommendedTypeChecked` or `tseslint.configs.strictTypeChecked`
-- Optionally add `...tseslint.configs.stylisticTypeChecked`
-- Install [eslint-plugin-react](https://github.com/jsx-eslint/eslint-plugin-react) and update the config:
+## API
 
-```js
-// eslint.config.js
-import react from 'eslint-plugin-react'
+### useECharts
 
-export default tseslint.config({
-  // Set the react version
-  settings: { react: { version: '18.3' } },
-  plugins: {
-    // Add the react plugin
-    react,
-  },
-  rules: {
-    // other rules...
-    // Enable its recommended rules
-    ...react.configs.recommended.rules,
-    ...react.configs['jsx-runtime'].rules,
-  },
-})
+The main hook for using ECharts in React components.
+
+```tsx
+const { chartRef, instance, setOption } = useECharts(options, theme?, opts?);
 ```
+
+#### Parameters
+
+- `options` (required): ECharts options configuration
+- `theme` (optional): ECharts theme name or configuration
+- `opts` (optional): ECharts initialization options
+
+#### Returns
+
+- `chartRef`: Ref object to attach to the chart container
+- `instance`: ECharts instance (available after component mounts)
+- `setOption`: Function to update chart options
+
+## License
+
+MIT [chin](https://github.com/chensid)
