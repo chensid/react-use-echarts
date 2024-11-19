@@ -45,10 +45,10 @@ export interface EChartsEvents {
 }
 
 /**
- * Configuration options for useECharts hook
- * useECharts hook 的配置选项
+ * Configuration options for useEcharts hook
+ * useEcharts hook 的配置选项
  */
-export interface UseEChartsOptions {
+export interface UseEchartsOptions {
   /**
    * ECharts configuration options
    * ECharts 的配置项
@@ -90,10 +90,10 @@ export interface UseEChartsOptions {
 }
 
 /**
- * Return type for useECharts hook
- * useECharts hook 的返回类型
+ * Return type for useEcharts hook
+ * useEcharts hook 的返回类型
  */
-export interface UseEChartsReturn {
+export interface UseEchartsReturn {
   /**
    * Reference to the chart container element
    * 图表容器元素的引用
