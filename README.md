@@ -31,7 +31,7 @@ pnpm add react-use-echarts echarts
 ## 🔨 Usage
 
 ```tsx
-import { useECharts } from 'react-use-echarts';
+import { useEcharts } from 'react-use-echarts';
 
 function MyChart() {
   const options = {
@@ -48,7 +48,9 @@ function MyChart() {
     }]
   };
 
-  const { chartRef } = useECharts(options);
+  const { chartRef } = useEcharts({
+    option: options
+  });
 
   return <div ref={chartRef} style={{ width: '100%', height: '400px' }} />;
 }
@@ -56,25 +58,33 @@ function MyChart() {
 
 ## 📖 API
 
-### useECharts
+### useEcharts
 
 The main hook for using ECharts in React components.
 
 ```tsx
-const { chartRef, instance, setOption } = useECharts(options, theme?, opts?);
+const { chartRef, setOption, getInstance } = useEcharts({
+  option: EChartsOption;      // ECharts options configuration (required)
+  theme?: string | object;    // ECharts theme name or configuration
+  notMerge?: boolean;        // Whether to not merge with previous options
+  lazyUpdate?: boolean;      // Whether to update chart lazily
+  showLoading?: boolean;     // Whether to display loading animation
+  loadingOption?: object;    // Loading animation configuration
+  onEvents?: {              // Event handlers
+    [eventName: string]: {
+      handler: (params: any) => void;
+      query?: string | object;
+      context?: object;
+    }
+  }
+});
 ```
-
-#### Parameters
-
-- `options` (required): ECharts options configuration
-- `theme` (optional): ECharts theme name or configuration
-- `opts` (optional): ECharts initialization options
 
 #### Returns
 
 - `chartRef`: Ref object to attach to the chart container
-- `instance`: ECharts instance (available after component mounts)
 - `setOption`: Function to update chart options
+- `getInstance`: Function to get the ECharts instance (available after component mounts)
 
 ## 🤝 Contributing
 
