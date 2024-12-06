@@ -98,7 +98,7 @@ export interface UseEchartsReturn {
    * Reference to the chart container element
    * 图表容器元素的引用
    */
-  chartRef: React.RefObject<HTMLDivElement>;
+  chartRef: React.RefObject<HTMLDivElement | null>;
   /**
    * Function to update chart options
    * 更新图表配置的函数

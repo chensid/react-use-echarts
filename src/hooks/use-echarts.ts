@@ -32,7 +32,7 @@ const useEcharts = ({
   onEvents,
 }: UseEchartsOptions): UseEchartsReturn => {
   const chartRef = useRef<HTMLDivElement>(null);
-  const chartInstance = useRef<ECharts>();
+  const chartInstance = useRef<ECharts | undefined>(undefined);
 
   /**
    * Get the current chart instance
@@ -42,14 +42,33 @@ const useEcharts = ({
   /**
    * Initialize the chart instance and bind events
    */
+  const initChartConfig = useCallback(() => ({
+    option,
+    theme,
+    notMerge,
+    lazyUpdate,
+    showLoading,
+    loadingOption,
+    onEvents,
+  }), [
+    option,
+    theme,
+    notMerge,
+    lazyUpdate,
+    showLoading,
+    loadingOption,
+    onEvents,
+  ]);
+
   const initChart = useCallback(() => {
     if (chartRef.current && !chartInstance.current) {
       const instance = echarts.init(chartRef.current, theme);
       chartInstance.current = instance;
+      
+      const config = initChartConfig();
 
-      // Bind events if provided
-      if (onEvents) {
-        Object.entries(onEvents).forEach(
+      if (config.onEvents) {
+        Object.entries(config.onEvents).forEach(
           ([eventName, { handler, query, context }]) => {
             if (query) {
               instance.on(eventName, query, handler, context);
@@ -60,33 +79,27 @@ const useEcharts = ({
         );
       }
 
-      // Apply initial options
-      if (showLoading) {
-        instance.showLoading(loadingOption);
+      if (config.showLoading) {
+        instance.showLoading(config.loadingOption);
       } else {
         instance.hideLoading();
       }
-      instance.setOption(option, { notMerge, lazyUpdate });
+      instance.setOption(config.option, { 
+        notMerge: config.notMerge, 
+        lazyUpdate: config.lazyUpdate 
+      });
 
       return instance;
     }
     return chartInstance.current;
-  }, [
-    option,
-    theme,
-    notMerge,
-    lazyUpdate,
-    showLoading,
-    loadingOption,
-    onEvents,
-  ]);
+  }, [initChartConfig, theme]);
 
   /**
    * Set new options for the chart
    */
   const setOption = useCallback(
     (newOption: EChartsOption, opts?: SetOptionOpts) => {
-      requestAnimationFrame(() => {
+      queueMicrotask(() => {
         const instance = chartInstance.current || initChart();
         if (instance) {
           instance.setOption(newOption, opts);
@@ -103,35 +116,28 @@ const useEcharts = ({
     const instance = chartInstance.current;
     if (!instance) return;
 
-    // Debounced resize handling
+    let resizeTimer: number;
     const handleResize = () => {
-      const resizeTimer = setTimeout(() => {
+      clearTimeout(resizeTimer);
+      resizeTimer = window.setTimeout(() => {
         instance?.resize();
       }, 250);
-      return () => clearTimeout(resizeTimer);
     };
 
-    const resizeCleanup = handleResize();
     window.addEventListener("resize", handleResize);
 
-    // Cleanup function
     return () => {
-      // Unbind events
-      if (onEvents) {
+      window.removeEventListener("resize", handleResize);
+      clearTimeout(resizeTimer);
+      
+      if (onEvents && instance) {
         Object.entries(onEvents).forEach(([eventName, { handler }]) => {
           instance.off(eventName, handler);
         });
       }
 
-      // Remove resize listener
-      window.removeEventListener("resize", handleResize);
-
-      // Dispose instance
       instance.dispose();
       chartInstance.current = undefined;
-
-      // Clear resize timer
-      resizeCleanup();
     };
   }, [onEvents]);
 
@@ -140,9 +146,7 @@ const useEcharts = ({
    */
   useEffect(() => {
     if (chartRef.current) {
-      requestAnimationFrame(() => {
-        initChart();
-      });
+      queueMicrotask(initChart);
     }
   }, [chartRef, initChart]);
 
