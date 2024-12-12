@@ -116,20 +116,14 @@ const useEcharts = ({
     const instance = chartInstance.current;
     if (!instance) return;
 
-    let resizeTimer: number;
-    const handleResize = () => {
-      clearTimeout(resizeTimer);
-      resizeTimer = window.setTimeout(() => {
-        instance?.resize();
-      }, 250);
-    };
-
-    window.addEventListener("resize", handleResize);
+    const resizeObserver = new ResizeObserver(() => {
+      instance.resize();
+    });
+    resizeObserver.observe(chartRef.current!);
 
     return () => {
-      window.removeEventListener("resize", handleResize);
-      clearTimeout(resizeTimer);
-      
+      resizeObserver.disconnect();
+
       if (onEvents && instance) {
         Object.entries(onEvents).forEach(([eventName, { handler }]) => {
           instance.off(eventName, handler);
@@ -139,7 +133,7 @@ const useEcharts = ({
       instance.dispose();
       chartInstance.current = undefined;
     };
-  }, [onEvents]);
+  }, [chartInstance, onEvents]);
 
   /**
    * Initialize chart on chartRef changes
