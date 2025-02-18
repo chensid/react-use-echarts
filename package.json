@@ -53,10 +53,10 @@
     "@eslint/js": "^9.20.0",
     "@testing-library/react": "^16.2.0",
     "@types/node": "^22.13.4",
-    "@types/react": "^19.0.9",
-    "@types/react-dom": "^19.0.3",
+    "@types/react": "^19.0.10",
+    "@types/react-dom": "^19.0.4",
     "@vitejs/plugin-react-swc": "^3.8.0",
-    "@vitest/coverage-v8": "3.0.5",
+    "@vitest/coverage-v8": "3.0.6",
     "echarts": "^5.6.0",
     "eslint": "^9.20.1",
     "eslint-plugin-react-hooks": "^5.1.0",
@@ -66,10 +66,10 @@
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "typescript": "~5.7.3",
-    "typescript-eslint": "^8.24.0",
+    "typescript-eslint": "^8.24.1",
     "vite": "^6.1.0",
     "vite-plugin-dts": "^4.5.0",
-    "vitest": "^3.0.5"
+    "vitest": "^3.0.6"
   },
   "peerDependencies": {
     "echarts": "^5.5.1",
