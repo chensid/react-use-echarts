@@ -42,29 +42,24 @@ const useEcharts = ({
   /**
    * Initialize the chart instance and bind events
    */
-  const initChartConfig = useCallback(() => ({
-    option,
-    theme,
-    notMerge,
-    lazyUpdate,
-    showLoading,
-    loadingOption,
-    onEvents,
-  }), [
-    option,
-    theme,
-    notMerge,
-    lazyUpdate,
-    showLoading,
-    loadingOption,
-    onEvents,
-  ]);
+  const initChartConfig = useCallback(
+    () => ({
+      option,
+      theme,
+      notMerge,
+      lazyUpdate,
+      showLoading,
+      loadingOption,
+      onEvents,
+    }),
+    [option, theme, notMerge, lazyUpdate, showLoading, loadingOption, onEvents]
+  );
 
   const initChart = useCallback(() => {
     if (chartRef.current && !chartInstance.current) {
       const instance = echarts.init(chartRef.current, theme);
       chartInstance.current = instance;
-      
+
       const config = initChartConfig();
 
       if (config.onEvents) {
@@ -84,9 +79,9 @@ const useEcharts = ({
       } else {
         instance.hideLoading();
       }
-      instance.setOption(config.option, { 
-        notMerge: config.notMerge, 
-        lazyUpdate: config.lazyUpdate 
+      instance.setOption(config.option, {
+        notMerge: config.notMerge,
+        lazyUpdate: config.lazyUpdate,
       });
 
       return instance;
@@ -110,30 +105,28 @@ const useEcharts = ({
   );
 
   /**
-   * Handle chart resize and cleanup
+   * Handle chart resize and cleanup when instance exists
    */
   useEffect(() => {
     const instance = chartInstance.current;
-    if (!instance) return;
+    if (!instance || !chartRef.current) return;
 
-    const resizeObserver = new ResizeObserver(() => {
-      instance.resize();
-    });
-    resizeObserver.observe(chartRef.current!);
+    let resizeObserver: ResizeObserver | undefined;
+
+    try {
+      resizeObserver = new ResizeObserver(() => {
+        instance.resize();
+      });
+      resizeObserver.observe(chartRef.current);
+    } catch (error) {
+      // ResizeObserver might not be available in test environment
+      console.warn("ResizeObserver not available:", error);
+    }
 
     return () => {
-      resizeObserver.disconnect();
-
-      if (onEvents && instance) {
-        Object.entries(onEvents).forEach(([eventName, { handler }]) => {
-          instance.off(eventName, handler);
-        });
-      }
-
-      instance.dispose();
-      chartInstance.current = undefined;
+      resizeObserver?.disconnect();
     };
-  }, [chartInstance, onEvents]);
+  }, []);
 
   /**
    * Initialize chart on chartRef changes
@@ -143,6 +136,25 @@ const useEcharts = ({
       queueMicrotask(initChart);
     }
   }, [chartRef, initChart]);
+
+  /**
+   * Cleanup on unmount
+   */
+  useEffect(() => {
+    return () => {
+      const instance = chartInstance.current;
+      if (instance) {
+        if (onEvents) {
+          Object.entries(onEvents).forEach(([eventName, { handler }]) => {
+            instance.off(eventName, handler);
+          });
+        }
+
+        instance.dispose();
+        chartInstance.current = undefined;
+      }
+    };
+  }, [onEvents]);
 
   return {
     chartRef,
