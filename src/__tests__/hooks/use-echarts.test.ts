@@ -1,18 +1,25 @@
 import { act, renderHook, waitFor } from "@testing-library/react";
-import { describe, it, expect, vi, afterEach, type MockedFunction } from "vitest";
+import {
+  describe,
+  it,
+  expect,
+  vi,
+  afterEach,
+  type MockedFunction,
+} from "vitest";
 import * as echarts from "echarts";
 import type { EChartsOption, ECharts } from "echarts";
 import useEcharts from "../../hooks/use-echarts";
 
 // Create a mock instance interface
 interface MockEChartsInstance {
-  setOption: MockedFunction<ECharts['setOption']>;
-  dispose: MockedFunction<ECharts['dispose']>;
-  on: MockedFunction<ECharts['on']>;
-  off: MockedFunction<ECharts['off']>;
-  resize: MockedFunction<ECharts['resize']>;
-  showLoading: MockedFunction<ECharts['showLoading']>;
-  hideLoading: MockedFunction<ECharts['hideLoading']>;
+  setOption: MockedFunction<ECharts["setOption"]>;
+  dispose: MockedFunction<ECharts["dispose"]>;
+  on: MockedFunction<ECharts["on"]>;
+  off: MockedFunction<ECharts["off"]>;
+  resize: MockedFunction<ECharts["resize"]>;
+  showLoading: MockedFunction<ECharts["showLoading"]>;
+  hideLoading: MockedFunction<ECharts["hideLoading"]>;
 }
 
 // Mock ECharts library
@@ -48,11 +55,11 @@ describe("useEcharts", () => {
   it("should initialize the chart instance correctly", async () => {
     const option: EChartsOption = { series: [{ type: "line" }] };
     const theme = "dark";
-    
+
     // Create a mock div element
     const mockDiv = document.createElement("div");
     document.body.appendChild(mockDiv);
-    
+
     // Create a wrapper component that uses the hook
     const { result, rerender } = renderHook(() => {
       const hookResult = useEcharts({
@@ -70,14 +77,17 @@ describe("useEcharts", () => {
     await act(async () => {
       rerender();
       // Wait for microtasks to complete
-      await new Promise<void>(resolve => queueMicrotask(() => resolve()));
+      await new Promise<void>((resolve) => queueMicrotask(() => resolve()));
     });
 
     // Wait for the chart to be initialized
-    await waitFor(() => {
-      expect(echarts.init).toHaveBeenCalledWith(mockDiv, theme);
-    }, { timeout: 2000 });
-    
+    await waitFor(
+      () => {
+        expect(echarts.init).toHaveBeenCalledWith(mockDiv, theme);
+      },
+      { timeout: 2000 }
+    );
+
     // Verify we can get the instance
     expect(result.current.getInstance()).toBeDefined();
 
@@ -89,10 +99,10 @@ describe("useEcharts", () => {
   it("should update chart options after initialization", async () => {
     const initialOption: EChartsOption = { series: [{ type: "line" }] };
     const newOption: EChartsOption = { series: [{ type: "bar" }] };
-    
+
     const mockDiv = document.createElement("div");
     document.body.appendChild(mockDiv);
-    
+
     const { result, rerender } = renderHook(() => {
       const hookResult = useEcharts({ option: initialOption });
       if (hookResult.chartRef.current !== mockDiv) {
@@ -103,21 +113,24 @@ describe("useEcharts", () => {
 
     await act(async () => {
       rerender();
-      await new Promise<void>(resolve => queueMicrotask(() => resolve()));
+      await new Promise<void>((resolve) => queueMicrotask(() => resolve()));
     });
 
     // Wait for initialization
-    await waitFor(() => {
-      expect(echarts.init).toHaveBeenCalled();
-    }, { timeout: 2000 });
+    await waitFor(
+      () => {
+        expect(echarts.init).toHaveBeenCalled();
+      },
+      { timeout: 2000 }
+    );
 
     const mockInit = echarts.init as MockedFunction<typeof echarts.init>;
     const mockInstance = mockInit.mock.results[0]?.value as MockEChartsInstance;
-    
+
     // Test setOption
     await act(async () => {
       result.current.setOption(newOption);
-      await new Promise<void>(resolve => queueMicrotask(() => resolve()));
+      await new Promise<void>((resolve) => queueMicrotask(() => resolve()));
     });
 
     expect(mockInstance.setOption).toHaveBeenCalledWith(newOption, undefined);
@@ -130,15 +143,15 @@ describe("useEcharts", () => {
   it("should handle loading state correctly", async () => {
     const option: EChartsOption = { series: [{ type: "line" }] };
     const loadingOption = { text: "Loading..." };
-    
+
     const mockDiv = document.createElement("div");
     document.body.appendChild(mockDiv);
-    
+
     const { rerender } = renderHook(() => {
-      const hookResult = useEcharts({ 
-        option, 
+      const hookResult = useEcharts({
+        option,
         showLoading: true,
-        loadingOption 
+        loadingOption,
       });
       if (hookResult.chartRef.current !== mockDiv) {
         hookResult.chartRef.current = mockDiv;
@@ -148,12 +161,15 @@ describe("useEcharts", () => {
 
     await act(async () => {
       rerender();
-      await new Promise<void>(resolve => queueMicrotask(() => resolve()));
+      await new Promise<void>((resolve) => queueMicrotask(() => resolve()));
     });
 
-    await waitFor(() => {
-      expect(echarts.init).toHaveBeenCalled();
-    }, { timeout: 2000 });
+    await waitFor(
+      () => {
+        expect(echarts.init).toHaveBeenCalled();
+      },
+      { timeout: 2000 }
+    );
 
     const mockInit = echarts.init as MockedFunction<typeof echarts.init>;
     const mockInstance = mockInit.mock.results[0]?.value as MockEChartsInstance;
@@ -171,17 +187,17 @@ describe("useEcharts", () => {
       click: {
         handler: clickHandler,
         query: ".series",
-        context: {}
-      }
+        context: {},
+      },
     };
-    
+
     const mockDiv = document.createElement("div");
     document.body.appendChild(mockDiv);
-    
+
     const { rerender, unmount } = renderHook(() => {
-      const hookResult = useEcharts({ 
-        option, 
-        onEvents 
+      const hookResult = useEcharts({
+        option,
+        onEvents,
       });
       if (hookResult.chartRef.current !== mockDiv) {
         hookResult.chartRef.current = mockDiv;
@@ -191,18 +207,26 @@ describe("useEcharts", () => {
 
     await act(async () => {
       rerender();
-      await new Promise<void>(resolve => queueMicrotask(() => resolve()));
+      await new Promise<void>((resolve) => queueMicrotask(() => resolve()));
     });
 
-    await waitFor(() => {
-      expect(echarts.init).toHaveBeenCalled();
-    }, { timeout: 2000 });
+    await waitFor(
+      () => {
+        expect(echarts.init).toHaveBeenCalled();
+      },
+      { timeout: 2000 }
+    );
 
     const mockInit = echarts.init as MockedFunction<typeof echarts.init>;
     const mockInstance = mockInit.mock.results[0]?.value as MockEChartsInstance;
-    
+
     // Verify event binding
-    expect(mockInstance.on).toHaveBeenCalledWith("click", ".series", clickHandler, {});
+    expect(mockInstance.on).toHaveBeenCalledWith(
+      "click",
+      ".series",
+      clickHandler,
+      {}
+    );
 
     // Test cleanup
     unmount();
@@ -218,7 +242,7 @@ describe("useEcharts", () => {
     const { result } = renderHook(() =>
       useEcharts({ option: {} as EChartsOption })
     );
-    
+
     expect(result.current.getInstance()).toBeUndefined();
   });
 });
