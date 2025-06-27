@@ -16,7 +16,8 @@ A powerful React hooks library for Apache ECharts, making it easy to use ECharts
 - 📦 **Lightweight** - Zero dependencies except for React and ECharts
 - 🛠 **Flexible** - Full access to ECharts instance and options
 - ⚡ **Auto-updating** - Automatically updates chart when data or options change
-- 📱 **Responsive** - Handles container resizing automatically
+- 📱 **Responsive** - Handles container resizing automatically with ResizeObserver
+- 🎯 **Event handling** - Easy to use event system with flexible configuration
 
 ## 📦 Installation
 
@@ -34,10 +35,15 @@ pnpm add react-use-echarts echarts
 ## 🔨 Usage
 
 ```tsx
-import { useEcharts, UseEchartsOptions } from 'react-use-echarts';
+import React from 'react';
+import { useEcharts } from 'react-use-echarts';
+import type { EChartsOption } from 'echarts';
 
 function MyChart() {
-  const options: UseEchartsOptions['option'] = {
+  const options: EChartsOption = {
+    title: {
+      text: 'Basic Line Chart Example'
+    },
     xAxis: {
       type: 'category',
       data: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
@@ -47,7 +53,8 @@ function MyChart() {
     },
     series: [{
       data: [820, 932, 901, 934, 1290, 1330, 1320],
-      type: 'line'
+      type: 'line',
+      smooth: true
     }]
   };
 
@@ -55,7 +62,7 @@ function MyChart() {
     option: options
   });
 
-  return <div ref={chartRef} style={{ width: '100%', height: '300px' }} />;
+  return <div ref={chartRef} style={{ width: '100%', height: '400px' }} />;
 }
 ```
 
@@ -66,14 +73,17 @@ function MyChart() {
 The main hook for using ECharts in React components.
 
 ```tsx
+import type { EChartsOption } from 'echarts';
+import type { UseEchartsOptions } from 'react-use-echarts';
+
 const { chartRef, setOption, getInstance } = useEcharts({
-  option: UseEchartsOptions['option'];      // ECharts options configuration (required)
-  theme?: string | object;    // ECharts theme name or configuration
-  notMerge?: boolean;        // Whether to not merge with previous options
-  lazyUpdate?: boolean;      // Whether to update chart lazily
-  showLoading?: boolean;     // Whether to display loading animation
-  loadingOption?: object;    // Loading animation configuration
-  onEvents?: {              // Event handlers
+  option: EChartsOption;        // ECharts options configuration (required)
+  theme?: string | object;      // ECharts theme name or configuration
+  notMerge?: boolean;          // Whether to not merge with previous options
+  lazyUpdate?: boolean;        // Whether to update chart lazily
+  showLoading?: boolean;       // Whether to display loading animation
+  loadingOption?: object;      // Loading animation configuration
+  onEvents?: {                 // Event handlers
     [eventName: string]: {
       handler: (params: any) => void;
       query?: string | object;
