@@ -109,4 +109,4 @@ Detailed changes for each release are documented in the [release notes](https://
 
 ## 📄 License
 
-[MIT](./LICENSE.txt) © [chin](https://github.com/chensid)
+[MIT](./LICENSE.txt) © [Ethan](https://github.com/chensid)

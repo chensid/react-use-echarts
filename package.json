@@ -12,7 +12,7 @@
     "typescript"
   ],
   "type": "module",
-  "author": "chin",
+  "author": "Ethan",
   "license": "MIT",
   "publishConfig": {
     "access": "public",
