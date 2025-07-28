@@ -4,9 +4,7 @@ import type { EChartsOption } from "echarts";
 
 const BarChart: React.FC = () => {
   const options: EChartsOption = {
-    title: {
-      text: "Basic Bar Chart Example",
-    },
+    title: { text: "Basic Bar Chart Example" },
     tooltip: {},
     xAxis: {
       data: ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
