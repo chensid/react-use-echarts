@@ -4,9 +4,7 @@ import type { EChartsOption } from "echarts";
 
 const LineChart: React.FC = () => {
   const options: EChartsOption = {
-    title: {
-      text: "Basic Line Chart Example",
-    },
+    title: { text: "Basic Line Chart Example" },
     xAxis: {
       type: "category",
       data: ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
