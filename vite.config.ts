@@ -1,15 +1,18 @@
-/// <reference types="vitest/config" />
 import { defineConfig } from "vite";
-import react from "@vitejs/plugin-react-swc";
+import react from '@vitejs/plugin-react'
 import { resolve } from "path";
 import dts from "vite-plugin-dts";
 
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [
-    react(),
+    react({
+      babel: {
+        plugins: [["babel-plugin-react-compiler"]],
+      },
+    }),
     dts({
-      rollupTypes: true,
+      // rollupTypes: true,
       outDir: "dist",
       tsconfigPath: "./tsconfig.app.json",
     }),
@@ -31,19 +34,6 @@ export default defineConfig({
         },
       },
     },
-  },
-  test: {
-    globals: true,
-    environment: "jsdom",
-    coverage: {
-      provider: "v8",
-      reporter: ["text", "json", "html"],
-      exclude: ["node_modules/", "src/setupTests.ts"],
-    },
-    testTimeout: 10000,
-    clearMocks: true,
-    mockReset: true,
-    restoreMocks: true,
   },
   server: {
     port: 3000,
