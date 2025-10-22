@@ -7,7 +7,7 @@
 [![GitHub pull requests](https://img.shields.io/github/issues-pr/chensid/react-use-echarts)](https://github.com/chensid/react-use-echarts/pulls)
 [![GitHub license](https://img.shields.io/github/license/chensid/react-use-echarts.svg)](https://github.com/chensid/react-use-echarts/blob/main/LICENSE.txt)
 
-A powerful React hooks library for Apache ECharts, making it easy to use ECharts in your React applications with minimal boilerplate.
+A React hooks library for Apache ECharts with full TypeScript support. Simple, lightweight, and gets out of your way.
 
 ## ✨ Features
 
@@ -18,6 +18,11 @@ A powerful React hooks library for Apache ECharts, making it easy to use ECharts
 - ⚡ **Auto-updating** - Automatically updates chart when data or options change
 - 📱 **Responsive** - Handles container resizing automatically with ResizeObserver
 - 🎯 **Event handling** - Easy to use event system with flexible configuration
+
+## 📋 Requirements
+
+- React 18.3.1+ or 19.0.0+
+- ECharts 5.6.0+ or 6.0.0+
 
 ## 📦 Installation
 
@@ -66,26 +71,192 @@ function MyChart() {
 }
 ```
 
+## 🚀 Advanced Usage
+
+### Event Handling
+
+```tsx
+import { useEcharts } from 'react-use-echarts';
+import type { EChartsOption } from 'echarts';
+
+function InteractiveChart() {
+  const options: EChartsOption = {
+    xAxis: { type: 'category', data: ['A', 'B', 'C'] },
+    yAxis: { type: 'value' },
+    series: [{ data: [120, 200, 150], type: 'bar' }]
+  };
+
+  const { chartRef } = useEcharts({
+    option: options,
+    onEvents: {
+      click: {
+        handler: (params) => {
+          console.log('Clicked:', params);
+        }
+      },
+      mouseover: {
+        handler: (params) => {
+          console.log('Hover:', params);
+        },
+        query: 'series' // Only trigger on series elements
+      }
+    }
+  });
+
+  return <div ref={chartRef} style={{ width: '100%', height: '400px' }} />;
+}
+```
+
+### Loading State
+
+```tsx
+import { useState, useEffect } from 'react';
+import { useEcharts } from 'react-use-echarts';
+
+function ChartWithLoading() {
+  const [loading, setLoading] = useState(true);
+  const [data, setData] = useState([]);
+
+  // Simulate data fetching
+  useEffect(() => {
+    setTimeout(() => {
+      setData([820, 932, 901, 934, 1290, 1330, 1320]);
+      setLoading(false);
+    }, 2000);
+  }, []);
+
+  const { chartRef } = useEcharts({
+    option: {
+      xAxis: { type: 'category', data: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'] },
+      yAxis: { type: 'value' },
+      series: [{ data, type: 'line' }]
+    },
+    showLoading: loading
+  });
+
+  return <div ref={chartRef} style={{ width: '100%', height: '400px' }} />;
+}
+```
+
+### Dynamic Updates
+
+```tsx
+import { useState } from 'react';
+import { useEcharts } from 'react-use-echarts';
+
+function DynamicChart() {
+  const [data, setData] = useState([120, 200, 150, 80, 70, 110, 130]);
+
+  const { chartRef, setOption } = useEcharts({
+    option: {
+      xAxis: { type: 'category', data: ['A', 'B', 'C', 'D', 'E', 'F', 'G'] },
+      yAxis: { type: 'value' },
+      series: [{ data, type: 'bar' }]
+    }
+  });
+
+  const updateData = () => {
+    const newData = data.map(() => Math.floor(Math.random() * 200));
+    setData(newData);
+    setOption({
+      series: [{ data: newData }]
+    });
+  };
+
+  return (
+    <div>
+      <button onClick={updateData}>Update Data</button>
+      <div ref={chartRef} style={{ width: '100%', height: '400px' }} />
+    </div>
+  );
+}
+```
+
+### Custom Theme
+
+```tsx
+import { useEcharts } from 'react-use-echarts';
+
+function ThemedChart() {
+  const customTheme = {
+    color: ['#fc8452', '#9a60b4', '#ea7ccc'],
+    backgroundColor: '#1e1e1e'
+  };
+
+  const { chartRef } = useEcharts({
+    option: {
+      xAxis: { type: 'category', data: ['A', 'B', 'C'] },
+      yAxis: { type: 'value' },
+      series: [{ data: [120, 200, 150], type: 'bar' }]
+    },
+    theme: customTheme
+  });
+
+  return <div ref={chartRef} style={{ width: '100%', height: '400px' }} />;
+}
+```
+
+### Accessing ECharts Instance
+
+```tsx
+import { useEcharts } from 'react-use-echarts';
+
+function ChartWithInstance() {
+  const { chartRef, getInstance } = useEcharts({
+    option: {
+      xAxis: { type: 'category', data: ['A', 'B', 'C'] },
+      yAxis: { type: 'value' },
+      series: [{ data: [120, 200, 150], type: 'bar' }]
+    }
+  });
+
+  const exportImage = () => {
+    const instance = getInstance();
+    if (instance) {
+      const url = instance.getDataURL({
+        type: 'png',
+        pixelRatio: 2,
+        backgroundColor: '#fff'
+      });
+      // Download or use the image URL
+      const link = document.createElement('a');
+      link.download = 'chart.png';
+      link.href = url;
+      link.click();
+    }
+  };
+
+  return (
+    <div>
+      <button onClick={exportImage}>Export as Image</button>
+      <div ref={chartRef} style={{ width: '100%', height: '400px' }} />
+    </div>
+  );
+}
+```
+
 ## 📖 API
 
 ### useEcharts
 
 The main hook for using ECharts in React components.
 
+#### Parameters
+
 ```tsx
-import type { EChartsOption } from 'echarts';
-import type { UseEchartsOptions } from 'react-use-echarts';
+import type { EChartsOption, SetOptionOpts } from 'echarts';
+import { useEcharts } from 'react-use-echarts';
 
 const { chartRef, setOption, getInstance } = useEcharts({
-  option: EChartsOption;        // ECharts options configuration (required)
-  theme?: string | object;      // ECharts theme name or configuration
-  notMerge?: boolean;          // Whether to not merge with previous options
-  lazyUpdate?: boolean;        // Whether to update chart lazily
-  showLoading?: boolean;       // Whether to display loading animation
-  loadingOption?: object;      // Loading animation configuration
-  onEvents?: {                 // Event handlers
+  option: EChartsOption;        // Required: ECharts configuration
+  theme?: string | object;      // Optional: Theme name or object
+  notMerge?: boolean;          // Optional: Don't merge with previous option (default: false)
+  lazyUpdate?: boolean;        // Optional: Lazy update mode (default: false)
+  showLoading?: boolean;       // Optional: Show loading animation (default: false)
+  loadingOption?: object;      // Optional: Loading animation config
+  onEvents?: {                 // Optional: Event handlers map
     [eventName: string]: {
-      handler: (params: any) => void;
+      handler: (params: unknown) => void;
       query?: string | object;
       context?: object;
     }
@@ -95,9 +266,17 @@ const { chartRef, setOption, getInstance } = useEcharts({
 
 #### Returns
 
-- `chartRef`: Ref object to attach to the chart container
-- `setOption`: Function to update chart options
-- `getInstance`: Function to get the ECharts instance (available after component mounts)
+```tsx
+{
+  chartRef: React.RefObject<HTMLDivElement | null>;
+  setOption: (option: EChartsOption, opts?: SetOptionOpts) => void;
+  getInstance: () => ECharts | undefined;
+}
+```
+
+- **`chartRef`**: Ref to attach to the chart container element
+- **`setOption`**: Update chart options dynamically
+- **`getInstance`**: Get the ECharts instance (returns `undefined` before initialization)
 
 ## 🤝 Contributing
 
