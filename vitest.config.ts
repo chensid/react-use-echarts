@@ -7,6 +7,7 @@ export default defineConfig({
     coverage: {
       provider: "v8",
       reporter: ["text", "json", "html"],
+      include: ["src/**/*"],
       exclude: ["node_modules/", "src/setupTests.ts"],
     },
     testTimeout: 10000,
