@@ -30,7 +30,7 @@ importers:
         specifier: ^5.1.0
         version: 5.1.0(rolldown-vite@7.1.14(@types/node@24.10.0)(esbuild@0.25.8))
       '@vitest/coverage-v8':
-        specifier: 4.0.7
+        specifier: ^4.0.7
         version: 4.0.7(vitest@4.0.7(@types/node@24.10.0)(esbuild@0.25.8)(jsdom@27.1.0(postcss@8.5.6)))
       babel-plugin-react-compiler:
         specifier: ^1.0.0
