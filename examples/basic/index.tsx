@@ -4,7 +4,7 @@ import LineChart from "./LineChart";
 
 const BasicExamples: React.FC = () => {
   return (
-    <div style={{ padding: "20px" }}>
+    <div style={{ padding: "16px" }}>
       <h1>Basic Examples</h1>
 
       <div style={{ marginBottom: "40px" }}>
