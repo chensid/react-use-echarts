@@ -21,8 +21,8 @@ A React hooks library for Apache ECharts with full TypeScript support. Simple, l
 
 ## 📋 Requirements
 
-- React 18.3.1+ or 19.0.0+
-- ECharts 5.6.0+ or 6.0.0+
+- React 19.x
+- ECharts 6.x
 
 ## 📦 Installation
 
