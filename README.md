@@ -244,24 +244,34 @@ The main hook for using ECharts in React components.
 #### Parameters
 
 ```tsx
-import type { EChartsOption, SetOptionOpts } from 'echarts';
+import type { EChartsOption } from 'echarts';
+import type { UseEchartsOptions } from 'react-use-echarts';
 import { useEcharts } from 'react-use-echarts';
 
-const { chartRef, setOption, getInstance } = useEcharts({
-  option: EChartsOption;        // Required: ECharts configuration
-  theme?: string | object;      // Optional: Theme name or object
-  notMerge?: boolean;          // Optional: Don't merge with previous option (default: false)
-  lazyUpdate?: boolean;        // Optional: Lazy update mode (default: false)
-  showLoading?: boolean;       // Optional: Show loading animation (default: false)
-  loadingOption?: object;      // Optional: Loading animation config
-  onEvents?: {                 // Optional: Event handlers map
-    [eventName: string]: {
-      handler: (params: unknown) => void;
-      query?: string | object;
-      context?: object;
-    }
-  }
-});
+const someEchartsOption: EChartsOption = {
+  xAxis: { type: 'category', data: ['Mon', 'Tue', 'Wed'] },
+  yAxis: { type: 'value' },
+  series: [{ type: 'line', data: [120, 200, 150] }],
+};
+
+const options: UseEchartsOptions = {
+  option: someEchartsOption, // 必填：ECharts 配置项
+  theme: 'dark', // 选填：主题名称或主题对象
+  notMerge: false, // 选填：是否不与之前的配置合并
+  lazyUpdate: false, // 选填：是否延迟更新
+  showLoading: false, // 选填：是否展示 loading
+  loadingOption: { text: 'Loading…' }, // 选填：loading 配置
+  onEvents: {
+    click: {
+      handler: (params) => {
+        console.log(params);
+      },
+      query: 'series', // 选填：事件查询条件
+    },
+  },
+};
+
+const { chartRef, setOption, getInstance } = useEcharts(options);
 ```
 
 #### Returns
