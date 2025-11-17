@@ -1,40 +1,48 @@
 # Contributing to react-use-echarts
 
-Thanks for your interest in contributing to react-use-echarts!
+Thanks for your interest in improving `react-use-echarts`!
+
+## Prerequisites
+
+- Node.js 22.x (active LTS; required for the current Vite toolchain)
+- pnpm ≥ 10
+- Git
 
 ## Quick Start
 
-1. Fork and clone the repo
-2. Install dependencies: `pnpm install`
-3. Create your feature branch: `git checkout -b my-feature`
-4. Make your changes
-5. Run tests: `pnpm test`
-6. Commit your changes: `git commit -m 'Add some feature'`
-7. Push to the branch: `git push origin my-feature`
-8. Submit a pull request
+1. Fork this repository and clone it locally.
+2. Install dependencies: `pnpm install`.
+3. Create a feature branch: `git checkout -b feat/my-feature`.
+4. Start the playground for manual verification: `pnpm dev` (serves the examples on <http://localhost:3000>).
+5. Implement and self-test your changes.
 
-## Development
+## Development Commands
 
-- Build: `pnpm build`
-- Test: `pnpm test`
-- Lint: `pnpm lint`
+- `pnpm dev` – run the Vite dev server with the examples under `examples/`.
+- `pnpm lint` – run ESLint (auto-fix issues where possible).
+- `pnpm typecheck` – validate TypeScript types.
+- `pnpm test` – execute the Vitest suite (`pnpm test -- --watch` for watch mode).
+- `pnpm coverage` – generate coverage reports.
+- `pnpm build` – build the library bundles and type declarations into `dist/`.
+
+Run `pnpm lint`, `pnpm typecheck`, `pnpm test`, and `pnpm build` before opening a pull request. This is the same set of checks we rely on for releases.
 
 ## Pull Request Guidelines
 
-- Update documentation if needed
-- Add/update tests if needed
-- Follow the existing code style
-- One feature per PR
+- Keep each PR focused on a single feature or fix.
+- Update documentation (`README.md`, `examples/`, API comments) when behavior or public APIs change.
+- Add or update tests in `src/__tests__` for any logic changes.
+- Ensure `pnpm lint`, `pnpm typecheck`, and `pnpm test` pass locally.
+- Describe the motivation, solution, and validation steps in the PR body.
 
-## Bug Reports
+## Reporting Issues
 
 When filing an issue, please include:
 
-- Version of react-use-echarts
-- Brief description of the issue
-- Steps to reproduce
-- Expected behavior
-- Actual behavior
+- Version information: `react-use-echarts`, React, ECharts, Node.js.
+- Clear steps to reproduce (ideally a minimal sandbox or code sample).
+- Expected behavior and actual behavior.
+- Any relevant logs, stack traces, or screenshots.
 
 ## License
 
