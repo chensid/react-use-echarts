@@ -56,7 +56,7 @@
     "@types/react": "^19.2.6",
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^5.1.1",
-    "@vitest/coverage-v8": "^4.0.10",
+    "@vitest/coverage-v8": "^4.0.12",
     "babel-plugin-react-compiler": "^1.0.0",
     "echarts": "^6.0.0",
     "eslint": "^9.39.1",
@@ -68,9 +68,9 @@
     "react-dom": "^19.2.0",
     "typescript": "~5.9.3",
     "typescript-eslint": "^8.47.0",
-    "vite": "^7.2.2",
+    "vite": "^7.2.4",
     "vite-plugin-dts": "^4.5.4",
-    "vitest": "^4.0.10"
+    "vitest": "^4.0.12"
   },
   "peerDependencies": {
     "echarts": "^6.0.0",
