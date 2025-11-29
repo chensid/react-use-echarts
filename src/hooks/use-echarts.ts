@@ -164,7 +164,7 @@ function useEcharts(
   }, [getInstance]);
 
   /**
-   * Initialize chart and bindsetup on mount
+   * Initialize chart and bind setup on mount
    * Uses useLayoutEffect to ensure chart is ready before paint
    * 在挂载时初始化图表并设置
    * 使用 useLayoutEffect 确保图表在绑定前准备好
