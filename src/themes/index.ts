@@ -17,6 +17,19 @@ const themeRegistry = new Map<string, object>([
 ]);
 
 /**
+ * Cache for custom theme names (theme object -> registered theme name)
+ * 自定义主题名称缓存（主题对象 -> 已注册的主题名称）
+ * Uses WeakMap to allow garbage collection of theme objects
+ */
+const customThemeCache = new WeakMap<object, string>();
+
+/**
+ * Counter for generating unique custom theme names
+ * 用于生成唯一自定义主题名称的计数器
+ */
+let customThemeCounter = 0;
+
+/**
  * Register built-in themes with ECharts
  * 向 ECharts 注册内置主题
  */
@@ -54,6 +67,29 @@ export function isBuiltinTheme(themeName: string): themeName is BuiltinTheme {
  */
 export function registerCustomTheme(themeName: string, themeConfig: object): void {
   echarts.registerTheme(themeName, themeConfig);
+}
+
+/**
+ * Get or create a cached theme name for a custom theme object
+ * This prevents memory leaks by reusing theme names for the same object reference
+ * 获取或创建自定义主题对象的缓存主题名称
+ * 通过为相同对象引用重用主题名称来防止内存泄漏
+ * @param themeConfig Custom theme configuration object
+ * @returns Cached or newly generated theme name
+ */
+export function getOrRegisterCustomTheme(themeConfig: object): string {
+  // Check if this theme object is already cached
+  const cachedName = customThemeCache.get(themeConfig);
+  if (cachedName) {
+    return cachedName;
+  }
+
+  // Generate a unique theme name and register it
+  const themeName = `__custom_theme_${customThemeCounter++}`;
+  echarts.registerTheme(themeName, themeConfig);
+  customThemeCache.set(themeConfig, themeName);
+
+  return themeName;
 }
 
 /**
