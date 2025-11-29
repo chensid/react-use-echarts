@@ -13,6 +13,25 @@ import { updateGroup } from "../utils/connect";
 import { isBuiltinTheme, getOrRegisterCustomTheme } from "../themes";
 
 /**
+ * Get theme name for ECharts initialization
+ * 获取用于 ECharts 初始化的主题名称
+ * @param theme Theme configuration
+ * @returns Theme name string or null
+ */
+function resolveThemeName(theme: BuiltinTheme | object | null | undefined): string | object | null {
+  if (theme === null || theme === undefined) {
+    return null;
+  } else if (typeof theme === 'string' && isBuiltinTheme(theme)) {
+    return theme;
+  } else if (typeof theme === 'object') {
+    // Use cached theme registration to prevent memory leaks
+    // 使用缓存的主题注册以防止内存泄漏
+    return getOrRegisterCustomTheme(theme);
+  }
+  return null;
+}
+
+/**
  * React hook for Apache ECharts integration (v1.0)
  * Apache ECharts React Hook (v1.0)
  * @param ref React ref to the chart container element
@@ -80,24 +99,9 @@ function useEcharts(
     let instance = getCachedInstance(element);
 
     if (!instance) {
-      // Helper function to get theme name for ECharts init
-      // 辅助函数：获取用于 ECharts 初始化的主题名称
-      const getThemeName = (): string | object | null => {
-        if (theme === null) {
-          return null;
-        } else if (typeof theme === 'string' && isBuiltinTheme(theme)) {
-          return theme;
-        } else if (typeof theme === 'object') {
-          // Use cached theme registration to prevent memory leaks
-          // 使用缓存的主题注册以防止内存泄漏
-          return getOrRegisterCustomTheme(theme);
-        }
-        return null;
-      };
-
       // Create new instance
       // 创建新实例
-      const themeToUse = getThemeName();
+      const themeToUse = resolveThemeName(theme);
       instance = echarts.init(element, themeToUse, { renderer });
 
       // Cache the instance
@@ -210,24 +214,11 @@ function useEcharts(
     const existingInstance = getCachedInstance(element);
     if (!existingInstance) return;
 
-    // Helper function to get theme name for ECharts init
-    // 辅助函数：获取用于 ECharts 初始化的主题名称
-    const getThemeName = (): string | object | null => {
-      if (theme === null) {
-        return null;
-      } else if (typeof theme === 'string' && isBuiltinTheme(theme)) {
-        return theme;
-      } else if (typeof theme === 'object') {
-        return getOrRegisterCustomTheme(theme);
-      }
-      return null;
-    };
-
     // Theme changed, need to recreate instance
     // replaceCachedInstance will dispose the old instance
     // 主题改变，需要重新创建实例
     // replaceCachedInstance 会销毁旧实例
-    const themeToUse = getThemeName();
+    const themeToUse = resolveThemeName(theme);
     const newInstance = echarts.init(element, themeToUse, { renderer });
     replaceCachedInstance(element, newInstance);
     prevThemeRef.current = theme;
