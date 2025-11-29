@@ -1,7 +1,7 @@
 {
   "name": "react-use-echarts",
   "private": false,
-  "version": "0.0.11",
+  "version": "0.0.12",
   "description": "A powerful React hooks library for Apache ECharts",
   "keywords": [
     "react",
@@ -9,7 +9,11 @@
     "echarts",
     "charts",
     "data-visualization",
-    "typescript"
+    "typescript",
+    "themes",
+    "lazy-loading",
+    "chart-linkage",
+    "resize-observer"
   ],
   "type": "module",
   "author": "Ethan",

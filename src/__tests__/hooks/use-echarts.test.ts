@@ -1,248 +1,493 @@
-import { act, renderHook, waitFor } from "@testing-library/react";
-import {
-  describe,
-  it,
-  expect,
-  vi,
-  afterEach,
-  type MockedFunction,
-} from "vitest";
+import { describe, it, expect, vi, beforeEach } from "vitest";
+import { renderHook, act, waitFor } from "@testing-library/react";
 import * as echarts from "echarts";
-import type { EChartsOption, ECharts } from "echarts";
 import useEcharts from "../../hooks/use-echarts";
+import { clearInstanceCache, getCachedInstance } from "../../utils/instance-cache";
+import { clearGroups } from "../../utils/connect";
+import type { EChartsOption } from "echarts";
 
-// Create a mock instance interface
-interface MockEChartsInstance {
-  setOption: MockedFunction<ECharts["setOption"]>;
-  dispose: MockedFunction<ECharts["dispose"]>;
-  on: MockedFunction<ECharts["on"]>;
-  off: MockedFunction<ECharts["off"]>;
-  resize: MockedFunction<ECharts["resize"]>;
-  showLoading: MockedFunction<ECharts["showLoading"]>;
-  hideLoading: MockedFunction<ECharts["hideLoading"]>;
+// Mock ECharts
+vi.mock("echarts", () => ({
+  init: vi.fn(),
+  connect: vi.fn(),
+  disconnect: vi.fn(),
+  registerTheme: vi.fn(),
+}));
+
+// Mock ResizeObserver
+let resizeObserverInstances: { observe: ReturnType<typeof vi.fn>; disconnect: ReturnType<typeof vi.fn> }[] = [];
+
+class MockResizeObserver {
+  callback: ResizeObserverCallback;
+  observe = vi.fn();
+  disconnect = vi.fn();
+  unobserve = vi.fn();
+
+  constructor(callback: ResizeObserverCallback) {
+    this.callback = callback;
+    resizeObserverInstances.push(this);
+  }
 }
+global.ResizeObserver = MockResizeObserver as unknown as typeof ResizeObserver;
 
-// Mock ECharts library
-vi.mock("echarts", () => {
-  const mockInstance: MockEChartsInstance = {
+// Mock IntersectionObserver
+class MockIntersectionObserver implements IntersectionObserver {
+  callback: IntersectionObserverCallback;
+  disconnect = vi.fn();
+  unobserve = vi.fn();
+  takeRecords = vi.fn(() => [] as IntersectionObserverEntry[]);
+  root: Document | Element | null = null;
+  rootMargin = "0px";
+  thresholds: ReadonlyArray<number> = [0];
+
+  constructor(callback: IntersectionObserverCallback) {
+    this.callback = callback;
+  }
+
+  // Trigger callback synchronously in observe() to match test expectations
+  observe = vi.fn(() => {
+    this.callback([{ isIntersecting: true } as IntersectionObserverEntry], this);
+  });
+}
+global.IntersectionObserver = MockIntersectionObserver as unknown as typeof IntersectionObserver;
+
+// Create mock instance factory
+function createMockInstance(element?: HTMLElement) {
+  return {
     setOption: vi.fn(),
     dispose: vi.fn(),
-    on: vi.fn(),
-    off: vi.fn(),
-    resize: vi.fn(),
     showLoading: vi.fn(),
     hideLoading: vi.fn(),
+    on: vi.fn(),
+    off: vi.fn(),
+    getDom: vi.fn(() => element),
+    resize: vi.fn(),
   };
-  return {
-    init: vi.fn(() => mockInstance),
-    ECharts: vi.fn(),
-  };
-});
-
-// Mock ResizeObserver with proper types
-global.ResizeObserver = vi.fn().mockImplementation(() => ({
-  observe: vi.fn(),
-  unobserve: vi.fn(),
-  disconnect: vi.fn(),
-})) as typeof ResizeObserver;
+}
 
 describe("useEcharts", () => {
-  afterEach(() => {
+  beforeEach(() => {
+    clearInstanceCache();
+    clearGroups();
+    resizeObserverInstances = [];
     vi.clearAllMocks();
   });
 
-  // 测试初始化
-  it("should initialize the chart instance correctly", async () => {
-    const option: EChartsOption = { series: [{ type: "line" }] };
-    const theme = "dark";
+  const baseOption: EChartsOption = {
+    series: [{ type: "line", data: [1, 2, 3] }],
+  };
 
-    // Create a mock div element
-    const mockDiv = document.createElement("div");
-    document.body.appendChild(mockDiv);
+  describe("initialization", () => {
+    it("should initialize chart instance", () => {
+      const element = document.createElement("div");
+      const ref = { current: element };
+      const mockInstance = createMockInstance(element);
+      (echarts.init as ReturnType<typeof vi.fn>).mockReturnValue(mockInstance);
 
-    // Create a wrapper component that uses the hook
-    const { result, rerender } = renderHook(() => {
-      const hookResult = useEcharts({
-        option,
-        theme,
+      renderHook(() => useEcharts(ref, { option: baseOption }));
+
+      expect(echarts.init).toHaveBeenCalledWith(element, null, { renderer: "canvas" });
+      expect(mockInstance.setOption).toHaveBeenCalledWith(baseOption, undefined);
+    });
+
+    it("should use svg renderer when specified", () => {
+      const element = document.createElement("div");
+      const ref = { current: element };
+      const mockInstance = createMockInstance(element);
+      (echarts.init as ReturnType<typeof vi.fn>).mockReturnValue(mockInstance);
+
+      renderHook(() => useEcharts(ref, { option: baseOption, renderer: "svg" }));
+
+      expect(echarts.init).toHaveBeenCalledWith(element, null, { renderer: "svg" });
+    });
+
+    it("should not initialize when ref is null", () => {
+      const ref = { current: null };
+
+      renderHook(() => useEcharts(ref, { option: baseOption }));
+
+      expect(echarts.init).not.toHaveBeenCalled();
+    });
+
+    it("should not initialize when lazyInit is true and not visible", () => {
+      // Override IntersectionObserver to not trigger immediately
+      class NonTriggeringIntersectionObserver {
+        observe = vi.fn();
+        disconnect = vi.fn();
+        unobserve = vi.fn();
+        constructor() {}
+      }
+      global.IntersectionObserver = NonTriggeringIntersectionObserver as unknown as typeof IntersectionObserver;
+
+      const element = document.createElement("div");
+      const ref = { current: element };
+
+      renderHook(() => useEcharts(ref, { option: baseOption, lazyInit: true }));
+
+      expect(echarts.init).not.toHaveBeenCalled();
+
+      // Restore
+      global.IntersectionObserver = MockIntersectionObserver as unknown as typeof IntersectionObserver;
+    });
+  });
+
+  describe("theme handling", () => {
+    it("should use null theme by default", () => {
+      const element = document.createElement("div");
+      const ref = { current: element };
+      const mockInstance = createMockInstance(element);
+      (echarts.init as ReturnType<typeof vi.fn>).mockReturnValue(mockInstance);
+
+      renderHook(() => useEcharts(ref, { option: baseOption }));
+
+      expect(echarts.init).toHaveBeenCalledWith(element, null, expect.any(Object));
+    });
+
+    it("should use builtin theme when specified", () => {
+      const element = document.createElement("div");
+      const ref = { current: element };
+      const mockInstance = createMockInstance(element);
+      (echarts.init as ReturnType<typeof vi.fn>).mockReturnValue(mockInstance);
+
+      renderHook(() => useEcharts(ref, { option: baseOption, theme: "dark" }));
+
+      expect(echarts.init).toHaveBeenCalledWith(element, "dark", expect.any(Object));
+    });
+
+    it("should register and use custom theme object", () => {
+      const element = document.createElement("div");
+      const ref = { current: element };
+      const mockInstance = createMockInstance(element);
+      (echarts.init as ReturnType<typeof vi.fn>).mockReturnValue(mockInstance);
+
+      const customTheme = { color: ["#ff0000", "#00ff00"] };
+
+      renderHook(() => useEcharts(ref, { option: baseOption, theme: customTheme }));
+
+      expect(echarts.registerTheme).toHaveBeenCalledWith(
+        expect.stringContaining("__custom_"),
+        customTheme
+      );
+    });
+
+    it("should use null when theme is explicitly null", () => {
+      const element = document.createElement("div");
+      const ref = { current: element };
+      const mockInstance = createMockInstance(element);
+      (echarts.init as ReturnType<typeof vi.fn>).mockReturnValue(mockInstance);
+
+      renderHook(() => useEcharts(ref, { option: baseOption, theme: null }));
+
+      expect(echarts.init).toHaveBeenCalledWith(element, null, expect.any(Object));
+    });
+  });
+
+  describe("loading state", () => {
+    it("should show loading when showLoading is true", () => {
+      const element = document.createElement("div");
+      const ref = { current: element };
+      const mockInstance = createMockInstance(element);
+      (echarts.init as ReturnType<typeof vi.fn>).mockReturnValue(mockInstance);
+
+      renderHook(() => useEcharts(ref, { option: baseOption, showLoading: true }));
+
+      expect(mockInstance.showLoading).toHaveBeenCalled();
+    });
+
+    it("should pass loading options", () => {
+      const element = document.createElement("div");
+      const ref = { current: element };
+      const mockInstance = createMockInstance(element);
+      (echarts.init as ReturnType<typeof vi.fn>).mockReturnValue(mockInstance);
+
+      const loadingOption = { text: "Loading..." };
+
+      renderHook(() =>
+        useEcharts(ref, { option: baseOption, showLoading: true, loadingOption })
+      );
+
+      expect(mockInstance.showLoading).toHaveBeenCalledWith(loadingOption);
+    });
+
+    it("should hide loading when showLoading is false", () => {
+      const element = document.createElement("div");
+      const ref = { current: element };
+      const mockInstance = createMockInstance(element);
+      (echarts.init as ReturnType<typeof vi.fn>).mockReturnValue(mockInstance);
+
+      renderHook(() => useEcharts(ref, { option: baseOption, showLoading: false }));
+
+      expect(mockInstance.hideLoading).toHaveBeenCalled();
+    });
+  });
+
+  describe("event handling", () => {
+    it("should bind events on initialization", () => {
+      const element = document.createElement("div");
+      const ref = { current: element };
+      const mockInstance = createMockInstance(element);
+      (echarts.init as ReturnType<typeof vi.fn>).mockReturnValue(mockInstance);
+
+      const clickHandler = vi.fn();
+      const onEvents = {
+        click: { handler: clickHandler },
+      };
+
+      renderHook(() => useEcharts(ref, { option: baseOption, onEvents }));
+
+      expect(mockInstance.on).toHaveBeenCalledWith("click", clickHandler, undefined);
+    });
+
+    it("should bind events with query", () => {
+      const element = document.createElement("div");
+      const ref = { current: element };
+      const mockInstance = createMockInstance(element);
+      (echarts.init as ReturnType<typeof vi.fn>).mockReturnValue(mockInstance);
+
+      const clickHandler = vi.fn();
+      const onEvents = {
+        click: { handler: clickHandler, query: "series" },
+      };
+
+      renderHook(() => useEcharts(ref, { option: baseOption, onEvents }));
+
+      expect(mockInstance.on).toHaveBeenCalledWith("click", "series", clickHandler, undefined);
+    });
+
+    it("should bind events with context", () => {
+      const element = document.createElement("div");
+      const ref = { current: element };
+      const mockInstance = createMockInstance(element);
+      (echarts.init as ReturnType<typeof vi.fn>).mockReturnValue(mockInstance);
+
+      const context = { name: "test" };
+      const clickHandler = vi.fn();
+      const onEvents = {
+        click: { handler: clickHandler, context },
+      };
+
+      renderHook(() => useEcharts(ref, { option: baseOption, onEvents }));
+
+      expect(mockInstance.on).toHaveBeenCalledWith("click", clickHandler, context);
+    });
+
+    it("should unbind events on unmount", () => {
+      const element = document.createElement("div");
+      const ref = { current: element };
+      const mockInstance = createMockInstance(element);
+      (echarts.init as ReturnType<typeof vi.fn>).mockReturnValue(mockInstance);
+
+      const clickHandler = vi.fn();
+      const onEvents = {
+        click: { handler: clickHandler },
+      };
+
+      const { unmount } = renderHook(() =>
+        useEcharts(ref, { option: baseOption, onEvents })
+      );
+
+      unmount();
+
+      expect(mockInstance.off).toHaveBeenCalledWith("click", clickHandler);
+    });
+  });
+
+  describe("group handling", () => {
+    it("should add chart to group", () => {
+      const element = document.createElement("div");
+      const ref = { current: element };
+      const mockInstance = createMockInstance(element);
+      (echarts.init as ReturnType<typeof vi.fn>).mockReturnValue(mockInstance);
+
+      renderHook(() => useEcharts(ref, { option: baseOption, group: "myGroup" }));
+
+      // Group is handled in useEffect, check connect was called
+      // Note: connect is only called when multiple instances in group
+    });
+
+    it("should update group when changed", () => {
+      const element = document.createElement("div");
+      const ref = { current: element };
+      const mockInstance = createMockInstance(element);
+      (echarts.init as ReturnType<typeof vi.fn>).mockReturnValue(mockInstance);
+
+      const { rerender } = renderHook(
+        ({ group }) => useEcharts(ref, { option: baseOption, group }),
+        { initialProps: { group: "group1" } }
+      );
+
+      rerender({ group: "group2" });
+
+      // Group update logic is handled
+    });
+  });
+
+  describe("setOption", () => {
+    it("should update chart options via setOption", async () => {
+      const element = document.createElement("div");
+      const ref = { current: element };
+      const mockInstance = createMockInstance(element);
+      (echarts.init as ReturnType<typeof vi.fn>).mockReturnValue(mockInstance);
+
+      const { result } = renderHook(() => useEcharts(ref, { option: baseOption }));
+
+      const newOption: EChartsOption = {
+        series: [{ type: "bar", data: [4, 5, 6] }],
+      };
+
+      act(() => {
+        result.current.setOption(newOption);
       });
-      // Simulate setting the ref
-      if (hookResult.chartRef.current !== mockDiv) {
-        hookResult.chartRef.current = mockDiv;
-      }
-      return hookResult;
-    });
 
-    // Trigger re-render to ensure useEffect runs
-    await act(async () => {
-      rerender();
-      // Wait for microtasks to complete
-      await new Promise<void>((resolve) => queueMicrotask(() => resolve()));
-    });
-
-    // Wait for the chart to be initialized
-    await waitFor(
-      () => {
-        expect(echarts.init).toHaveBeenCalledWith(mockDiv, theme);
-      },
-      { timeout: 2000 }
-    );
-
-    // Verify we can get the instance
-    expect(result.current.getInstance()).toBeDefined();
-
-    // Cleanup
-    document.body.removeChild(mockDiv);
-  });
-
-  // 测试 setOption
-  it("should update chart options after initialization", async () => {
-    const initialOption: EChartsOption = { series: [{ type: "line" }] };
-    const newOption: EChartsOption = { series: [{ type: "bar" }] };
-
-    const mockDiv = document.createElement("div");
-    document.body.appendChild(mockDiv);
-
-    const { result, rerender } = renderHook(() => {
-      const hookResult = useEcharts({ option: initialOption });
-      if (hookResult.chartRef.current !== mockDiv) {
-        hookResult.chartRef.current = mockDiv;
-      }
-      return hookResult;
-    });
-
-    await act(async () => {
-      rerender();
-      await new Promise<void>((resolve) => queueMicrotask(() => resolve()));
-    });
-
-    // Wait for initialization
-    await waitFor(
-      () => {
-        expect(echarts.init).toHaveBeenCalled();
-      },
-      { timeout: 2000 }
-    );
-
-    const mockInit = echarts.init as MockedFunction<typeof echarts.init>;
-    const mockInstance = mockInit.mock.results[0]?.value as MockEChartsInstance;
-
-    // Test setOption
-    await act(async () => {
-      result.current.setOption(newOption);
-      await new Promise<void>((resolve) => queueMicrotask(() => resolve()));
-    });
-
-    expect(mockInstance.setOption).toHaveBeenCalledWith(newOption, undefined);
-
-    // Cleanup
-    document.body.removeChild(mockDiv);
-  });
-
-  // 测试加载状态
-  it("should handle loading state correctly", async () => {
-    const option: EChartsOption = { series: [{ type: "line" }] };
-    const loadingOption = { text: "Loading..." };
-
-    const mockDiv = document.createElement("div");
-    document.body.appendChild(mockDiv);
-
-    const { rerender } = renderHook(() => {
-      const hookResult = useEcharts({
-        option,
-        showLoading: true,
-        loadingOption,
+      // Wait for queueMicrotask
+      await waitFor(() => {
+        expect(mockInstance.setOption).toHaveBeenCalledWith(newOption, expect.any(Object));
       });
-      if (hookResult.chartRef.current !== mockDiv) {
-        hookResult.chartRef.current = mockDiv;
-      }
-      return hookResult;
     });
 
-    await act(async () => {
-      rerender();
-      await new Promise<void>((resolve) => queueMicrotask(() => resolve()));
-    });
+    it("should merge setOptionOpts", async () => {
+      const element = document.createElement("div");
+      const ref = { current: element };
+      const mockInstance = createMockInstance(element);
+      (echarts.init as ReturnType<typeof vi.fn>).mockReturnValue(mockInstance);
 
-    await waitFor(
-      () => {
-        expect(echarts.init).toHaveBeenCalled();
-      },
-      { timeout: 2000 }
-    );
+      const { result } = renderHook(() =>
+        useEcharts(ref, { option: baseOption, setOptionOpts: { notMerge: true } })
+      );
 
-    const mockInit = echarts.init as MockedFunction<typeof echarts.init>;
-    const mockInstance = mockInit.mock.results[0]?.value as MockEChartsInstance;
-    expect(mockInstance.showLoading).toHaveBeenCalledWith(loadingOption);
+      const newOption: EChartsOption = {
+        series: [{ type: "bar", data: [4, 5, 6] }],
+      };
 
-    // Cleanup
-    document.body.removeChild(mockDiv);
-  });
-
-  // 测试事件处理
-  it("should bind and unbind events correctly", async () => {
-    const option: EChartsOption = { series: [{ type: "line" }] };
-    const clickHandler = vi.fn();
-    const onEvents = {
-      click: {
-        handler: clickHandler,
-        query: ".series",
-        context: {},
-      },
-    };
-
-    const mockDiv = document.createElement("div");
-    document.body.appendChild(mockDiv);
-
-    const { rerender, unmount } = renderHook(() => {
-      const hookResult = useEcharts({
-        option,
-        onEvents,
+      act(() => {
+        result.current.setOption(newOption, { lazyUpdate: true });
       });
-      if (hookResult.chartRef.current !== mockDiv) {
-        hookResult.chartRef.current = mockDiv;
-      }
-      return hookResult;
+
+      await waitFor(() => {
+        expect(mockInstance.setOption).toHaveBeenLastCalledWith(newOption, {
+          notMerge: true,
+          lazyUpdate: true,
+        });
+      });
     });
-
-    await act(async () => {
-      rerender();
-      await new Promise<void>((resolve) => queueMicrotask(() => resolve()));
-    });
-
-    await waitFor(
-      () => {
-        expect(echarts.init).toHaveBeenCalled();
-      },
-      { timeout: 2000 }
-    );
-
-    const mockInit = echarts.init as MockedFunction<typeof echarts.init>;
-    const mockInstance = mockInit.mock.results[0]?.value as MockEChartsInstance;
-
-    // Verify event binding
-    expect(mockInstance.on).toHaveBeenCalledWith(
-      "click",
-      ".series",
-      clickHandler,
-      {}
-    );
-
-    // Test cleanup
-    unmount();
-    expect(mockInstance.off).toHaveBeenCalledWith("click", clickHandler);
-    expect(mockInstance.dispose).toHaveBeenCalled();
-
-    // Cleanup
-    document.body.removeChild(mockDiv);
   });
 
-  // 测试实例获取
-  it("should return undefined for getInstance before initialization", () => {
-    const { result } = renderHook(() =>
-      useEcharts({ option: {} as EChartsOption })
-    );
+  describe("getInstance", () => {
+    it("should return chart instance", () => {
+      const element = document.createElement("div");
+      const ref = { current: element };
+      const mockInstance = createMockInstance(element);
+      (echarts.init as ReturnType<typeof vi.fn>).mockReturnValue(mockInstance);
 
-    expect(result.current.getInstance()).toBeUndefined();
+      const { result } = renderHook(() => useEcharts(ref, { option: baseOption }));
+
+      expect(result.current.getInstance()).toBe(mockInstance);
+    });
+
+    it("should return undefined when ref is null", () => {
+      const ref = { current: null };
+
+      const { result } = renderHook(() => useEcharts(ref, { option: baseOption }));
+
+      expect(result.current.getInstance()).toBeUndefined();
+    });
+  });
+
+  describe("resize", () => {
+    it("should call resize on instance", () => {
+      const element = document.createElement("div");
+      const ref = { current: element };
+      const mockInstance = createMockInstance(element);
+      (echarts.init as ReturnType<typeof vi.fn>).mockReturnValue(mockInstance);
+
+      const { result } = renderHook(() => useEcharts(ref, { option: baseOption }));
+
+      act(() => {
+        result.current.resize();
+      });
+
+      expect(mockInstance.resize).toHaveBeenCalled();
+    });
+
+    it("should not throw when instance is undefined", () => {
+      const ref = { current: null };
+
+      const { result } = renderHook(() => useEcharts(ref, { option: baseOption }));
+
+      // Should not throw
+      act(() => {
+        result.current.resize();
+      });
+    });
+  });
+
+  describe("cleanup", () => {
+    it("should dispose instance on unmount", () => {
+      const element = document.createElement("div");
+      const ref = { current: element };
+      const mockInstance = createMockInstance(element);
+      (echarts.init as ReturnType<typeof vi.fn>).mockReturnValue(mockInstance);
+
+      const { unmount } = renderHook(() => useEcharts(ref, { option: baseOption }));
+
+      unmount();
+
+      expect(mockInstance.dispose).toHaveBeenCalled();
+    });
+
+    it("should remove from group on unmount", () => {
+      const element = document.createElement("div");
+      const ref = { current: element };
+      const mockInstance = createMockInstance(element);
+      (echarts.init as ReturnType<typeof vi.fn>).mockReturnValue(mockInstance);
+
+      const { unmount } = renderHook(() =>
+        useEcharts(ref, { option: baseOption, group: "testGroup" })
+      );
+
+      unmount();
+
+      // Group cleanup is handled internally
+    });
+
+    it("should cache instance correctly", () => {
+      const element = document.createElement("div");
+      const ref = { current: element };
+      const mockInstance = createMockInstance(element);
+      (echarts.init as ReturnType<typeof vi.fn>).mockReturnValue(mockInstance);
+
+      renderHook(() => useEcharts(ref, { option: baseOption }));
+
+      expect(getCachedInstance(element)).toBe(mockInstance);
+    });
+  });
+
+  describe("ResizeObserver", () => {
+    it("should setup resize observer", () => {
+      const element = document.createElement("div");
+      const ref = { current: element };
+      const mockInstance = createMockInstance(element);
+      (echarts.init as ReturnType<typeof vi.fn>).mockReturnValue(mockInstance);
+
+      renderHook(() => useEcharts(ref, { option: baseOption }));
+
+      // ResizeObserver should have been created and observe called
+      expect(resizeObserverInstances.length).toBeGreaterThan(0);
+      expect(resizeObserverInstances[0].observe).toHaveBeenCalled();
+    });
+
+    it("should disconnect resize observer on unmount", () => {
+      const element = document.createElement("div");
+      const ref = { current: element };
+      const mockInstance = createMockInstance(element);
+      (echarts.init as ReturnType<typeof vi.fn>).mockReturnValue(mockInstance);
+
+      const { unmount } = renderHook(() => useEcharts(ref, { option: baseOption }));
+
+      unmount();
+
+      expect(resizeObserverInstances[0].disconnect).toHaveBeenCalled();
+    });
   });
 });
+

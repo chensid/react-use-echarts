@@ -7,6 +7,12 @@ import type { EChartsOption, ECharts, SetOptionOpts } from "echarts";
 export type Theme = string | object | null;
 
 /**
+ * Built-in theme names
+ * 内置主题名称
+ */
+export type BuiltinTheme = 'light' | 'dark' | 'macarons';
+
+/**
  * Event configuration interface for ECharts
  * ECharts 事件配置接口
  * @example
@@ -51,37 +57,54 @@ export interface EChartsEvents {
 export interface UseEchartsOptions {
   /**
    * ECharts configuration options
-   * ECharts 的配置项
+   * ECharts 配置项
    */
   option: EChartsOption;
+
   /**
-   * Theme to be applied
-   * 要应用的主题
+   * Theme: built-in preset name | custom object | null
+   * 主题：内置预设名 | 自定义对象 | null
    */
-  theme?: Theme;
+  theme?: BuiltinTheme | object | null;
+
   /**
-   * Whether to not merge with previous options
-   * 是否不合并之前的配置项
-   * @default false
+   * Renderer type
+   * 渲染器类型
+   * @default 'canvas'
    */
-  notMerge?: boolean;
+  renderer?: 'canvas' | 'svg';
+
   /**
-   * Whether to update chart in lazy mode
-   * 是否在懒加载模式下更新图表
-   * @default false
+   * Lazy initialization: only init when container enters viewport
+   * 懒加载：仅当容器进入视口时初始化
    */
-  lazyUpdate?: boolean;
+  lazyInit?: boolean | IntersectionObserverInit;
+
+  /**
+   * Chart group ID for linkage
+   * 图表组 ID，用于联动
+   */
+  group?: string;
+
+  /**
+   * Default setOption options
+   * setOption 默认选项（替代原 notMerge / lazyUpdate）
+   */
+  setOptionOpts?: SetOptionOpts;
+
   /**
    * Whether to show loading state
    * 是否显示加载状态
    * @default false
    */
   showLoading?: boolean;
+
   /**
    * Loading options
    * 加载配置项
    */
   loadingOption?: object;
+
   /**
    * Event configurations
    * 事件配置
@@ -95,19 +118,21 @@ export interface UseEchartsOptions {
  */
 export interface UseEchartsReturn {
   /**
-   * Reference to the chart container element
-   * 图表容器元素的引用
-   */
-  chartRef: React.RefObject<HTMLDivElement | null>;
-  /**
    * Function to update chart options
-   * 更新图表配置的函数
+   * 动态更新配置
    */
   setOption: (option: EChartsOption, opts?: SetOptionOpts) => void;
+
   /**
    * Function to get the ECharts instance
-   * 获取 ECharts 实例的函数
+   * 获取实例
    * @returns Returns the current ECharts instance, or undefined if not initialized
    */
   getInstance: () => ECharts | undefined;
+
+  /**
+   * Manually trigger resize
+   * 手动触发 resize
+   */
+  resize: () => void;
 }
