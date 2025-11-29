@@ -15,11 +15,12 @@ const groupRegistry = new Map<string, Set<ECharts>>();
  * @param groupId Group ID
  */
 export function addToGroup(instance: ECharts, groupId: string): void {
-  if (!groupRegistry.has(groupId)) {
-    groupRegistry.set(groupId, new Set());
+  let group = groupRegistry.get(groupId);
+  if (!group) {
+    group = new Set();
+    groupRegistry.set(groupId, group);
   }
 
-  const group = groupRegistry.get(groupId)!;
   group.add(instance);
 
   // Connect all instances in the group

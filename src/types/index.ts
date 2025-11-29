@@ -1,12 +1,6 @@
 import type { EChartsOption, ECharts, SetOptionOpts } from "echarts";
 
 /**
- * Theme type for ECharts
- * ECharts 的主题类型
- */
-export type Theme = string | object | null;
-
-/**
  * Built-in theme names
  * 内置主题名称
  */

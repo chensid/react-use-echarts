@@ -1,7 +1,7 @@
 import { useEffect, useRef, useCallback, useLayoutEffect } from "react";
 import * as echarts from "echarts";
 import type { ECharts, SetOptionOpts, EChartsOption } from "echarts";
-import type { UseEchartsOptions, UseEchartsReturn, BuiltinTheme } from "../types";
+import type { UseEchartsOptions, UseEchartsReturn, EChartsEvents, BuiltinTheme } from "../types";
 import { useLazyInit } from "./use-lazy-init";
 import {
   getCachedInstance,
@@ -18,17 +18,43 @@ import { isBuiltinTheme, getOrRegisterCustomTheme } from "../themes";
  * @param theme Theme configuration
  * @returns Theme name string or null
  */
-function resolveThemeName(theme: BuiltinTheme | object | null | undefined): string | object | null {
-  if (theme === null || theme === undefined) {
+function resolveThemeName(theme: BuiltinTheme | object | null | undefined): string | null {
+  if (theme == null) {
     return null;
-  } else if (typeof theme === 'string' && isBuiltinTheme(theme)) {
+  }
+  if (typeof theme === 'string' && isBuiltinTheme(theme)) {
     return theme;
-  } else if (typeof theme === 'object') {
-    // Use cached theme registration to prevent memory leaks
-    // 使用缓存的主题注册以防止内存泄漏
+  }
+  if (typeof theme === 'object') {
     return getOrRegisterCustomTheme(theme);
   }
   return null;
+}
+
+/**
+ * Bind events to ECharts instance
+ * 绑定事件到 ECharts 实例
+ */
+function bindEvents(instance: ECharts, events: EChartsEvents | undefined): void {
+  if (!events) return;
+  for (const [eventName, { handler, query, context }] of Object.entries(events)) {
+    if (query) {
+      instance.on(eventName, query, handler, context);
+    } else {
+      instance.on(eventName, handler, context);
+    }
+  }
+}
+
+/**
+ * Unbind events from ECharts instance
+ * 从 ECharts 实例解绑事件
+ */
+function unbindEvents(instance: ECharts, events: EChartsEvents | undefined): void {
+  if (!events) return;
+  for (const [eventName, { handler }] of Object.entries(events)) {
+    instance.off(eventName, handler);
+  }
 }
 
 /**
@@ -62,10 +88,6 @@ function useEcharts(
   // Track bound events for proper cleanup without dependency issues
   // 跟踪已绑定的事件，以便在不产生依赖问题的情况下正确清理
   const onEventsRef = useRef(onEvents);
-  
-  // Track if initial setup has been done
-  // 跟踪是否已完成初始设置
-  const isInitializedRef = useRef(false);
 
   // Update onEventsRef when onEvents changes
   // 当 onEvents 改变时更新 onEventsRef
@@ -75,7 +97,7 @@ function useEcharts(
 
   // Lazy initialization
   // 懒加载初始化
-  const shouldInit = useLazyInit(ref, typeof lazyInit === 'boolean' ? lazyInit : lazyInit || {});
+  const shouldInit = useLazyInit(ref, lazyInit);
 
   /**
    * Get the current chart instance
@@ -138,25 +160,25 @@ function useEcharts(
    * 手动触发 resize
    */
   const resize = useCallback(() => {
-    const instance = getInstance();
-    if (instance) {
-      instance.resize();
-    }
+    getInstance()?.resize();
   }, [getInstance]);
 
   /**
-   * Initial setup when shouldInit becomes true (runs only once)
-   * 当 shouldInit 变为 true 时进行初始设置（仅运行一次）
+   * Initialize chart and bindsetup on mount
+   * Uses useLayoutEffect to ensure chart is ready before paint
+   * 在挂载时初始化图表并设置
+   * 使用 useLayoutEffect 确保图表在绑定前准备好
    */
   useLayoutEffect(() => {
-    if (!shouldInit || isInitializedRef.current) return;
+    if (!shouldInit) return;
+    
+    const element = ref.current;
+    if (!element) return;
 
+    // Initialize chart instance
+    // 初始化图表实例
     const instance = initChart();
     if (!instance) return;
-
-    // Mark as initialized
-    // 标记为已初始化
-    isInitializedRef.current = true;
 
     // Set initial options
     // 设置初始配置
@@ -170,27 +192,36 @@ function useEcharts(
 
     // Bind initial events
     // 绑定初始事件
-    const currentOnEvents = onEventsRef.current;
-    if (currentOnEvents) {
-      Object.entries(currentOnEvents).forEach(
-        ([eventName, { handler, query, context }]) => {
-          if (query) {
-            instance.on(eventName, query, handler, context);
-          } else {
-            instance.on(eventName, handler, context);
-          }
-        }
-      );
-    }
-  }, [shouldInit, initChart, option, setOptionOpts, showLoading, loadingOption]);
+    bindEvents(instance, onEventsRef.current);
+
+    // Cleanup function for StrictMode support
+    // 清理函数以支持 StrictMode
+    return () => {
+      const currentInstance = getCachedInstance(element);
+      if (!currentInstance) return;
+
+      // Remove from group if in one
+      // 如果在组中，从组中移除
+      const currentGroup = prevGroupRef.current;
+      if (currentGroup) {
+        updateGroup(currentInstance, currentGroup, undefined);
+      }
+
+      // Unbind events
+      // 解绑事件
+      unbindEvents(currentInstance, onEventsRef.current);
+
+      // Release cached instance (dispose)
+      // 释放缓存实例（销毁）
+      releaseCachedInstance(element);
+    };
+  }, [shouldInit, initChart, option, setOptionOpts, showLoading, loadingOption, ref]);
 
   /**
    * Handle option updates after initialization
    * 初始化后处理配置更新
    */
   useEffect(() => {
-    if (!isInitializedRef.current) return;
-
     const instance = getInstance();
     if (!instance) return;
 
@@ -202,17 +233,15 @@ function useEcharts(
    * 初始化后处理主题变化
    */
   useEffect(() => {
-    if (!isInitializedRef.current) return;
-    
     const element = ref.current;
     if (!element) return;
+
+    const existingInstance = getCachedInstance(element);
+    if (!existingInstance) return;
 
     // Check if theme changed
     // 检查主题是否改变
     if (prevThemeRef.current === theme) return;
-
-    const existingInstance = getCachedInstance(element);
-    if (!existingInstance) return;
 
     // Theme changed, need to recreate instance
     // replaceCachedInstance will dispose the old instance
@@ -229,18 +258,7 @@ function useEcharts(
 
     // Re-bind events to new instance
     // 将事件重新绑定到新实例
-    const currentOnEvents = onEventsRef.current;
-    if (currentOnEvents) {
-      Object.entries(currentOnEvents).forEach(
-        ([eventName, { handler, query, context }]) => {
-          if (query) {
-            newInstance.on(eventName, query, handler, context);
-          } else {
-            newInstance.on(eventName, handler, context);
-          }
-        }
-      );
-    }
+    bindEvents(newInstance, onEventsRef.current);
   }, [ref, theme, renderer, option, setOptionOpts]);
 
   /**
@@ -248,8 +266,6 @@ function useEcharts(
    * 处理加载状态变化
    */
   useEffect(() => {
-    if (!isInitializedRef.current) return;
-
     const instance = getInstance();
     if (!instance) return;
 
@@ -278,7 +294,6 @@ function useEcharts(
    */
   useEffect(() => {
     const element = ref.current;
-
     if (!element) return;
 
     let resizeObserver: ResizeObserver | undefined;
@@ -287,8 +302,7 @@ function useEcharts(
       resizeObserver = new ResizeObserver(() => {
         // Look up current instance dynamically instead of capturing in closure
         // 动态查找当前实例而不是在闭包中捕获
-        const currentInstance = getCachedInstance(element);
-        currentInstance?.resize();
+        getCachedInstance(element)?.resize();
       });
       resizeObserver.observe(element);
     } catch (error) {
@@ -299,43 +313,6 @@ function useEcharts(
 
     return () => {
       resizeObserver?.disconnect();
-    };
-  }, [ref]);
-
-  /**
-   * Cleanup on unmount or when element changes
-   * 卸载时或元素改变时清理
-   */
-  useEffect(() => {
-    // Copy ref.current to a variable to avoid stale closure issues
-    // 复制 ref.current 到变量以避免闭包过时问题
-    const element = ref.current;
-
-    return () => {
-      if (!element) return;
-
-      const instance = getCachedInstance(element);
-      if (!instance) return;
-
-      // Remove from group if in one
-      // 如果在组中，从组中移除
-      const currentGroup = prevGroupRef.current;
-      if (currentGroup) {
-        updateGroup(instance, currentGroup, undefined);
-      }
-
-      // Unbind events using ref to avoid dependency issues
-      // 使用 ref 解绑事件以避免依赖问题
-      const currentOnEvents = onEventsRef.current;
-      if (currentOnEvents) {
-        Object.entries(currentOnEvents).forEach(([eventName, { handler }]) => {
-          instance.off(eventName, handler);
-        });
-      }
-
-      // Release cached instance
-      // 释放缓存实例
-      releaseCachedInstance(element);
     };
   }, [ref]);
 

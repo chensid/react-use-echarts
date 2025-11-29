@@ -131,13 +131,12 @@ export function clearInstanceCache(): void {
   // Dispose all tracked instances
   // 销毁所有跟踪的实例
   for (const element of trackedElements) {
-    const entry = instanceCache.get(element);
-    if (entry) {
-      entry.instance.dispose();
-    }
+    instanceCache.get(element)?.instance.dispose();
   }
-  // Reset cache and tracking
-  // 重置缓存和跟踪
+  // Reset cache (WeakMap has no clear method, must reassign)
+  // 重置缓存（WeakMap 没有 clear 方法，必须重新赋值）
   instanceCache = new WeakMap<HTMLElement, CacheEntry>();
-  trackedElements = new Set<HTMLElement>();
+  // Clear tracked elements
+  // 清除跟踪的元素
+  trackedElements.clear();
 }

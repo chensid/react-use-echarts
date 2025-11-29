@@ -26,7 +26,6 @@ export type {
   UseEchartsOptions,
   UseEchartsReturn,
   EChartsEvents,
-  Theme,
   BuiltinTheme,
 } from "./types";
 

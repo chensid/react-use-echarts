@@ -9,22 +9,17 @@ import { useEffect, useState, useRef } from "react";
  */
 export function useLazyInit(
   elementRef: React.RefObject<Element | null>,
-  options: boolean | IntersectionObserverInit = {}
+  options: boolean | IntersectionObserverInit = false
 ): boolean {
   // If lazyInit is false, initialize as already in view
   // 如果 lazyInit 为 false，初始状态就是可见
   const isLazyMode = options !== false;
   const [isInView, setIsInView] = useState(!isLazyMode);
   
-  // Store options in a ref to avoid recreating observer on every render
-  // 将 options 存储在 ref 中，以避免在每次渲染时重新创建观察器
+  // Store options in a ref (updated synchronously during render)
+  // 将 options 存储在 ref 中（在渲染期间同步更新）
   const optionsRef = useRef(options);
-  
-  // Update optionsRef when options changes
-  // 当 options 改变时更新 optionsRef
-  useEffect(() => {
-    optionsRef.current = options;
-  }, [options]);
+  optionsRef.current = options;
 
   useEffect(() => {
     // Skip if lazy mode is disabled or already in view
