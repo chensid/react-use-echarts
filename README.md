@@ -27,6 +27,8 @@ A React hooks library for Apache ECharts with full TypeScript support. Simple, l
 - React 19.x
 - ECharts 6.x
 
+> **Note**: This library is designed for client-side rendering (CSR) only. Server-side rendering (SSR) is not supported as ECharts requires DOM access.
+
 ## 📦 Installation
 
 ```bash
