@@ -1,8 +1,10 @@
-import React from "react";
+import React, { useRef } from "react";
 import { useEcharts } from "../../src";
 import type { EChartsOption } from "echarts";
 
 const BarChart: React.FC = () => {
+  const chartRef = useRef<HTMLDivElement>(null);
+
   const options: EChartsOption = {
     title: { text: "Basic Bar Chart Example" },
     tooltip: {},
@@ -13,7 +15,7 @@ const BarChart: React.FC = () => {
     ],
   };
 
-  const { chartRef } = useEcharts({ option: options });
+  useEcharts(chartRef, { option: options });
 
   return <div ref={chartRef} style={{ width: "100%", height: "400px" }} />;
 };

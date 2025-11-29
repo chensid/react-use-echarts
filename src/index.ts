@@ -13,6 +13,12 @@
 export { default as useEcharts } from "./hooks/use-echarts";
 
 /**
+ * Lazy initialization hook
+ * 懒加载初始化 Hook
+ */
+export { useLazyInit } from "./hooks/use-lazy-init";
+
+/**
  * Type definitions for the library
  * 库的类型定义
  */
@@ -20,8 +26,20 @@ export type {
   UseEchartsOptions,
   UseEchartsReturn,
   EChartsEvents,
-  Theme,
+  BuiltinTheme,
 } from "./types";
+
+/**
+ * Theme utilities
+ * 主题工具函数
+ */
+export {
+  registerBuiltinThemes,
+  getBuiltinTheme,
+  isBuiltinTheme,
+  registerCustomTheme,
+  getAvailableThemes,
+} from "./themes";
 
 /**
  * Utility functions for ECharts

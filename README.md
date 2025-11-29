@@ -18,6 +18,9 @@ A React hooks library for Apache ECharts with full TypeScript support. Simple, l
 - ⚡ **Auto-updating** - Automatically updates chart when data or options change
 - 📱 **Responsive** - Handles container resizing automatically with ResizeObserver
 - 🎯 **Event handling** - Easy to use event system with flexible configuration
+- 🎭 **Built-in themes** - Includes light, dark, and macarons themes out of the box
+- 🔗 **Chart linkage** - Connect multiple charts for synchronized interactions
+- 🦥 **Lazy initialization** - Only initialize charts when they enter the viewport
 
 ## 📋 Requirements
 
@@ -40,11 +43,13 @@ pnpm add react-use-echarts echarts
 ## 🔨 Usage
 
 ```tsx
-import React from 'react';
+import { useRef } from 'react';
 import { useEcharts } from 'react-use-echarts';
 import type { EChartsOption } from 'echarts';
 
 function MyChart() {
+  const chartRef = useRef<HTMLDivElement>(null);
+
   const options: EChartsOption = {
     title: {
       text: 'Basic Line Chart Example'
@@ -63,7 +68,7 @@ function MyChart() {
     }]
   };
 
-  const { chartRef } = useEcharts({
+  useEcharts(chartRef, {
     option: options
   });
 
@@ -76,17 +81,20 @@ function MyChart() {
 ### Event Handling
 
 ```tsx
+import { useRef } from 'react';
 import { useEcharts } from 'react-use-echarts';
 import type { EChartsOption } from 'echarts';
 
 function InteractiveChart() {
+  const chartRef = useRef<HTMLDivElement>(null);
+
   const options: EChartsOption = {
     xAxis: { type: 'category', data: ['A', 'B', 'C'] },
     yAxis: { type: 'value' },
     series: [{ data: [120, 200, 150], type: 'bar' }]
   };
 
-  const { chartRef } = useEcharts({
+  useEcharts(chartRef, {
     option: options,
     onEvents: {
       click: {
@@ -110,12 +118,13 @@ function InteractiveChart() {
 ### Loading State
 
 ```tsx
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useEcharts } from 'react-use-echarts';
 
 function ChartWithLoading() {
+  const chartRef = useRef<HTMLDivElement>(null);
   const [loading, setLoading] = useState(true);
-  const [data, setData] = useState([]);
+  const [data, setData] = useState<number[]>([]);
 
   // Simulate data fetching
   useEffect(() => {
@@ -125,7 +134,7 @@ function ChartWithLoading() {
     }, 2000);
   }, []);
 
-  const { chartRef } = useEcharts({
+  useEcharts(chartRef, {
     option: {
       xAxis: { type: 'category', data: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'] },
       yAxis: { type: 'value' },
@@ -141,13 +150,14 @@ function ChartWithLoading() {
 ### Dynamic Updates
 
 ```tsx
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useEcharts } from 'react-use-echarts';
 
 function DynamicChart() {
+  const chartRef = useRef<HTMLDivElement>(null);
   const [data, setData] = useState([120, 200, 150, 80, 70, 110, 130]);
 
-  const { chartRef, setOption } = useEcharts({
+  const { setOption } = useEcharts(chartRef, {
     option: {
       xAxis: { type: 'category', data: ['A', 'B', 'C', 'D', 'E', 'F', 'G'] },
       yAxis: { type: 'value' },
@@ -172,18 +182,45 @@ function DynamicChart() {
 }
 ```
 
-### Custom Theme
+### Built-in Themes
+
+The library includes three built-in themes: `light`, `dark`, and `macarons`.
 
 ```tsx
+import { useRef } from 'react';
 import { useEcharts } from 'react-use-echarts';
 
 function ThemedChart() {
+  const chartRef = useRef<HTMLDivElement>(null);
+
+  useEcharts(chartRef, {
+    option: {
+      xAxis: { type: 'category', data: ['A', 'B', 'C'] },
+      yAxis: { type: 'value' },
+      series: [{ data: [120, 200, 150], type: 'bar' }]
+    },
+    theme: 'dark' // 'light' | 'dark' | 'macarons'
+  });
+
+  return <div ref={chartRef} style={{ width: '100%', height: '400px' }} />;
+}
+```
+
+### Custom Theme
+
+```tsx
+import { useRef } from 'react';
+import { useEcharts } from 'react-use-echarts';
+
+function CustomThemedChart() {
+  const chartRef = useRef<HTMLDivElement>(null);
+
   const customTheme = {
     color: ['#fc8452', '#9a60b4', '#ea7ccc'],
     backgroundColor: '#1e1e1e'
   };
 
-  const { chartRef } = useEcharts({
+  useEcharts(chartRef, {
     option: {
       xAxis: { type: 'category', data: ['A', 'B', 'C'] },
       yAxis: { type: 'value' },
@@ -196,13 +233,126 @@ function ThemedChart() {
 }
 ```
 
+### Chart Linkage
+
+Connect multiple charts to synchronize their interactions (e.g., tooltip, highlight).
+
+```tsx
+import { useRef } from 'react';
+import { useEcharts } from 'react-use-echarts';
+
+function LinkedCharts() {
+  const chartRef1 = useRef<HTMLDivElement>(null);
+  const chartRef2 = useRef<HTMLDivElement>(null);
+
+  const xAxisData = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+
+  useEcharts(chartRef1, {
+    option: {
+      xAxis: { type: 'category', data: xAxisData },
+      yAxis: { type: 'value' },
+      tooltip: { trigger: 'axis' },
+      series: [{ data: [120, 200, 150, 80, 70, 110, 130], type: 'line' }]
+    },
+    group: 'my-chart-group'
+  });
+
+  useEcharts(chartRef2, {
+    option: {
+      xAxis: { type: 'category', data: xAxisData },
+      yAxis: { type: 'value' },
+      tooltip: { trigger: 'axis' },
+      series: [{ data: [220, 180, 191, 234, 290, 330, 310], type: 'bar' }]
+    },
+    group: 'my-chart-group'
+  });
+
+  return (
+    <div>
+      <div ref={chartRef1} style={{ width: '100%', height: '300px' }} />
+      <div ref={chartRef2} style={{ width: '100%', height: '300px' }} />
+    </div>
+  );
+}
+```
+
+### Lazy Initialization
+
+Only initialize charts when they enter the viewport, great for pages with many charts.
+
+```tsx
+import { useRef } from 'react';
+import { useEcharts } from 'react-use-echarts';
+
+function LazyChart() {
+  const chartRef = useRef<HTMLDivElement>(null);
+
+  useEcharts(chartRef, {
+    option: {
+      xAxis: { type: 'category', data: ['A', 'B', 'C'] },
+      yAxis: { type: 'value' },
+      series: [{ data: [120, 200, 150], type: 'bar' }]
+    },
+    lazyInit: true // Chart will only initialize when scrolled into view
+  });
+
+  return <div ref={chartRef} style={{ width: '100%', height: '400px' }} />;
+}
+
+// With custom IntersectionObserver options
+function LazyChartWithOptions() {
+  const chartRef = useRef<HTMLDivElement>(null);
+
+  useEcharts(chartRef, {
+    option: {
+      xAxis: { type: 'category', data: ['A', 'B', 'C'] },
+      yAxis: { type: 'value' },
+      series: [{ data: [120, 200, 150], type: 'bar' }]
+    },
+    lazyInit: {
+      rootMargin: '100px', // Pre-load when 100px away from viewport
+      threshold: 0.1
+    }
+  });
+
+  return <div ref={chartRef} style={{ width: '100%', height: '400px' }} />;
+}
+```
+
+### SVG Renderer
+
+Use SVG renderer instead of Canvas for better accessibility and print quality.
+
+```tsx
+import { useRef } from 'react';
+import { useEcharts } from 'react-use-echarts';
+
+function SVGChart() {
+  const chartRef = useRef<HTMLDivElement>(null);
+
+  useEcharts(chartRef, {
+    option: {
+      xAxis: { type: 'category', data: ['A', 'B', 'C'] },
+      yAxis: { type: 'value' },
+      series: [{ data: [120, 200, 150], type: 'bar' }]
+    },
+    renderer: 'svg'
+  });
+
+  return <div ref={chartRef} style={{ width: '100%', height: '400px' }} />;
+}
+```
+
 ### Accessing ECharts Instance
 
 ```tsx
+import { useRef } from 'react';
 import { useEcharts } from 'react-use-echarts';
 
 function ChartWithInstance() {
-  const { chartRef, getInstance } = useEcharts({
+  const chartRef = useRef<HTMLDivElement>(null);
+
+  const { getInstance } = useEcharts(chartRef, {
     option: {
       xAxis: { type: 'category', data: ['A', 'B', 'C'] },
       yAxis: { type: 'value' },
@@ -235,6 +385,37 @@ function ChartWithInstance() {
 }
 ```
 
+### Manual Resize
+
+```tsx
+import { useRef } from 'react';
+import { useEcharts } from 'react-use-echarts';
+
+function ResizableChart() {
+  const chartRef = useRef<HTMLDivElement>(null);
+
+  const { resize } = useEcharts(chartRef, {
+    option: {
+      xAxis: { type: 'category', data: ['A', 'B', 'C'] },
+      yAxis: { type: 'value' },
+      series: [{ data: [120, 200, 150], type: 'bar' }]
+    }
+  });
+
+  // Manually trigger resize after some container size change
+  const handleContainerResize = () => {
+    resize();
+  };
+
+  return (
+    <div>
+      <button onClick={handleContainerResize}>Trigger Resize</button>
+      <div ref={chartRef} style={{ width: '100%', height: '400px' }} />
+    </div>
+  );
+}
+```
+
 ## 📖 API
 
 ### useEcharts
@@ -244,9 +425,12 @@ The main hook for using ECharts in React components.
 #### Parameters
 
 ```tsx
+import { useRef } from 'react';
 import type { EChartsOption } from 'echarts';
 import type { UseEchartsOptions } from 'react-use-echarts';
 import { useEcharts } from 'react-use-echarts';
+
+const chartRef = useRef<HTMLDivElement>(null);
 
 const someEchartsOption: EChartsOption = {
   xAxis: { type: 'category', data: ['Mon', 'Tue', 'Wed'] },
@@ -255,42 +439,179 @@ const someEchartsOption: EChartsOption = {
 };
 
 const options: UseEchartsOptions = {
-  option: someEchartsOption, // 必填：ECharts 配置项
-  theme: 'dark', // 选填：主题名称或主题对象
-  notMerge: false, // 选填：是否不与之前的配置合并
-  lazyUpdate: false, // 选填：是否延迟更新
-  showLoading: false, // 选填：是否展示 loading
-  loadingOption: { text: 'Loading…' }, // 选填：loading 配置
+  option: someEchartsOption, // Required: ECharts options
+  theme: 'dark', // Optional: 'light' | 'dark' | 'macarons' | custom object | null
+  renderer: 'canvas', // Optional: 'canvas' | 'svg' (default: 'canvas')
+  lazyInit: false, // Optional: boolean | IntersectionObserverInit
+  group: 'my-group', // Optional: Group ID for chart linkage
+  setOptionOpts: { notMerge: false }, // Optional: Default setOption options
+  showLoading: false, // Optional: Show loading state
+  loadingOption: { text: 'Loading…' }, // Optional: Loading options
   onEvents: {
     click: {
       handler: (params) => {
         console.log(params);
       },
-      query: 'series', // 选填：事件查询条件
+      query: 'series', // Optional: Event query
     },
   },
 };
 
-const { chartRef, setOption, getInstance } = useEcharts(options);
+const { setOption, getInstance, resize } = useEcharts(chartRef, options);
 ```
+
+#### Options
+
+| Property | Type | Default | Description |
+|----------|------|---------|-------------|
+| `option` | `EChartsOption` | **required** | ECharts configuration options |
+| `theme` | `'light' \| 'dark' \| 'macarons' \| object \| null` | `null` | Theme name or custom theme object |
+| `renderer` | `'canvas' \| 'svg'` | `'canvas'` | Renderer type |
+| `lazyInit` | `boolean \| IntersectionObserverInit` | `false` | Lazy initialization config |
+| `group` | `string` | - | Group ID for chart linkage |
+| `setOptionOpts` | `SetOptionOpts` | - | Default options for setOption |
+| `showLoading` | `boolean` | `false` | Show loading state |
+| `loadingOption` | `object` | - | Loading configuration |
+| `onEvents` | `EChartsEvents` | - | Event handlers |
 
 #### Returns
 
 ```tsx
 {
-  chartRef: React.RefObject<HTMLDivElement | null>;
   setOption: (option: EChartsOption, opts?: SetOptionOpts) => void;
   getInstance: () => ECharts | undefined;
+  resize: () => void;
 }
 ```
 
-- **`chartRef`**: Ref to attach to the chart container element
 - **`setOption`**: Update chart options dynamically
 - **`getInstance`**: Get the ECharts instance (returns `undefined` before initialization)
+- **`resize`**: Manually trigger chart resize
+
+### Theme Utilities
+
+```tsx
+import {
+  registerBuiltinThemes,
+  getBuiltinTheme,
+  isBuiltinTheme,
+  registerCustomTheme,
+  getAvailableThemes,
+} from 'react-use-echarts';
+
+// Get all available built-in theme names
+const themes = getAvailableThemes(); // ['light', 'dark', 'macarons']
+
+// Check if a theme name is built-in
+isBuiltinTheme('dark'); // true
+isBuiltinTheme('custom'); // false
+
+// Get built-in theme configuration
+const darkTheme = getBuiltinTheme('dark');
+
+// Register a custom theme globally
+registerCustomTheme('my-theme', { color: ['#ff0000', '#00ff00'] });
+```
+
+### useLazyInit
+
+A standalone hook for lazy initialization using IntersectionObserver.
+
+```tsx
+import { useRef } from 'react';
+import { useLazyInit } from 'react-use-echarts';
+
+function MyComponent() {
+  const elementRef = useRef<HTMLDivElement>(null);
+
+  // Returns true when element enters viewport
+  const isInView = useLazyInit(elementRef, {
+    rootMargin: '50px',
+    threshold: 0.1
+  });
+
+  return (
+    <div ref={elementRef}>
+      {isInView ? <ExpensiveComponent /> : <Placeholder />}
+    </div>
+  );
+}
+```
 
 ## 🤝 Contributing
 
 We welcome all contributions. Please read our [contributing guidelines](CONTRIBUTING.md) first. You can submit any ideas as [pull requests](https://github.com/chensid/react-use-echarts/pulls) or as [GitHub issues](https://github.com/chensid/react-use-echarts/issues).
+
+## 🔄 Migration Guide
+
+### From v0.0.11 to v1.0
+
+#### Breaking Change: External Ref Management
+
+The `useEcharts` hook no longer returns a `chartRef`. Instead, you now create and manage the ref externally:
+
+**Before (v0.0.11):**
+```tsx
+import { useEcharts } from 'react-use-echarts';
+
+function MyChart() {
+  const { chartRef, setOption, getInstance } = useEcharts({
+    option: { /* ... */ }
+  });
+
+  return <div ref={chartRef} style={{ width: '100%', height: '400px' }} />;
+}
+```
+
+**After (v1.0):**
+```tsx
+import { useRef } from 'react';
+import { useEcharts } from 'react-use-echarts';
+
+function MyChart() {
+  const chartRef = useRef<HTMLDivElement>(null);
+
+  const { setOption, getInstance, resize } = useEcharts(chartRef, {
+    option: { /* ... */ }
+  });
+
+  return <div ref={chartRef} style={{ width: '100%', height: '400px' }} />;
+}
+```
+
+#### New Features in v1.0
+
+- **Built-in themes**: Use `theme: 'light' | 'dark' | 'macarons'` or pass a custom theme object
+- **Chart linkage**: Connect charts using the `group` option
+- **Lazy initialization**: Use `lazyInit: true` or custom `IntersectionObserverInit` options
+- **SVG renderer**: Use `renderer: 'svg'` for better accessibility and print quality
+- **Manual resize**: New `resize()` function returned from the hook
+
+#### Important Notes for Custom Themes
+
+When using custom theme objects, **memoize them** to avoid unnecessary chart recreation:
+
+```tsx
+import { useRef, useMemo } from 'react';
+import { useEcharts } from 'react-use-echarts';
+
+function MyChart() {
+  const chartRef = useRef<HTMLDivElement>(null);
+
+  // ✅ Good: Memoized theme object
+  const customTheme = useMemo(() => ({
+    color: ['#fc8452', '#9a60b4', '#ea7ccc'],
+    backgroundColor: '#1e1e1e'
+  }), []);
+
+  useEcharts(chartRef, {
+    option: { /* ... */ },
+    theme: customTheme
+  });
+
+  return <div ref={chartRef} style={{ width: '100%', height: '400px' }} />;
+}
+```
 
 ## 📝 Changelog
 

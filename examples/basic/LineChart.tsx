@@ -1,10 +1,12 @@
-import React from "react";
+import React, { useRef } from "react";
 import { useEcharts } from "../../src";
 import type { EChartsOption } from "echarts";
 
 const LineChart: React.FC = () => {
+  const chartRef = useRef<HTMLDivElement>(null);
+
   const options: EChartsOption = {
-    title: { text: "Basic Line Chart Example" },
+    title: { text: "Basic Line Chart Example (v1.0)" },
     xAxis: {
       type: "category",
       data: ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
@@ -19,7 +21,10 @@ const LineChart: React.FC = () => {
     ],
   };
 
-  const { chartRef } = useEcharts({ option: options });
+  useEcharts(chartRef, {
+    option: options,
+    theme: 'light'
+  });
 
   return <div ref={chartRef} style={{ width: "100%", height: "400px" }} />;
 };
