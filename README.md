@@ -542,6 +542,77 @@ function MyComponent() {
 
 We welcome all contributions. Please read our [contributing guidelines](CONTRIBUTING.md) first. You can submit any ideas as [pull requests](https://github.com/chensid/react-use-echarts/pulls) or as [GitHub issues](https://github.com/chensid/react-use-echarts/issues).
 
+## 🔄 Migration Guide
+
+### From v0.0.11 to v1.0
+
+#### Breaking Change: External Ref Management
+
+The `useEcharts` hook no longer returns a `chartRef`. Instead, you now create and manage the ref externally:
+
+**Before (v0.0.11):**
+```tsx
+import { useEcharts } from 'react-use-echarts';
+
+function MyChart() {
+  const { chartRef, setOption, getInstance } = useEcharts({
+    option: { /* ... */ }
+  });
+
+  return <div ref={chartRef} style={{ width: '100%', height: '400px' }} />;
+}
+```
+
+**After (v1.0):**
+```tsx
+import { useRef } from 'react';
+import { useEcharts } from 'react-use-echarts';
+
+function MyChart() {
+  const chartRef = useRef<HTMLDivElement>(null);
+
+  const { setOption, getInstance, resize } = useEcharts(chartRef, {
+    option: { /* ... */ }
+  });
+
+  return <div ref={chartRef} style={{ width: '100%', height: '400px' }} />;
+}
+```
+
+#### New Features in v1.0
+
+- **Built-in themes**: Use `theme: 'light' | 'dark' | 'macarons'` or pass a custom theme object
+- **Chart linkage**: Connect charts using the `group` option
+- **Lazy initialization**: Use `lazyInit: true` or custom `IntersectionObserverInit` options
+- **SVG renderer**: Use `renderer: 'svg'` for better accessibility and print quality
+- **Manual resize**: New `resize()` function returned from the hook
+
+#### Important Notes for Custom Themes
+
+When using custom theme objects, **memoize them** to avoid unnecessary chart recreation:
+
+```tsx
+import { useRef, useMemo } from 'react';
+import { useEcharts } from 'react-use-echarts';
+
+function MyChart() {
+  const chartRef = useRef<HTMLDivElement>(null);
+
+  // ✅ Good: Memoized theme object
+  const customTheme = useMemo(() => ({
+    color: ['#fc8452', '#9a60b4', '#ea7ccc'],
+    backgroundColor: '#1e1e1e'
+  }), []);
+
+  useEcharts(chartRef, {
+    option: { /* ... */ },
+    theme: customTheme
+  });
+
+  return <div ref={chartRef} style={{ width: '100%', height: '400px' }} />;
+}
+```
+
 ## 📝 Changelog
 
 Detailed changes for each release are documented in the [release notes](https://github.com/chensid/react-use-echarts/releases).
