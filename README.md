@@ -494,11 +494,11 @@ const { setOption, getInstance, resize } = useEcharts(chartRef, options);
 
 ```tsx
 import {
-  registerBuiltinThemes,
-  getBuiltinTheme,
-  isBuiltinTheme,
-  registerCustomTheme,
   getAvailableThemes,
+  isBuiltinTheme,
+  getBuiltinTheme,
+  registerCustomTheme,
+  registerBuiltinThemes,
 } from 'react-use-echarts';
 
 // Get all available built-in theme names
@@ -513,6 +513,9 @@ const darkTheme = getBuiltinTheme('dark');
 
 // Register a custom theme globally
 registerCustomTheme('my-theme', { color: ['#ff0000', '#00ff00'] });
+
+// Register built-in themes to ECharts (auto-called on module load, rarely needed manually)
+registerBuiltinThemes();
 ```
 
 ### useLazyInit

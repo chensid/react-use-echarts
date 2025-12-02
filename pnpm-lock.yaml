@@ -5,7 +5,7 @@ settings:
   excludeLinksFromLockfile: false
 
 overrides:
-  vite: npm:rolldown-vite@7.2.8
+  vite: npm:rolldown-vite@7.2.9
 
 importers:
 
@@ -28,7 +28,7 @@ importers:
         version: 19.2.3(@types/react@19.2.7)
       '@vitejs/plugin-react':
         specifier: ^5.1.1
-        version: 5.1.1(rolldown-vite@7.2.8(@types/node@24.10.1)(esbuild@0.25.8))
+        version: 5.1.1(rolldown-vite@7.2.9(@types/node@24.10.1)(esbuild@0.25.8))
       '@vitest/coverage-v8':
         specifier: ^4.0.14
         version: 4.0.14(vitest@4.0.14(@types/node@24.10.1)(esbuild@0.25.8)(jsdom@27.2.0(postcss@8.5.6)))
@@ -66,11 +66,11 @@ importers:
         specifier: ^8.48.0
         version: 8.48.0(eslint@9.39.1)(typescript@5.9.3)
       vite:
-        specifier: npm:rolldown-vite@7.2.8
-        version: rolldown-vite@7.2.8(@types/node@24.10.1)(esbuild@0.25.8)
+        specifier: npm:rolldown-vite@7.2.9
+        version: rolldown-vite@7.2.9(@types/node@24.10.1)(esbuild@0.25.8)
       vite-plugin-dts:
         specifier: ^4.5.4
-        version: 4.5.4(@types/node@24.10.1)(rolldown-vite@7.2.8(@types/node@24.10.1)(esbuild@0.25.8))(rollup@4.46.2)(typescript@5.9.3)
+        version: 4.5.4(@types/node@24.10.1)(rolldown-vite@7.2.9(@types/node@24.10.1)(esbuild@0.25.8))(rollup@4.46.2)(typescript@5.9.3)
       vitest:
         specifier: ^4.0.14
         version: 4.0.14(@types/node@24.10.1)(esbuild@0.25.8)(jsdom@27.2.0(postcss@8.5.6))
@@ -1683,8 +1683,8 @@ packages:
     engines: {node: '>= 0.4'}
     hasBin: true
 
-  rolldown-vite@7.2.8:
-    resolution: {integrity: sha512-8wKihlF6EDF8grimwd7GPOhLkQkSIgj6Hlcp0CXhtO3HAXeUUqhgZmJmn07OF8e4PbTusMX6Yxmy1BptVRZsdw==}
+  rolldown-vite@7.2.9:
+    resolution: {integrity: sha512-Y+Q1FpIgAkK2RiAdeS1SxcvDsJaru1JUANFo1aiFFtuGCckhltIowoC/JMU740tFZDTJA5vg5CAl1RzHExNR/w==}
     engines: {node: ^20.19.0 || >=22.12.0}
     hasBin: true
     peerDependencies:
@@ -2783,7 +2783,7 @@ snapshots:
       '@typescript-eslint/types': 8.48.0
       eslint-visitor-keys: 4.2.1
 
-  '@vitejs/plugin-react@5.1.1(rolldown-vite@7.2.8(@types/node@24.10.1)(esbuild@0.25.8))':
+  '@vitejs/plugin-react@5.1.1(rolldown-vite@7.2.9(@types/node@24.10.1)(esbuild@0.25.8))':
     dependencies:
       '@babel/core': 7.28.5
       '@babel/plugin-transform-react-jsx-self': 7.27.1(@babel/core@7.28.5)
@@ -2791,7 +2791,7 @@ snapshots:
       '@rolldown/pluginutils': 1.0.0-beta.47
       '@types/babel__core': 7.20.5
       react-refresh: 0.18.0
-      vite: rolldown-vite@7.2.8(@types/node@24.10.1)(esbuild@0.25.8)
+      vite: rolldown-vite@7.2.9(@types/node@24.10.1)(esbuild@0.25.8)
     transitivePeerDependencies:
       - supports-color
 
@@ -2821,13 +2821,13 @@ snapshots:
       chai: 6.2.1
       tinyrainbow: 3.0.3
 
-  '@vitest/mocker@4.0.14(rolldown-vite@7.2.8(@types/node@24.10.1)(esbuild@0.25.8))':
+  '@vitest/mocker@4.0.14(rolldown-vite@7.2.9(@types/node@24.10.1)(esbuild@0.25.8))':
     dependencies:
       '@vitest/spy': 4.0.14
       estree-walker: 3.0.3
       magic-string: 0.30.21
     optionalDependencies:
-      vite: rolldown-vite@7.2.8(@types/node@24.10.1)(esbuild@0.25.8)
+      vite: rolldown-vite@7.2.9(@types/node@24.10.1)(esbuild@0.25.8)
 
   '@vitest/pretty-format@4.0.14':
     dependencies:
@@ -3621,7 +3621,7 @@ snapshots:
       path-parse: 1.0.7
       supports-preserve-symlinks-flag: 1.0.0
 
-  rolldown-vite@7.2.8(@types/node@24.10.1)(esbuild@0.25.8):
+  rolldown-vite@7.2.9(@types/node@24.10.1)(esbuild@0.25.8):
     dependencies:
       '@oxc-project/runtime': 0.99.0
       fdir: 6.5.0(picomatch@4.0.3)
@@ -3801,7 +3801,7 @@ snapshots:
     dependencies:
       punycode: 2.3.1
 
-  vite-plugin-dts@4.5.4(@types/node@24.10.1)(rolldown-vite@7.2.8(@types/node@24.10.1)(esbuild@0.25.8))(rollup@4.46.2)(typescript@5.9.3):
+  vite-plugin-dts@4.5.4(@types/node@24.10.1)(rolldown-vite@7.2.9(@types/node@24.10.1)(esbuild@0.25.8))(rollup@4.46.2)(typescript@5.9.3):
     dependencies:
       '@microsoft/api-extractor': 7.52.10(@types/node@24.10.1)
       '@rollup/pluginutils': 5.2.0(rollup@4.46.2)
@@ -3814,7 +3814,7 @@ snapshots:
       magic-string: 0.30.17
       typescript: 5.9.3
     optionalDependencies:
-      vite: rolldown-vite@7.2.8(@types/node@24.10.1)(esbuild@0.25.8)
+      vite: rolldown-vite@7.2.9(@types/node@24.10.1)(esbuild@0.25.8)
     transitivePeerDependencies:
       - '@types/node'
       - rollup
@@ -3823,7 +3823,7 @@ snapshots:
   vitest@4.0.14(@types/node@24.10.1)(esbuild@0.25.8)(jsdom@27.2.0(postcss@8.5.6)):
     dependencies:
       '@vitest/expect': 4.0.14
-      '@vitest/mocker': 4.0.14(rolldown-vite@7.2.8(@types/node@24.10.1)(esbuild@0.25.8))
+      '@vitest/mocker': 4.0.14(rolldown-vite@7.2.9(@types/node@24.10.1)(esbuild@0.25.8))
       '@vitest/pretty-format': 4.0.14
       '@vitest/runner': 4.0.14
       '@vitest/snapshot': 4.0.14
@@ -3840,7 +3840,7 @@ snapshots:
       tinyexec: 0.3.2
       tinyglobby: 0.2.15
       tinyrainbow: 3.0.3
-      vite: rolldown-vite@7.2.8(@types/node@24.10.1)(esbuild@0.25.8)
+      vite: rolldown-vite@7.2.9(@types/node@24.10.1)(esbuild@0.25.8)
       why-is-node-running: 2.3.0
     optionalDependencies:
       '@types/node': 24.10.1
