@@ -22,7 +22,7 @@ let instanceCache = new WeakMap<HTMLElement, CacheEntry>();
  * Track elements for clearInstanceCache (needed because WeakMap doesn't have iteration)
  * 跟踪元素以便 clearInstanceCache 使用（因为 WeakMap 没有迭代方法）
  */
-let trackedElements = new Set<HTMLElement>();
+const trackedElements = new Set<HTMLElement>();
 
 /**
  * Get cached instance for element

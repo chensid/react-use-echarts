@@ -88,6 +88,7 @@ function useEcharts(
   // Track bound events for proper cleanup without dependency issues
   // 跟踪已绑定的事件，以便在不产生依赖问题的情况下正确清理
   const onEventsRef = useRef(onEvents);
+  const boundEventsRef = useRef<EChartsEvents | undefined>(undefined);
 
   // Update onEventsRef when onEvents changes
   // 当 onEvents 改变时更新 onEventsRef
@@ -193,6 +194,7 @@ function useEcharts(
     // Bind initial events
     // 绑定初始事件
     bindEvents(instance, onEventsRef.current);
+    boundEventsRef.current = onEventsRef.current;
 
     // Cleanup function for StrictMode support
     // 清理函数以支持 StrictMode
@@ -209,7 +211,8 @@ function useEcharts(
 
       // Unbind events
       // 解绑事件
-      unbindEvents(currentInstance, onEventsRef.current);
+      unbindEvents(currentInstance, boundEventsRef.current);
+      boundEventsRef.current = undefined;
 
       // Release cached instance (dispose)
       // 释放缓存实例（销毁）
@@ -247,6 +250,13 @@ function useEcharts(
     // replaceCachedInstance will dispose the old instance
     // 主题改变，需要重新创建实例
     // replaceCachedInstance 会销毁旧实例
+    const currentGroup = prevGroupRef.current;
+    if (currentGroup) {
+      // Remove old instance from group to avoid stale references
+      // 从组中移除旧实例，防止残留引用
+      updateGroup(existingInstance, currentGroup, undefined);
+    }
+
     const themeToUse = resolveThemeName(theme);
     const newInstance = echarts.init(element, themeToUse, { renderer });
     replaceCachedInstance(element, newInstance);
@@ -259,7 +269,22 @@ function useEcharts(
     // Re-bind events to new instance
     // 将事件重新绑定到新实例
     bindEvents(newInstance, onEventsRef.current);
-  }, [ref, theme, renderer, option, setOptionOpts]);
+    boundEventsRef.current = onEventsRef.current;
+
+    // Re-apply group linkage to new instance
+    // 将新实例重新加入组
+    if (currentGroup) {
+      updateGroup(newInstance, undefined, currentGroup);
+    }
+
+    // Re-apply loading state
+    // 重新同步加载状态
+    if (showLoading) {
+      newInstance.showLoading(loadingOption);
+    } else {
+      newInstance.hideLoading();
+    }
+  }, [ref, theme, renderer, option, setOptionOpts, showLoading, loadingOption]);
 
   /**
    * Handle loading state changes
@@ -274,19 +299,38 @@ function useEcharts(
     } else {
       instance.hideLoading();
     }
-  }, [getInstance, showLoading, loadingOption]);
+  }, [getInstance, showLoading, loadingOption, theme]);
+
+  /**
+   * Handle event rebinding when onEvents changes
+   * 当 onEvents 变化时重新绑定事件
+   */
+  useEffect(() => {
+    const instance = getInstance();
+    if (!instance) return;
+
+    // If same reference, skip rebind
+    if (boundEventsRef.current === onEvents) return;
+
+    // Unbind previous events, then bind the new set
+    unbindEvents(instance, boundEventsRef.current);
+    bindEvents(instance, onEvents);
+    boundEventsRef.current = onEvents;
+  }, [getInstance, onEvents]);
 
   /**
    * Handle group changes
    * 处理组变化
    */
   useEffect(() => {
+    if (!shouldInit) return;
+
     const instance = getInstance();
     if (!instance) return;
 
     updateGroup(instance, prevGroupRef.current, group);
     prevGroupRef.current = group;
-  }, [getInstance, group]);
+  }, [getInstance, group, shouldInit, theme]);
 
   /**
    * Setup resize observer

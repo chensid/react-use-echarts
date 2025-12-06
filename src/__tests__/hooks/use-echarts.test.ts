@@ -3,8 +3,9 @@ import { renderHook, act, waitFor } from "@testing-library/react";
 import * as echarts from "echarts";
 import useEcharts from "../../hooks/use-echarts";
 import { clearInstanceCache, getCachedInstance } from "../../utils/instance-cache";
-import { clearGroups } from "../../utils/connect";
+import { clearGroups, getGroupInstances } from "../../utils/connect";
 import type { EChartsOption } from "echarts";
+import type { BuiltinTheme } from "../../types";
 
 // Mock ECharts
 vi.mock("echarts", () => ({
@@ -219,6 +220,36 @@ describe("useEcharts", () => {
 
       expect(mockInstance.hideLoading).toHaveBeenCalled();
     });
+
+    it("should keep loading state after theme change", async () => {
+      const element = document.createElement("div");
+      const ref = { current: element };
+      const mockInstance1 = createMockInstance(element);
+      const mockInstance2 = createMockInstance(element);
+      (echarts.init as ReturnType<typeof vi.fn>)
+        .mockReturnValueOnce(mockInstance1)
+        .mockReturnValueOnce(mockInstance2);
+
+      const { rerender } = renderHook<
+        ReturnType<typeof useEcharts>,
+        { theme: BuiltinTheme }
+      >(
+        ({ theme }) =>
+          useEcharts(ref, {
+            option: baseOption,
+            theme,
+            showLoading: true,
+            loadingOption: { text: "Loading..." },
+          }),
+        { initialProps: { theme: "light" } }
+      );
+
+      rerender({ theme: "dark" });
+
+      await waitFor(() => {
+        expect(mockInstance2.showLoading).toHaveBeenCalledWith({ text: "Loading..." });
+      });
+    });
   });
 
   describe("event handling", () => {
@@ -290,6 +321,29 @@ describe("useEcharts", () => {
 
       expect(mockInstance.off).toHaveBeenCalledWith("click", clickHandler);
     });
+
+    it("should rebind events when onEvents changes", async () => {
+      const element = document.createElement("div");
+      const ref = { current: element };
+      const mockInstance = createMockInstance(element);
+      (echarts.init as ReturnType<typeof vi.fn>).mockReturnValue(mockInstance);
+
+      const clickHandler1 = vi.fn();
+      const clickHandler2 = vi.fn();
+
+      const { rerender } = renderHook(
+        ({ handler }) =>
+          useEcharts(ref, { option: baseOption, onEvents: { click: { handler } } }),
+        { initialProps: { handler: clickHandler1 } }
+      );
+
+      rerender({ handler: clickHandler2 });
+
+      await waitFor(() => {
+        expect(mockInstance.off).toHaveBeenCalledWith("click", clickHandler1);
+        expect(mockInstance.on).toHaveBeenCalledWith("click", clickHandler2, undefined);
+      });
+    });
   });
 
   describe("group handling", () => {
@@ -319,6 +373,88 @@ describe("useEcharts", () => {
       rerender({ group: "group2" });
 
       // Group update logic is handled
+    });
+
+    it("should keep group linkage after theme change", async () => {
+      const element = document.createElement("div");
+      const ref = { current: element };
+
+      const mockInstance1 = createMockInstance(element);
+      const mockInstance2 = createMockInstance(element);
+
+      (echarts.init as ReturnType<typeof vi.fn>)
+        .mockReturnValueOnce(mockInstance1)
+        .mockReturnValueOnce(mockInstance2);
+
+      const { rerender } = renderHook<
+        ReturnType<typeof useEcharts>,
+        { theme: BuiltinTheme }
+      >(
+        ({ theme }) =>
+          useEcharts(ref, {
+            option: baseOption,
+            group: "myGroup",
+            theme,
+          }),
+        { initialProps: { theme: "light" } }
+      );
+
+      await waitFor(() => {
+        expect(getGroupInstances("myGroup")).toContain(mockInstance1);
+      });
+
+      rerender({ theme: "dark" });
+
+      await waitFor(() => {
+        const groupInstances = getGroupInstances("myGroup");
+        expect(groupInstances).toContain(mockInstance2);
+        expect(groupInstances).not.toContain(mockInstance1);
+      });
+    });
+
+    it("should join group after lazy init enters viewport", async () => {
+      const originalIntersectionObserver = global.IntersectionObserver;
+      let triggerIntersect: ((entries: { isIntersecting: boolean }[]) => void) | undefined;
+
+      class ControlledIntersectionObserver implements IntersectionObserver {
+        root: Document | Element | null = null;
+        rootMargin = "0px";
+        thresholds: ReadonlyArray<number> = [0];
+        observe = vi.fn();
+        disconnect = vi.fn();
+        unobserve = vi.fn();
+        takeRecords = vi.fn(() => [] as IntersectionObserverEntry[]);
+
+        constructor(callback: IntersectionObserverCallback) {
+          triggerIntersect = (entries) =>
+            callback(entries as unknown as IntersectionObserverEntry[], this);
+        }
+      }
+
+      global.IntersectionObserver = ControlledIntersectionObserver as unknown as typeof IntersectionObserver;
+
+      const element = document.createElement("div");
+      const ref = { current: element };
+      const mockInstance = createMockInstance(element);
+      (echarts.init as ReturnType<typeof vi.fn>).mockReturnValue(mockInstance);
+
+      renderHook(() =>
+        useEcharts(ref, { option: baseOption, group: "lazyGroup", lazyInit: true })
+      );
+
+      // Not initialized before intersection
+      expect(echarts.init).not.toHaveBeenCalled();
+
+      // Simulate element entering viewport
+      act(() => {
+        triggerIntersect?.([{ isIntersecting: true } as { isIntersecting: boolean }]);
+      });
+
+      await waitFor(() => {
+        expect(getGroupInstances("lazyGroup")).toContain(mockInstance);
+      });
+
+      global.IntersectionObserver = originalIntersectionObserver;
     });
   });
 
