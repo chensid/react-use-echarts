@@ -16,6 +16,13 @@
 - **事件管理** - `onEvents` 支持查询条件与上下文，卸载时自动解绑
 - **实例复用** - WeakMap 缓存 + 引用计数，自动释放
 
+### 1.0.2 要点
+
+- 主题切换后保持组联动与 loading 状态
+- 懒加载完成后自动加入组联动
+- `onEvents` 变更时自动重绑，避免旧 handler 残留
+- 文档补充实例缓存与组联动工具导出
+
 ## 核心 API：useEcharts (v1.0)
 
 ```ts
@@ -95,6 +102,8 @@ function useLazyInit(
 ): boolean;  // 返回元素是否已进入视口
 ```
 
+默认配置：`rootMargin: '50px'`，`threshold: 0.1`。
+
 ### 主题工具函数
 
 ```ts
@@ -112,6 +121,22 @@ registerCustomTheme(themeName: string, themeConfig: object): void
 
 // 注册内置主题到 ECharts（模块加载时自动调用，一般无需手动调用）
 registerBuiltinThemes(): void
+
+### 实例缓存与组联动工具（高级）
+
+```ts
+// 实例缓存
+getCachedInstance(element: HTMLElement): ECharts | undefined
+clearInstanceCache(): void
+
+// 组联动
+addToGroup(instance: ECharts, groupId: string): void
+removeFromGroup(instance: ECharts, groupId: string): void
+updateGroup(instance: ECharts, oldGroupId?: string, newGroupId?: string): void
+getGroupInstances(groupId: string): ECharts[]
+getInstanceGroup(instance: ECharts): string | undefined
+clearGroups(): void
+```
 ```
 
 ## 开发流程

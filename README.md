@@ -282,6 +282,8 @@ function LinkedCharts() {
 
 Only initialize charts when they enter the viewport, great for pages with many charts.
 
+> 默认懒加载参数：`rootMargin: '50px'`，`threshold: 0.1`
+
 ```tsx
 import { useRef } from 'react';
 import { useEcharts } from 'react-use-echarts';
@@ -385,6 +387,24 @@ function ChartWithInstance() {
     </div>
   );
 }
+
+### Utilities
+
+高级场景可直接使用导出的实例缓存与组联动工具：
+
+```tsx
+import {
+  getCachedInstance,
+  clearInstanceCache,
+  getGroupInstances,
+  updateGroup,
+  addToGroup,
+  removeFromGroup,
+} from 'react-use-echarts';
+```
+
+- `getCachedInstance` / `clearInstanceCache`：查询或清理内部实例缓存
+- `getGroupInstances` / `addToGroup` / `removeFromGroup` / `updateGroup`：手动管理 ECharts 组联动
 ```
 
 ### Manual Resize
@@ -617,6 +637,13 @@ function MyChart() {
   return <div ref={chartRef} style={{ width: '100%', height: '400px' }} />;
 }
 ```
+
+### 1.0.2
+
+- 主题切换后保留组联动与 loading 状态
+- 懒加载完成后正确加入组
+- onEvents 变更时自动重绑事件
+- 文档补充实例缓存与组联动工具导出
 
 ## 📝 Changelog
 
