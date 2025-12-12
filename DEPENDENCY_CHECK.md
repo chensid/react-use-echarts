@@ -74,8 +74,10 @@ ESLint check passed with no issues.
 | Package | Version Range |
 |---------|---------------|
 | echarts | ^6.0.0 |
-| react | ^19.0.0 |
-| react-dom | ^19.0.0 |
+| react | ^19.2.0 |
+| react-dom | ^19.2.0 |
+
+**Note**: PeerDependencies were updated to ^19.2.0 to match the minimum version tested in devDependencies and avoid potential version conflicts with react-dom's peer dependencies.
 
 ## 建议 / Recommendations
 
