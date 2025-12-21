@@ -2,7 +2,7 @@
 
 ## 快速概览
 
-`react-use-echarts` 是基于 React 19 与 Apache ECharts 6 的 Hooks 封装，使用 TypeScript 5.9、Vite+Rollup 构建，Vitest+Testing Library 做测试。包管理统一使用 `pnpm`，除 `react` 与 `echarts` 外零运行时依赖，输出 `dist/index.es.js`、`dist/index.umd.js` 与 `dist/index.d.ts`。
+`react-use-echarts` 是基于 React 19 与 Apache ECharts 6 的 Hooks 封装，使用 TypeScript 5.9、Vite (Rolldown) 构建，Vitest+Testing Library 做测试。包管理统一使用 `pnpm`，除 `react` 与 `echarts` 外零运行时依赖，输出 `dist/index.es.js`、`dist/index.umd.js` 与 `dist/index.d.ts`。
 
 ### 核心特性 (v1.0)
 
@@ -14,7 +14,7 @@
 - **懒加载** - IntersectionObserver 实现视口内初始化，适用于大量图表的页面
 - **自动响应尺寸** - ResizeObserver 自动处理容器尺寸变化
 - **事件管理** - `onEvents` 支持查询条件与上下文，卸载时自动解绑
-- **实例复用** - WeakMap 缓存 + 引用计数，自动释放
+- **实例复用** - WeakMap 缓存 + 引用计数，自动释放（支持 StrictMode 多次挂载/卸载）
 
 ### 1.0.2 要点
 
@@ -127,6 +127,10 @@ registerBuiltinThemes(): void
 ```ts
 // 实例缓存
 getCachedInstance(element: HTMLElement): ECharts | undefined
+setCachedInstance(element: HTMLElement, instance: ECharts): ECharts
+replaceCachedInstance(element: HTMLElement, instance: ECharts): ECharts
+releaseCachedInstance(element: HTMLElement): void
+getReferenceCount(element: HTMLElement): number
 clearInstanceCache(): void
 
 // 组联动
@@ -135,8 +139,8 @@ removeFromGroup(instance: ECharts, groupId: string): void
 updateGroup(instance: ECharts, oldGroupId?: string, newGroupId?: string): void
 getGroupInstances(groupId: string): ECharts[]
 getInstanceGroup(instance: ECharts): string | undefined
+isInGroup(instance: ECharts): boolean
 clearGroups(): void
-```
 ```
 
 ## 开发流程
@@ -195,21 +199,25 @@ dist/                        # 构建输出 (es/umd/d.ts)
 ## 开发约定
 
 ### API 设计
+
 - 沿用 React Hooks 语义，参数保持可组合
 - 避免新增布尔开关堆叠，优先通过数据结构抽象减少分支
 - 向后兼容：不破坏现有接口和使用方式
 
 ### 类型安全
+
 - 新能力先在 `src/types/index.ts` 补充类型定义
 - 必要时补充 JSDoc，保证导出的类型对外稳定
 - 使用 `BuiltinTheme` 等类型别名提高可读性
 
 ### 性能/内存
+
 - 使用 `useRef`/`useCallback` 控制重渲染
 - 新增副作用必须实现成对清理（cleanup function）
 - 禁止遗留监听器或定时器
 
 ### 变更步骤
+
 1. 实现功能
 2. 更新类型定义和导出
 3. 补充测试用例
@@ -231,16 +239,19 @@ dist/                        # 构建输出 (es/umd/d.ts)
 ## 贡献流程
 
 ### 提交前检查
+
 ```bash
 pnpm lint && pnpm test
 ```
 
 ### Commit 规范
-```
+
+```text
 feat|fix|docs|test|refactor|chore: <subject>
 ```
 
 ### PR 要求
+
 - 变更说明清晰
 - 附测试结果摘要
 - Breaking Change 需在 README 和 release note 中明示
