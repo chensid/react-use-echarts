@@ -1,8 +1,10 @@
 # Dependency Update Report
 
-**Date:** 2025-12-24  
+**Report Date:** 2025-12-24  
 **Project:** react-use-echarts v1.0.2  
 **Package Manager:** pnpm v10.26.2
+
+> **Note:** When performing future dependency checks, update the "Report Date" above to the current date and regenerate this report using `pnpm outdated` and `pnpm update --latest --interactive`.
 
 ## Executive Summary
 
@@ -105,8 +107,16 @@ This is intentional for using Rolldown instead of Rollup.
 ### TypeScript Version Constraint
 TypeScript is pinned to `~5.9.3` (minor version lock), which is appropriate for maintaining stability.
 
-## Next Check
-Recommended next dependency check: **2025-01-24** (30 days from now)
+## Next Dependency Check
+
+**Recommended Next Check:** 30 days from report date
+
+To perform the next dependency check:
+1. Run `pnpm outdated` to check for updates
+2. Run `pnpm update --latest --interactive` to review and apply updates
+3. Verify with `pnpm typecheck && pnpm lint && pnpm test`
+4. Update the "Report Date" at the top of this file
+5. Update the table and verification results as needed
 
 ---
 
