@@ -37,7 +37,7 @@ All devDependencies are currently using the latest available versions within the
 | jsdom | ^27.3.0 | ✅ Latest |
 | react | ^19.2.3 | ✅ Latest |
 | react-dom | ^19.2.3 | ✅ Latest |
-| typescript | ~5.9.3 | ✅ Latest |
+| typescript | ~5.9.3 | ✅ Latest (minor version locked) |
 | typescript-eslint | ^8.50.1 | ✅ Latest |
 | vite | npm:rolldown-vite@7.3.0 | ✅ Latest |
 | vite-plugin-dts | ^4.5.4 | ✅ Latest |
@@ -89,11 +89,12 @@ pnpm test
 - Keep an eye on TypeScript 5.10+ when released
 
 ### Best Practices
-1. Run `pnpm outdated` weekly to check for updates
-2. Review changelogs before updating major/minor versions
-3. Test thoroughly after each update
-4. Update dependencies in small batches to isolate issues
-5. Keep peerDependencies versions aligned with devDependencies for testing
+1. **Monitor for updates:** Check `pnpm outdated` weekly for security patches and critical updates
+2. **Comprehensive reviews:** Perform full dependency reviews (like this report) every 30 days
+3. **Review changelogs:** Always check changelogs before updating major/minor versions
+4. **Test thoroughly:** Run full test suite after each update
+5. **Batch updates:** Update dependencies in small batches to isolate issues
+6. **Align versions:** Keep peerDependencies versions aligned with devDependencies for testing
 
 ## Special Notes
 
@@ -102,10 +103,26 @@ The project uses `rolldown-vite@7.3.0` as an override for the standard vite pack
 ```json
 "vite": "npm:rolldown-vite@7.3.0"
 ```
-This is intentional for using Rolldown instead of Rollup.
+
+**Rationale:** [Rolldown](https://rolldown.rs/) is a high-performance bundler written in Rust that aims to be compatible with Rollup's API while offering significantly better performance. The project uses it as a drop-in replacement for Vite's default bundler (Rollup) to achieve faster build times.
+
+**Considerations for updates:**
+- Verify rolldown-vite package is still actively maintained
+- Check compatibility with other Vite plugins when updating
+- Monitor for when Rolldown becomes the default in official Vite (planned for future versions)
 
 ### TypeScript Version Constraint
-TypeScript is pinned to `~5.9.3` (minor version lock), which is appropriate for maintaining stability.
+TypeScript is pinned to `~5.9.3` (tilde constraint - patch-level updates only):
+
+**Rationale:** The tilde (`~`) constraint limits updates to patch versions only (5.9.x), preventing automatic minor version updates. This is a conservative approach that:
+- Ensures build stability and reproducibility
+- Prevents unexpected breaking changes in TypeScript compiler behavior
+- Aligns with the project's stability-focused approach
+
+**Considerations:**
+- Manually review TypeScript 5.10+ release notes when available
+- Update the version constraint when ready to adopt new TypeScript features
+- Security and critical bug fixes in patch versions (5.9.4, 5.9.5, etc.) will still be applied automatically
 
 ## Next Dependency Check
 
