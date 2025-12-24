@@ -119,12 +119,13 @@ The project uses `rolldown-vite@7.3.0` as an override for the standard vite pack
 "vite": "npm:rolldown-vite@7.3.0"
 ```
 
-**Rationale:** [Rolldown](https://rolldown.rs/) is a high-performance bundler written in Rust that aims to be compatible with Rollup's API. The project uses rolldown-vite, which replaces Vite's production bundler (Rollup) with Rolldown to achieve faster build times. Note that Vite's development server still uses esbuild for fast HMR.
+**Rationale:** The project uses `rolldown-vite`, which integrates [Rolldown](https://rolldown.rs/) - a Rust-based bundler designed for high performance and Rollup API compatibility - as an alternative to Vite's standard production bundler.
 
 **Considerations for updates:**
-- Verify rolldown-vite package is still actively maintained
-- Check compatibility with other Vite plugins when updating
-- Monitor Rolldown project development and Vite ecosystem adoption
+- Verify rolldown-vite package is actively maintained before updating
+- Test compatibility with all Vite plugins after updates
+- Check rolldown-vite changelog for breaking changes
+- Monitor the broader Vite/Rolldown ecosystem for compatibility updates
 
 ### TypeScript Version Constraint
 TypeScript is pinned to `~5.9.3` (tilde constraint - patch-level updates only):
