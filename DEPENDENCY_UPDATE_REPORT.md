@@ -4,7 +4,10 @@
 **Project:** react-use-echarts v1.0.2  
 **Package Manager:** pnpm v10.26.2
 
-> **Note:** When performing future dependency checks, update the "Report Date" above to the current date and regenerate this report using `pnpm outdated` and `pnpm update --latest --interactive`.
+> **Note:** When performing future dependency checks, update the "Report Date" above and refresh the following sections:
+> - Dependency status table (current versions)
+> - Verification results (build, test, lint output)
+> - Medium-term recommendations (based on ecosystem changes)
 
 ## Executive Summary
 
@@ -89,10 +92,22 @@ pnpm test
 - Keep an eye on TypeScript 5.10+ when released
 
 ### Best Practices
-1. **Monitor for updates:** Check `pnpm outdated` weekly for security patches and critical updates
-2. **Comprehensive reviews:** Perform full dependency reviews (like this report) every 30 days
+
+#### Monitoring Schedule
+1. **Weekly monitoring (5 minutes):** 
+   - Run `pnpm outdated` to check for available updates
+   - If security patches are available, apply them immediately
+   - If minor/patch updates are available, review changelogs and schedule for next monthly review
+   
+2. **Monthly comprehensive review (30 minutes):**
+   - Perform full dependency audit like this report
+   - Apply non-security updates in batches
+   - Run full test suite after updates
+   - Update this report with new findings
+
+#### Update Guidelines
 3. **Review changelogs:** Always check changelogs before updating major/minor versions
-4. **Test thoroughly:** Run full test suite after each update
+4. **Test thoroughly:** Run `pnpm typecheck && pnpm lint && pnpm test` after each update
 5. **Batch updates:** Update dependencies in small batches to isolate issues
 6. **Align versions:** Keep peerDependencies versions aligned with devDependencies for testing
 
@@ -126,14 +141,17 @@ TypeScript is pinned to `~5.9.3` (tilde constraint - patch-level updates only):
 
 ## Next Dependency Check
 
-**Recommended Next Check:** 30 days from report date
+**Recommended Schedule:** Follow the monitoring schedule above (weekly checks + monthly comprehensive reviews)
 
-To perform the next dependency check:
+### Steps for Next Comprehensive Review
 1. Run `pnpm outdated` to check for updates
 2. Run `pnpm update --latest --interactive` to review and apply updates
 3. Verify with `pnpm typecheck && pnpm lint && pnpm test`
-4. Update the "Report Date" at the top of this file
-5. Update the table and verification results as needed
+4. Update this report:
+   - Update "Report Date" at the top
+   - Refresh dependency table with new versions
+   - Update verification results
+   - Adjust recommendations based on ecosystem changes
 
 ---
 
