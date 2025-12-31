@@ -9,42 +9,42 @@
 [![GitHub pull requests](https://img.shields.io/github/issues-pr/chensid/react-use-echarts)](https://github.com/chensid/react-use-echarts/pulls)
 [![GitHub license](https://img.shields.io/github/license/chensid/react-use-echarts.svg)](https://github.com/chensid/react-use-echarts/blob/main/LICENSE.txt)
 
-A React hooks library for Apache ECharts with full TypeScript support. Simple, lightweight, and gets out of your way.
+一个用于 Apache ECharts 的 React Hooks 库，提供完整的 TypeScript 支持。简单、轻量，不干扰你的工作流。
 
-## ✨ Features
+## ✨ 特性
 
-- 🎨 **Easy to use** - Simple and intuitive API with React Hooks
-- 🚀 **TypeScript support** - Written in TypeScript with complete type definitions
-- 📦 **Lightweight** - Zero dependencies except for React and ECharts
-- 🛠 **Flexible** - Full access to ECharts instance and options
-- ⚡ **Auto-updating** - Automatically updates chart when data or options change
-- 📱 **Responsive** - Handles container resizing automatically with ResizeObserver
-- 🎯 **Event handling** - Easy to use event system with flexible configuration
-- 🎭 **Built-in themes** - Includes light, dark, and macarons themes out of the box
-- 🔗 **Chart linkage** - Connect multiple charts for synchronized interactions
-- 🦥 **Lazy initialization** - Only initialize charts when they enter the viewport
+- 🎨 **易于使用** - 基于 React Hooks 的简洁直观 API
+- 🚀 **TypeScript 支持** - 使用 TypeScript 编写，提供完整的类型定义
+- 📦 **轻量级** - 除 React 和 ECharts 外零依赖
+- 🛠 **灵活** - 完全访问 ECharts 实例和配置选项
+- ⚡ **自动更新** - 数据或配置变化时自动更新图表
+- 📱 **响应式** - 通过 ResizeObserver 自动处理容器尺寸变化
+- 🎯 **事件处理** - 灵活配置的事件系统，易于使用
+- 🎭 **内置主题** - 开箱即用的 light、dark、macarons 主题
+- 🔗 **图表联动** - 连接多个图表实现同步交互
+- 🦥 **懒加载** - 仅在图表进入视口时初始化
 
-## 📋 Requirements
+## 📋 要求
 
 - React 19.x
 - ECharts 6.x
 
-> **Note**: This library is designed for client-side rendering (CSR) only. Server-side rendering (SSR) is not supported as ECharts requires DOM access.
+> **注意**：此库仅适用于客户端渲染（CSR）。由于 ECharts 需要 DOM 访问，不支持服务端渲染（SSR）。
 
-## 📦 Installation
+## 📦 安装
 
 ```bash
-# Using npm
+# 使用 npm
 npm install react-use-echarts echarts
 
-# Using yarn
+# 使用 yarn
 yarn add react-use-echarts echarts
 
-# Using pnpm
+# 使用 pnpm
 pnpm add react-use-echarts echarts
 ```
 
-## 🔨 Usage
+## 🔨 用法
 
 ```tsx
 import { useRef } from 'react';
@@ -66,9 +66,9 @@ function MyChart() {
 }
 ```
 
-## 🚀 Advanced Usage
+## 🚀 高级用法
 
-### Event Handling
+### 事件处理
 
 ```tsx
 import { useRef } from 'react';
@@ -96,7 +96,7 @@ function InteractiveChart() {
         handler: (params) => {
           console.log('Hover:', params);
         },
-        query: 'series' // Only trigger on series elements
+        query: 'series' // 仅在系列元素上触发
       }
     }
   });
@@ -105,7 +105,7 @@ function InteractiveChart() {
 }
 ```
 
-### Loading State
+### 加载状态
 
 ```tsx
 import { useState, useEffect, useRef } from 'react';
@@ -116,7 +116,7 @@ function ChartWithLoading() {
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState<number[]>([]);
 
-  // Simulate data fetching
+  // 模拟数据获取
   useEffect(() => {
     setTimeout(() => {
       setData([820, 932, 901, 934, 1290, 1330, 1320]);
@@ -137,7 +137,7 @@ function ChartWithLoading() {
 }
 ```
 
-### Dynamic Updates
+### 动态更新
 
 ```tsx
 import { useState, useRef } from 'react';
@@ -172,15 +172,15 @@ function DynamicChart() {
 }
 ```
 
-### Themes
+### 主题
 
-Built-in themes: `light`, `dark`, `macarons`, or pass a custom theme object.
+内置主题：`light`、`dark`、`macarons`，或传入自定义主题对象。
 
 ```tsx
 import { useRef, useMemo } from 'react';
 import { useEcharts } from 'react-use-echarts';
 
-// Using built-in theme
+// 使用内置主题
 function BuiltinThemeChart() {
   const chartRef = useRef<HTMLDivElement>(null);
 
@@ -196,7 +196,7 @@ function BuiltinThemeChart() {
   return <div ref={chartRef} style={{ width: '100%', height: '400px' }} />;
 }
 
-// Using custom theme (recommend using useMemo to avoid unnecessary re-renders)
+// 使用自定义主题（建议使用 useMemo 避免不必要的重渲染）
 function CustomThemeChart() {
   const chartRef = useRef<HTMLDivElement>(null);
   const customTheme = useMemo(() => ({
@@ -217,9 +217,9 @@ function CustomThemeChart() {
 }
 ```
 
-### Chart Linkage
+### 图表联动
 
-Connect multiple charts using the `group` option to enable synchronized interactions (e.g., tooltip, highlight).
+通过 `group` 选项连接多个图表，实现同步交互（如 tooltip、highlight）。
 
 ```tsx
 import { useRef } from 'react';
@@ -259,15 +259,15 @@ function LinkedCharts() {
 }
 ```
 
-### Lazy Initialization
+### 懒加载
 
-Initialize charts only when they enter the viewport. Suitable for pages with multiple charts. Default parameters: `rootMargin: '50px'`, `threshold: 0.1`.
+当图表进入视口时才初始化，适合包含多个图表的页面。默认参数：`rootMargin: '50px'`，`threshold: 0.1`。
 
 ```tsx
 import { useRef } from 'react';
 import { useEcharts } from 'react-use-echarts';
 
-// Using default configuration
+// 使用默认配置
 function LazyChart() {
   const chartRef = useRef<HTMLDivElement>(null);
 
@@ -283,7 +283,7 @@ function LazyChart() {
   return <div ref={chartRef} style={{ width: '100%', height: '400px' }} />;
 }
 
-// Custom IntersectionObserver configuration
+// 自定义 IntersectionObserver 配置
 function LazyChartWithOptions() {
   const chartRef = useRef<HTMLDivElement>(null);
 
@@ -303,9 +303,9 @@ function LazyChartWithOptions() {
 }
 ```
 
-### SVG Renderer
+### SVG 渲染器
 
-Use SVG renderer for better accessibility and print quality.
+使用 SVG 渲染器以获得更好的可访问性和打印质量。
 
 ```tsx
 import { useRef } from 'react';
@@ -320,16 +320,16 @@ function SVGChart() {
       yAxis: { type: 'value' },
       series: [{ data: [120, 200, 150], type: 'bar' }]
     },
-    renderer: 'svg' // Default is 'canvas'
+    renderer: 'svg' // 默认为 'canvas'
   });
 
   return <div ref={chartRef} style={{ width: '100%', height: '400px' }} />;
 }
 ```
 
-### Accessing ECharts Instance
+### 访问 ECharts 实例
 
-Access the ECharts instance via `getInstance()` to perform advanced operations like exporting images.
+通过 `getInstance()` 获取 ECharts 实例，可执行导出图片等高级操作。
 
 ```tsx
 import { useRef } from 'react';
@@ -366,9 +366,9 @@ function ChartWithInstance() {
 }
 ```
 
-### Manual Resize
+### 手动调整尺寸
 
-Manually trigger chart resize (usually handled automatically by ResizeObserver).
+手动触发图表尺寸调整（通常由 ResizeObserver 自动处理）。
 
 ```tsx
 import { useRef } from 'react';
@@ -394,9 +394,9 @@ function ResizableChart() {
 }
 ```
 
-### Utilities
+### 工具函数
 
-Advanced scenarios can directly use exported utility functions:
+高级场景可直接使用导出的工具函数：
 
 ```tsx
 import {
@@ -409,14 +409,14 @@ import {
 } from 'react-use-echarts';
 ```
 
-- `getCachedInstance` / `clearInstanceCache`: Query or clear internal instance cache
-- `getGroupInstances` / `addToGroup` / `removeFromGroup` / `updateGroup`: Manually manage ECharts group linkage
+- `getCachedInstance` / `clearInstanceCache`：查询或清理内部实例缓存
+- `getGroupInstances` / `addToGroup` / `removeFromGroup` / `updateGroup`：手动管理 ECharts 组联动
 
 ## 📖 API
 
 ### useEcharts
 
-The main Hook for using ECharts in React components.
+在 React 组件中使用 ECharts 的主 Hook。
 
 #### Parameters
 
@@ -424,18 +424,18 @@ The main Hook for using ECharts in React components.
 const chartRef = useRef<HTMLDivElement>(null);
 
 const { setOption, getInstance, resize } = useEcharts(chartRef, {
-  option: { /* EChartsOption */ }, // Required
-  theme: 'dark', // 'light' | 'dark' | 'macarons' | custom object | null
-  renderer: 'canvas', // 'canvas' | 'svg', default 'canvas'
+  option: { /* EChartsOption */ }, // 必需
+  theme: 'dark', // 'light' | 'dark' | 'macarons' | 自定义对象 | null
+  renderer: 'canvas', // 'canvas' | 'svg'，默认 'canvas'
   lazyInit: false, // boolean | IntersectionObserverInit
-  group: 'my-group', // Group ID for chart linkage
-  setOptionOpts: { notMerge: false }, // Default options for setOption
-  showLoading: false, // Whether to show loading state
-  loadingOption: { text: 'Loading…' }, // Loading configuration
+  group: 'my-group', // 组 ID，用于图表联动
+  setOptionOpts: { notMerge: false }, // setOption 的默认选项
+  showLoading: false, // 是否显示加载状态
+  loadingOption: { text: 'Loading…' }, // 加载配置
   onEvents: {
     click: {
       handler: (params) => console.log(params),
-      query: 'series', // Optional: event query condition
+      query: 'series', // 可选：事件查询条件
     },
   },
 });
@@ -443,17 +443,17 @@ const { setOption, getInstance, resize } = useEcharts(chartRef, {
 
 #### Options
 
-| Property | Type | Default | Description |
-|----------|------|---------|-------------|
-| `option` | `EChartsOption` | **Required** | ECharts configuration option |
-| `theme` | `'light' \| 'dark' \| 'macarons' \| object \| null` | `null` | Theme name or custom theme object |
-| `renderer` | `'canvas' \| 'svg'` | `'canvas'` | Renderer type |
-| `lazyInit` | `boolean \| IntersectionObserverInit` | `false` | Lazy initialization configuration |
-| `group` | `string` | - | Chart linkage group ID |
-| `setOptionOpts` | `SetOptionOpts` | - | Default options for setOption |
-| `showLoading` | `boolean` | `false` | Whether to show loading state |
-| `loadingOption` | `object` | - | Loading configuration |
-| `onEvents` | `EChartsEvents` | - | Event handlers |
+| 属性 | 类型 | 默认值 | 说明 |
+|------|------|--------|------|
+| `option` | `EChartsOption` | **必需** | ECharts 配置选项 |
+| `theme` | `'light' \| 'dark' \| 'macarons' \| object \| null` | `null` | 主题名称或自定义主题对象 |
+| `renderer` | `'canvas' \| 'svg'` | `'canvas'` | 渲染器类型 |
+| `lazyInit` | `boolean \| IntersectionObserverInit` | `false` | 懒加载配置 |
+| `group` | `string` | - | 图表联动组 ID |
+| `setOptionOpts` | `SetOptionOpts` | - | setOption 的默认选项 |
+| `showLoading` | `boolean` | `false` | 是否显示加载状态 |
+| `loadingOption` | `object` | - | 加载配置 |
+| `onEvents` | `EChartsEvents` | - | 事件处理器 |
 
 #### Returns
 
@@ -465,9 +465,9 @@ const { setOption, getInstance, resize } = useEcharts(chartRef, {
 }
 ```
 
-- **`setOption`**: Dynamically update chart configuration
-- **`getInstance`**: Get ECharts instance (returns `undefined` before initialization)
-- **`resize`**: Manually trigger chart resize
+- **`setOption`**: 动态更新图表配置
+- **`getInstance`**: 获取 ECharts 实例（初始化前返回 `undefined`）
+- **`resize`**: 手动触发图表尺寸调整
 
 ### Theme Utilities
 
@@ -482,14 +482,14 @@ import {
 
 getAvailableThemes(); // ['light', 'dark', 'macarons']
 isBuiltinTheme('dark'); // true
-getBuiltinTheme('dark'); // Get built-in theme configuration
-registerCustomTheme('my-theme', { color: ['#ff0000', '#00ff00'] }); // Register custom theme
-registerBuiltinThemes(); // Register built-in themes (automatically called on module load, usually no need to call manually)
+getBuiltinTheme('dark'); // 获取内置主题配置
+registerCustomTheme('my-theme', { color: ['#ff0000', '#00ff00'] }); // 注册自定义主题
+registerBuiltinThemes(); // 注册内置主题（模块加载时自动调用，通常无需手动调用）
 ```
 
 ### useLazyInit
 
-Standalone lazy initialization Hook based on IntersectionObserver.
+独立的懒加载 Hook，基于 IntersectionObserver。
 
 ```tsx
 import { useRef } from 'react';
@@ -510,14 +510,14 @@ function MyComponent() {
 }
 ```
 
-## 🤝 Contributing
+## 🤝 贡献
 
-We welcome all contributions. Please read our [contributing guidelines](CONTRIBUTING.md) first. You can submit any ideas as [pull requests](https://github.com/chensid/react-use-echarts/pulls) or as [GitHub issues](https://github.com/chensid/react-use-echarts/issues).
+我们欢迎所有贡献。请先阅读我们的[贡献指南](CONTRIBUTING.md)。你可以通过[拉取请求](https://github.com/chensid/react-use-echarts/pulls)或[GitHub issues](https://github.com/chensid/react-use-echarts/issues)提交任何想法。
 
-## 📝 Changelog
+## 📝 更新日志
 
-Detailed changes for each release are documented in the [release notes](https://github.com/chensid/react-use-echarts/releases).
+每个版本的详细变更记录请查看[发布说明](https://github.com/chensid/react-use-echarts/releases)。
 
-## 📄 License
+## 📄 许可证
 
 [MIT](./LICENSE.txt) © [Ethan](https://github.com/chensid)
