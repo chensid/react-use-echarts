@@ -121,6 +121,7 @@ registerCustomTheme(themeName: string, themeConfig: object): void
 
 // 注册内置主题到 ECharts（模块加载时自动调用，一般无需手动调用）
 registerBuiltinThemes(): void
+```
 
 ### 实例缓存与组联动工具（高级）
 
