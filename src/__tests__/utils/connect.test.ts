@@ -27,6 +27,7 @@ function createMockInstance() {
     off: vi.fn(),
     getDom: vi.fn(),
     resize: vi.fn(),
+    group: undefined,
   } as unknown as echarts.ECharts;
 }
 
@@ -42,6 +43,7 @@ describe("connect utilities", () => {
       addToGroup(instance, "group1");
 
       expect(getGroupInstances("group1")).toContain(instance);
+      expect(instance.group).toBe("group1");
       // Single instance should not trigger connect
       expect(echarts.connect).not.toHaveBeenCalled();
     });
@@ -83,6 +85,8 @@ describe("connect utilities", () => {
 
       expect(getGroupInstances("group1")).not.toContain(instance1);
       expect(getGroupInstances("group1")).toContain(instance2);
+      expect(instance1.group).toBeUndefined();
+      expect(instance2.group).toBe("group1");
     });
 
     it("should disconnect when group becomes empty", () => {
@@ -141,6 +145,7 @@ describe("connect utilities", () => {
 
       expect(getGroupInstances("oldGroup")).not.toContain(instance);
       expect(getGroupInstances("newGroup")).toContain(instance);
+      expect(instance.group).toBe("newGroup");
     });
 
     it("should only add to new group when no old group", () => {
@@ -149,6 +154,7 @@ describe("connect utilities", () => {
       updateGroup(instance, undefined, "newGroup");
 
       expect(getGroupInstances("newGroup")).toContain(instance);
+      expect(instance.group).toBe("newGroup");
     });
 
     it("should only remove from old group when no new group", () => {
@@ -158,6 +164,7 @@ describe("connect utilities", () => {
       updateGroup(instance, "oldGroup", undefined);
 
       expect(getGroupInstances("oldGroup")).not.toContain(instance);
+      expect(instance.group).toBeUndefined();
     });
 
     it("should handle both undefined", () => {
