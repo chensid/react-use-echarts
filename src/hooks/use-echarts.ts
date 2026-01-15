@@ -80,10 +80,18 @@ function useEcharts(
     onEvents,
   } = options;
 
+  // Keep latest values without re-triggering effects
+  // 保持最新值但不触发 effect 依赖变化
+  const optionRef = useRef(option);
+  const setOptionOptsRef = useRef(setOptionOpts);
+  const showLoadingRef = useRef(showLoading);
+  const loadingOptionRef = useRef(loadingOption);
+
   // Track previous values for cleanup
   // 跟踪前值用于清理
   const prevGroupRef = useRef<string | undefined>(undefined);
   const prevThemeRef = useRef<BuiltinTheme | object | null | undefined>(undefined);
+  const skipNextOptionEffectRef = useRef(false);
   
   // Track bound events for proper cleanup without dependency issues
   // 跟踪已绑定的事件，以便在不产生依赖问题的情况下正确清理
@@ -139,6 +147,17 @@ function useEcharts(
     return instance;
   }, [ref, shouldInit, theme, renderer]);
 
+  // Keep latest initChart without re-triggering layout effect
+  // 保持最新 initChart 但不触发 layout effect
+  const initChartRef = useRef(initChart);
+  useLayoutEffect(() => {
+    optionRef.current = option;
+    setOptionOptsRef.current = setOptionOpts;
+    showLoadingRef.current = showLoading;
+    loadingOptionRef.current = loadingOption;
+    initChartRef.current = initChart;
+  }, [option, setOptionOpts, showLoading, loadingOption, initChart]);
+
   /**
    * Set chart options
    * 设置图表配置
@@ -178,17 +197,20 @@ function useEcharts(
 
     // Initialize chart instance
     // 初始化图表实例
-    const instance = initChart();
+    const instance = initChartRef.current();
     if (!instance) return;
 
     // Set initial options
     // 设置初始配置
-    instance.setOption(option, setOptionOpts);
+    instance.setOption(optionRef.current, setOptionOptsRef.current);
+    // Always skip next option effect to avoid duplicate setOption
+    // 总是跳过下一次 option effect，避免重复 setOption
+    skipNextOptionEffectRef.current = true;
 
     // Handle loading state
     // 处理加载状态
-    if (showLoading) {
-      instance.showLoading(loadingOption);
+    if (showLoadingRef.current) {
+      instance.showLoading(loadingOptionRef.current);
     }
 
     // Bind initial events
@@ -218,7 +240,7 @@ function useEcharts(
       // 释放缓存实例（销毁）
       releaseCachedInstance(element);
     };
-  }, [shouldInit, initChart, option, setOptionOpts, showLoading, loadingOption, ref]);
+  }, [shouldInit, ref]);
 
   /**
    * Handle option updates after initialization
@@ -227,6 +249,11 @@ function useEcharts(
   useEffect(() => {
     const instance = getInstance();
     if (!instance) return;
+
+    if (skipNextOptionEffectRef.current) {
+      skipNextOptionEffectRef.current = false;
+      return;
+    }
 
     instance.setOption(option, setOptionOpts);
   }, [getInstance, option, setOptionOpts]);

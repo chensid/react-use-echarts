@@ -1,6 +1,8 @@
 import * as echarts from "echarts";
 import type { ECharts } from "echarts";
 
+type EChartsWithGroup = Omit<ECharts, "group"> & { group?: string };
+
 /**
  * Global registry for chart groups
  * 图表组的全局注册表
@@ -21,6 +23,7 @@ export function addToGroup(instance: ECharts, groupId: string): void {
     groupRegistry.set(groupId, group);
   }
 
+  (instance as EChartsWithGroup).group = groupId;
   group.add(instance);
 
   // Connect all instances in the group
@@ -43,6 +46,9 @@ export function removeFromGroup(instance: ECharts, groupId: string): void {
   }
 
   group.delete(instance);
+  if ((instance as EChartsWithGroup).group === groupId) {
+    (instance as EChartsWithGroup).group = undefined;
+  }
 
   // If group becomes empty, clean up
   if (group.size === 0) {
