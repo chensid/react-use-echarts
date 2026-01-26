@@ -60,14 +60,14 @@
     "@types/react": "^19.2.9",
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^5.1.2",
-    "@vitest/coverage-v8": "^4.0.17",
+    "@vitest/coverage-v8": "^4.0.18",
     "babel-plugin-react-compiler": "^1.0.0",
-    "baseline-browser-mapping": "^2.9.17",
+    "baseline-browser-mapping": "^2.9.18",
     "echarts": "^6.0.0",
     "eslint": "^9.39.2",
     "eslint-plugin-react-hooks": "^7.0.1",
     "eslint-plugin-react-refresh": "^0.4.26",
-    "globals": "^17.0.0",
+    "globals": "^17.1.0",
     "jsdom": "^27.4.0",
     "react": "^19.2.3",
     "react-dom": "^19.2.3",
@@ -75,7 +75,7 @@
     "typescript-eslint": "^8.53.1",
     "vite": "npm:rolldown-vite@7.3.1",
     "vite-plugin-dts": "^4.5.4",
-    "vitest": "^4.0.17"
+    "vitest": "^4.0.18"
   },
   "peerDependencies": {
     "echarts": "^6.0.0",
