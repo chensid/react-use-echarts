@@ -34,6 +34,7 @@ export interface EChartsEvents {
     /**
      * Query condition for the event
      * 事件的查询条件
+     * @see https://echarts.apache.org/en/api.html#bindbindEvent query
      */
     query?: string | object;
     /**
@@ -42,6 +43,37 @@ export interface EChartsEvents {
      */
     context?: object;
   };
+}
+
+/**
+ * ECharts initialization options passed to echarts.init()
+ * 传递给 echarts.init() 的初始化选项
+ */
+export interface EChartsInitOpts {
+  /**
+   * Device pixel ratio for canvas rendering
+   * Canvas 渲染的设备像素比
+   * @see https://echarts.apache.org/en/api.html#echarts.init
+   */
+  devicePixelRatio?: number;
+
+  /**
+   * Locale for chart display (e.g. 'ZH', 'EN')
+   * 图表显示的语言环境
+   */
+  locale?: string;
+
+  /**
+   * Explicit width (for off-screen rendering or fixed-size charts)
+   * 显式宽度（用于离屏渲染或固定尺寸图表）
+   */
+  width?: number | string;
+
+  /**
+   * Explicit height (for off-screen rendering or fixed-size charts)
+   * 显式高度（用于离屏渲染或固定尺寸图表）
+   */
+  height?: number | string;
 }
 
 /**
@@ -96,14 +128,36 @@ export interface UseEchartsOptions {
   /**
    * Loading options
    * 加载配置项
+   * @see https://echarts.apache.org/en/api.html#echartsInstance.showLoading
    */
-  loadingOption?: object;
+  loadingOption?: Record<string, unknown>;
 
   /**
    * Event configurations
    * 事件配置
    */
   onEvents?: EChartsEvents;
+
+  /**
+   * Whether to automatically resize chart when container size changes
+   * 容器尺寸变化时是否自动 resize
+   * @default true
+   */
+  autoResize?: boolean;
+
+  /**
+   * ECharts init options (devicePixelRatio, locale, width, height)
+   * ECharts 初始化选项
+   * Note: Changing these requires instance recreation
+   */
+  initOpts?: EChartsInitOpts;
+
+  /**
+   * Error handler for chart operations (init, setOption, etc.)
+   * 图表操作（init、setOption 等）的错误处理回调
+   * Without this, errors propagate normally (may trigger React error boundaries)
+   */
+  onError?: (error: unknown) => void;
 }
 
 /**

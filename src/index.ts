@@ -26,6 +26,7 @@ export type {
   UseEchartsOptions,
   UseEchartsReturn,
   EChartsEvents,
+  EChartsInitOpts,
   BuiltinTheme,
 } from "./types";
 
@@ -35,6 +36,7 @@ export type {
  */
 export {
   registerBuiltinThemes,
+  ensureBuiltinThemesRegistered,
   getBuiltinTheme,
   isBuiltinTheme,
   registerCustomTheme,
@@ -42,7 +44,28 @@ export {
 } from "./themes";
 
 /**
- * Utility functions for ECharts
- * ECharts 工具函数
+ * Instance cache utilities (advanced)
+ * 实例缓存工具（高级用法）
  */
-export * from "./utils";
+export {
+  getCachedInstance,
+  setCachedInstance,
+  replaceCachedInstance,
+  releaseCachedInstance,
+  getReferenceCount,
+  clearInstanceCache,
+} from "./utils/instance-cache";
+
+/**
+ * Chart group/linkage utilities (advanced)
+ * 图表联动工具（高级用法）
+ */
+export {
+  addToGroup,
+  removeFromGroup,
+  updateGroup,
+  getGroupInstances,
+  getInstanceGroup,
+  isInGroup,
+  clearGroups,
+} from "./utils/connect";

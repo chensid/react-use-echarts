@@ -1,4 +1,4 @@
-import { useEffect, useRef, useCallback, useLayoutEffect } from "react";
+import { useEffect, useRef, useCallback, useLayoutEffect, useMemo } from "react";
 import * as echarts from "echarts";
 import type { ECharts, SetOptionOpts, EChartsOption } from "echarts";
 import type { UseEchartsOptions, UseEchartsReturn, EChartsEvents, BuiltinTheme } from "../types";
@@ -6,28 +6,37 @@ import { useLazyInit } from "./use-lazy-init";
 import {
   getCachedInstance,
   setCachedInstance,
-  replaceCachedInstance,
   releaseCachedInstance,
 } from "../utils/instance-cache";
-import { updateGroup } from "../utils/connect";
-import { isBuiltinTheme, getOrRegisterCustomTheme } from "../themes";
+import { updateGroup, getInstanceGroup } from "../utils/connect";
+import { isBuiltinTheme, getOrRegisterCustomTheme, ensureBuiltinThemesRegistered } from "../themes";
 
 /**
- * Get theme name for ECharts initialization
- * 获取用于 ECharts 初始化的主题名称
- * @param theme Theme configuration
- * @returns Theme name string or null
+ * Pure computation of a stable identity key for theme (no side effects).
+ * Used during render for effect dependency tracking.
+ * 纯粹计算主题的稳定标识键（无副作用），用于渲染阶段的 effect 依赖跟踪。
+ *
+ * - null/undefined → null
+ * - builtin string  → theme name ('light', 'dark', 'macarons')
+ * - custom object   → JSON content hash (stable for same content)
+ */
+function computeThemeKey(theme: BuiltinTheme | object | null | undefined): string | null {
+  if (theme == null) return null;
+  if (typeof theme === 'string') return isBuiltinTheme(theme) ? theme : null;
+  if (typeof theme === 'object') return JSON.stringify(theme);
+  return null;
+}
+
+/**
+ * Resolve theme to a registered ECharts theme name (has side effects).
+ * Must only be called inside effects, not during render.
+ * 将主题解析为已注册的 ECharts 主题名称（有副作用）。
+ * 仅可在 effect 内部调用，不可在渲染阶段调用。
  */
 function resolveThemeName(theme: BuiltinTheme | object | null | undefined): string | null {
-  if (theme == null) {
-    return null;
-  }
-  if (typeof theme === 'string' && isBuiltinTheme(theme)) {
-    return theme;
-  }
-  if (typeof theme === 'object') {
-    return getOrRegisterCustomTheme(theme);
-  }
+  if (theme == null) return null;
+  if (typeof theme === 'string' && isBuiltinTheme(theme)) return theme;
+  if (typeof theme === 'object') return getOrRegisterCustomTheme(theme);
   return null;
 }
 
@@ -57,9 +66,12 @@ function unbindEvents(instance: ECharts, events: EChartsEvents | undefined): voi
   }
 }
 
+// ---------- Hook ----------
+
 /**
- * React hook for Apache ECharts integration (v1.0)
- * Apache ECharts React Hook (v1.0)
+ * React hook for Apache ECharts integration
+ * Apache ECharts React Hook
+ *
  * @param ref React ref to the chart container element
  * @param options Configuration options
  * @returns Chart control methods
@@ -78,245 +90,194 @@ function useEcharts(
     showLoading = false,
     loadingOption,
     onEvents,
+    autoResize = true,
+    initOpts,
+    onError,
   } = options;
 
-  // Keep latest values without re-triggering effects
-  // 保持最新值但不触发 effect 依赖变化
+  // --- Stable refs for values used in init effect without triggering re-run ---
   const optionRef = useRef(option);
   const setOptionOptsRef = useRef(setOptionOpts);
   const showLoadingRef = useRef(showLoading);
   const loadingOptionRef = useRef(loadingOption);
-
-  // Track previous values for cleanup
-  // 跟踪前值用于清理
-  const prevGroupRef = useRef<string | undefined>(undefined);
-  const prevThemeRef = useRef<BuiltinTheme | object | null | undefined>(undefined);
-  const skipNextOptionEffectRef = useRef(false);
-  
-  // Track bound events for proper cleanup without dependency issues
-  // 跟踪已绑定的事件，以便在不产生依赖问题的情况下正确清理
   const onEventsRef = useRef(onEvents);
-  const boundEventsRef = useRef<EChartsEvents | undefined>(undefined);
+  const groupRef = useRef(group);
+  const onErrorRef = useRef(onError);
+  const themeRef = useRef(theme);
 
-  // Update onEventsRef when onEvents changes
-  // 当 onEvents 改变时更新 onEventsRef
-  useEffect(() => {
-    onEventsRef.current = onEvents;
-  }, [onEvents]);
-
-  // Lazy initialization
-  // 懒加载初始化
-  const shouldInit = useLazyInit(ref, lazyInit);
-
-  /**
-   * Get the current chart instance
-   * 获取当前图表实例
-   */
-  const getInstance = useCallback((): ECharts | undefined => {
-    if (!ref.current) return undefined;
-    return getCachedInstance(ref.current);
-  }, [ref]);
-
-  /**
-   * Initialize or get cached chart instance
-   * 初始化或获取缓存的图表实例
-   */
-  const initChart = useCallback((): ECharts | undefined => {
-    const element = ref.current;
-    if (!element || !shouldInit) return undefined;
-
-    // Try to get cached instance
-    // 尝试获取缓存实例
-    let instance = getCachedInstance(element);
-
-    if (!instance) {
-      // Create new instance
-      // 创建新实例
-      const themeToUse = resolveThemeName(theme);
-      instance = echarts.init(element, themeToUse, { renderer });
-
-      // Cache the instance
-      // 缓存实例
-      setCachedInstance(element, instance);
-
-      // Store current theme for comparison
-      // 存储当前主题用于比较
-      prevThemeRef.current = theme;
-    }
-
-    return instance;
-  }, [ref, shouldInit, theme, renderer]);
-
-  // Keep latest initChart without re-triggering layout effect
-  // 保持最新 initChart 但不触发 layout effect
-  const initChartRef = useRef(initChart);
+  // Sync refs via useLayoutEffect (runs before other effects, avoids lint error)
   useLayoutEffect(() => {
     optionRef.current = option;
     setOptionOptsRef.current = setOptionOpts;
     showLoadingRef.current = showLoading;
     loadingOptionRef.current = loadingOption;
-    initChartRef.current = initChart;
-  }, [option, setOptionOpts, showLoading, loadingOption, initChart]);
+    onEventsRef.current = onEvents;
+    groupRef.current = group;
+    onErrorRef.current = onError;
+    themeRef.current = theme;
+  });
 
-  /**
-   * Set chart options
-   * 设置图表配置
-   */
+  // Track bound events for proper cleanup
+  const boundEventsRef = useRef<EChartsEvents | undefined>(undefined);
+
+  // Track what option/opts was last applied by init effect,
+  // used to prevent duplicate setOption call from the option update effect
+  const lastAppliedRef = useRef<{ option: EChartsOption; opts: SetOptionOpts | undefined } | null>(null);
+
+  // Lazy initialization
+  const shouldInit = useLazyInit(ref, lazyInit);
+
+  // Pure computation of theme identity key for effect dependency.
+  // No side effects: only reads caches / computes content hash.
+  // useMemo ensures JSON.stringify runs only when theme reference changes.
+  const themeKey = useMemo(() => computeThemeKey(theme), [theme]);
+
+  // --- Public API ---
+
+  const getInstance = useCallback((): ECharts | undefined => {
+    if (!ref.current) return undefined;
+    return getCachedInstance(ref.current);
+  }, [ref]);
+
   const setOption = useCallback(
     (newOption: EChartsOption, opts?: SetOptionOpts) => {
-      queueMicrotask(() => {
-        const instance = getInstance() || initChart();
-        if (instance) {
-          const finalOpts = { ...setOptionOpts, ...opts };
-          instance.setOption(newOption, finalOpts);
+      const instance = getInstance();
+      if (!instance) return;
+      try {
+        const finalOpts = { ...setOptionOptsRef.current, ...opts };
+        instance.setOption(newOption, finalOpts);
+      } catch (error) {
+        if (onErrorRef.current) {
+          onErrorRef.current(error);
+        } else {
+          throw error;
         }
-      });
+      }
     },
-    [getInstance, initChart, setOptionOpts]
+    [getInstance]
   );
 
-  /**
-   * Manually trigger resize
-   * 手动触发 resize
-   */
   const resize = useCallback(() => {
     getInstance()?.resize();
   }, [getInstance]);
 
-  /**
-   * Initialize chart and bind setup on mount
-   * Uses useLayoutEffect to ensure chart is ready before paint
-   * 在挂载时初始化图表并设置
-   * 使用 useLayoutEffect 确保图表在绑定前准备好
-   */
+  // =====================================================================
+  // Effect 1: INSTANCE LIFECYCLE (init / recreate / cleanup)
+  //
+  // Depends on: shouldInit, ref, themeKey, renderer, initOpts
+  // When theme or renderer changes, cleanup disposes the old instance
+  // and the effect re-runs to create a new one with the new config.
+  // All instance state (option, events, loading, group) is re-applied.
+  // =====================================================================
   useLayoutEffect(() => {
     if (!shouldInit) return;
-    
+
     const element = ref.current;
     if (!element) return;
 
-    // Initialize chart instance
-    // 初始化图表实例
-    const instance = initChartRef.current();
-    if (!instance) return;
+    // Side effects (theme registration) are safe inside effects.
+    // Read from ref (synced by prior useLayoutEffect) to avoid
+    // capturing `theme` in closure and triggering exhaustive-deps.
+    ensureBuiltinThemesRegistered();
+    const resolvedTheme = resolveThemeName(themeRef.current);
 
-    // Set initial options
-    // 设置初始配置
-    instance.setOption(optionRef.current, setOptionOptsRef.current);
-    // Always skip next option effect to avoid duplicate setOption
-    // 总是跳过下一次 option effect，避免重复 setOption
-    skipNextOptionEffectRef.current = true;
+    let instance: ECharts;
+    try {
+      instance = echarts.init(element, resolvedTheme, {
+        renderer,
+        ...initOpts,
+      });
+    } catch (error) {
+      if (onErrorRef.current) {
+        onErrorRef.current(error);
+      } else {
+        console.error("ECharts init failed:", error);
+      }
+      return;
+    }
 
-    // Handle loading state
-    // 处理加载状态
+    setCachedInstance(element, instance);
+
+    // Apply initial option
+    try {
+      instance.setOption(optionRef.current, setOptionOptsRef.current);
+      lastAppliedRef.current = {
+        option: optionRef.current,
+        opts: setOptionOptsRef.current,
+      };
+    } catch (error) {
+      if (onErrorRef.current) {
+        onErrorRef.current(error);
+      } else {
+        console.error("ECharts setOption failed:", error);
+      }
+    }
+
+    // Apply loading state
     if (showLoadingRef.current) {
       instance.showLoading(loadingOptionRef.current);
     }
 
-    // Bind initial events
-    // 绑定初始事件
+    // Bind events
     bindEvents(instance, onEventsRef.current);
     boundEventsRef.current = onEventsRef.current;
 
-    // Cleanup function for StrictMode support
-    // 清理函数以支持 StrictMode
-    return () => {
-      const currentInstance = getCachedInstance(element);
-      if (!currentInstance) return;
+    // Join group
+    const currentGroup = groupRef.current;
+    if (currentGroup) {
+      updateGroup(instance, undefined, currentGroup);
+    }
 
-      // Remove from group if in one
-      // 如果在组中，从组中移除
-      const currentGroup = prevGroupRef.current;
-      if (currentGroup) {
-        updateGroup(currentInstance, currentGroup, undefined);
+    // Cleanup (handles StrictMode double mount via reference counting)
+    return () => {
+      const inst = getCachedInstance(element);
+      if (!inst) return;
+
+      // Leave group
+      const instGroup = getInstanceGroup(inst);
+      if (instGroup) {
+        updateGroup(inst, instGroup, undefined);
       }
 
       // Unbind events
-      // 解绑事件
-      unbindEvents(currentInstance, boundEventsRef.current);
+      unbindEvents(inst, boundEventsRef.current);
       boundEventsRef.current = undefined;
 
-      // Release cached instance (dispose)
-      // 释放缓存实例（销毁）
+      // Release (dispose when ref count reaches 0)
       releaseCachedInstance(element);
     };
-  }, [shouldInit, ref]);
+  }, [shouldInit, ref, themeKey, renderer, initOpts]);
 
-  /**
-   * Handle option updates after initialization
-   * 初始化后处理配置更新
-   */
+  // =====================================================================
+  // Effect 2: OPTION UPDATES
+  //
+  // Runs when option or setOptionOpts changes after initialization.
+  // Uses lastAppliedRef to skip the first run after init effect
+  // (which already applied the same option).
+  // =====================================================================
   useEffect(() => {
     const instance = getInstance();
     if (!instance) return;
 
-    if (skipNextOptionEffectRef.current) {
-      skipNextOptionEffectRef.current = false;
-      return;
-    }
+    // Skip if init effect already applied this exact option
+    const last = lastAppliedRef.current;
+    if (last && last.option === option && last.opts === setOptionOpts) return;
 
-    instance.setOption(option, setOptionOpts);
+    try {
+      instance.setOption(option, setOptionOpts);
+      lastAppliedRef.current = { option, opts: setOptionOpts };
+    } catch (error) {
+      if (onErrorRef.current) {
+        onErrorRef.current(error);
+      } else {
+        throw error;
+      }
+    }
   }, [getInstance, option, setOptionOpts]);
 
-  /**
-   * Handle theme changes after initialization
-   * 初始化后处理主题变化
-   */
-  useEffect(() => {
-    const element = ref.current;
-    if (!element) return;
-
-    const existingInstance = getCachedInstance(element);
-    if (!existingInstance) return;
-
-    // Check if theme changed
-    // 检查主题是否改变
-    if (prevThemeRef.current === theme) return;
-
-    // Theme changed, need to recreate instance
-    // replaceCachedInstance will dispose the old instance
-    // 主题改变，需要重新创建实例
-    // replaceCachedInstance 会销毁旧实例
-    const currentGroup = prevGroupRef.current;
-    if (currentGroup) {
-      // Remove old instance from group to avoid stale references
-      // 从组中移除旧实例，防止残留引用
-      updateGroup(existingInstance, currentGroup, undefined);
-    }
-
-    const themeToUse = resolveThemeName(theme);
-    const newInstance = echarts.init(element, themeToUse, { renderer });
-    replaceCachedInstance(element, newInstance);
-    prevThemeRef.current = theme;
-
-    // Re-apply current options to new instance
-    // 将当前配置重新应用到新实例
-    newInstance.setOption(option, setOptionOpts);
-
-    // Re-bind events to new instance
-    // 将事件重新绑定到新实例
-    bindEvents(newInstance, onEventsRef.current);
-    boundEventsRef.current = onEventsRef.current;
-
-    // Re-apply group linkage to new instance
-    // 将新实例重新加入组
-    if (currentGroup) {
-      updateGroup(newInstance, undefined, currentGroup);
-    }
-
-    // Re-apply loading state
-    // 重新同步加载状态
-    if (showLoading) {
-      newInstance.showLoading(loadingOption);
-    } else {
-      newInstance.hideLoading();
-    }
-  }, [ref, theme, renderer, option, setOptionOpts, showLoading, loadingOption]);
-
-  /**
-   * Handle loading state changes
-   * 处理加载状态变化
-   */
+  // =====================================================================
+  // Effect 3: LOADING STATE
+  // =====================================================================
   useEffect(() => {
     const instance = getInstance();
     if (!instance) return;
@@ -326,44 +287,44 @@ function useEcharts(
     } else {
       instance.hideLoading();
     }
-  }, [getInstance, showLoading, loadingOption, theme]);
+  }, [getInstance, showLoading, loadingOption]);
 
-  /**
-   * Handle event rebinding when onEvents changes
-   * 当 onEvents 变化时重新绑定事件
-   */
+  // =====================================================================
+  // Effect 4: EVENT REBINDING
+  //
+  // When onEvents reference changes, unbind old and bind new handlers.
+  // =====================================================================
   useEffect(() => {
     const instance = getInstance();
     if (!instance) return;
 
-    // If same reference, skip rebind
+    // Same reference — already bound
     if (boundEventsRef.current === onEvents) return;
 
-    // Unbind previous events, then bind the new set
     unbindEvents(instance, boundEventsRef.current);
     bindEvents(instance, onEvents);
     boundEventsRef.current = onEvents;
   }, [getInstance, onEvents]);
 
-  /**
-   * Handle group changes
-   * 处理组变化
-   */
+  // =====================================================================
+  // Effect 5: GROUP CHANGES
+  // =====================================================================
   useEffect(() => {
-    if (!shouldInit) return;
-
     const instance = getInstance();
     if (!instance) return;
 
-    updateGroup(instance, prevGroupRef.current, group);
-    prevGroupRef.current = group;
-  }, [getInstance, group, shouldInit, theme]);
+    const currentGroup = getInstanceGroup(instance);
+    if (currentGroup === group) return;
 
-  /**
-   * Setup resize observer
-   * 设置 resize 观察器
-   */
+    updateGroup(instance, currentGroup, group);
+  }, [getInstance, group]);
+
+  // =====================================================================
+  // Effect 6: RESIZE OBSERVER
+  // =====================================================================
   useEffect(() => {
+    if (!autoResize) return;
+
     const element = ref.current;
     if (!element) return;
 
@@ -371,27 +332,19 @@ function useEcharts(
 
     try {
       resizeObserver = new ResizeObserver(() => {
-        // Look up current instance dynamically instead of capturing in closure
-        // 动态查找当前实例而不是在闭包中捕获
         getCachedInstance(element)?.resize();
       });
       resizeObserver.observe(element);
     } catch (error) {
-      // ResizeObserver might not be available in test environment
-      // ResizeObserver 在测试环境中可能不可用
       console.warn("ResizeObserver not available:", error);
     }
 
     return () => {
       resizeObserver?.disconnect();
     };
-  }, [ref]);
+  }, [ref, autoResize]);
 
-  return {
-    setOption,
-    getInstance,
-    resize,
-  };
+  return { setOption, getInstance, resize };
 }
 
 export default useEcharts;
