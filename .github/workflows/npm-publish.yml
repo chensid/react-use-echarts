@@ -1,4 +1,8 @@
-# This workflow will build and publish the package to npm registry when a release is created
+# Publish to npm via Trusted Publishers (OIDC) — no token needed.
+# Requires one-time setup on npmjs.com: Package Settings → Trusted Publisher → GitHub Actions
+#   Organization or user: chensid
+#   Repository: react-use-echarts
+#   Workflow filename: npm-publish.yml
 
 name: Publish to NPM
 
@@ -11,8 +15,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      packages: write
-      id-token: write
+      id-token: write # Required for OIDC trusted publishing
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -22,17 +25,15 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version: 24 # npm >= 11.5.1 required for trusted publishing
           registry-url: https://registry.npmjs.org/
       - name: Setup PNPM
         uses: pnpm/action-setup@v4
         with:
           version: 10
-      - name: Clean install
-        run: rm -rf node_modules
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
       - name: Build package
         run: pnpm build
       - name: Publish to NPM
-        run: pnpm publish --provenance --access public --no-git-checks
+        run: npm publish --provenance --access public
