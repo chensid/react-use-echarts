@@ -50,7 +50,7 @@
     "test": "vitest",
     "coverage": "vitest run --coverage",
     "lint": "eslint .",
-    "prepare": "pnpm build",
+    "prepublishOnly": "pnpm build",
     "typecheck": "tsc -b"
   },
   "devDependencies": {
