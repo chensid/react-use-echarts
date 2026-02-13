@@ -1,7 +1,7 @@
 {
   "name": "react-use-echarts",
   "private": false,
-  "version": "1.0.3",
+  "version": "1.0.4",
   "description": "A powerful React hooks library for Apache ECharts",
   "keywords": [
     "react",
