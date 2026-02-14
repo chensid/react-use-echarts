@@ -104,6 +104,7 @@ function useEcharts(
   const groupRef = useRef(group);
   const onErrorRef = useRef(onError);
   const themeRef = useRef(theme);
+  const initOptsRef = useRef(initOpts);
 
   // Sync refs via useLayoutEffect (runs before other effects, avoids lint error)
   useLayoutEffect(() => {
@@ -115,6 +116,7 @@ function useEcharts(
     groupRef.current = group;
     onErrorRef.current = onError;
     themeRef.current = theme;
+    initOptsRef.current = initOpts;
   });
 
   // Track bound events for proper cleanup
@@ -131,6 +133,15 @@ function useEcharts(
   // No side effects: only reads caches / computes content hash.
   // useMemo ensures JSON.stringify runs only when theme reference changes.
   const themeKey = useMemo(() => computeThemeKey(theme), [theme]);
+
+  // Stable identity key for initOpts (same pattern as themeKey).
+  // Prevents infinite re-init when users pass inline objects.
+  // 稳定的 initOpts 标识键（与 themeKey 同模式），
+  // 避免用户传入内联对象时 effect 无限重跑。
+  const initOptsKey = useMemo(
+    () => (initOpts ? JSON.stringify(initOpts) : null),
+    [initOpts]
+  );
 
   // --- Public API ---
 
@@ -185,7 +196,7 @@ function useEcharts(
     try {
       instance = echarts.init(element, resolvedTheme, {
         renderer,
-        ...initOpts,
+        ...initOptsRef.current,
       });
     } catch (error) {
       if (onErrorRef.current) {
@@ -246,7 +257,7 @@ function useEcharts(
       // Release (dispose when ref count reaches 0)
       releaseCachedInstance(element);
     };
-  }, [shouldInit, ref, themeKey, renderer, initOpts]);
+  }, [shouldInit, ref, themeKey, renderer, initOptsKey]);
 
   // =====================================================================
   // Effect 2: OPTION UPDATES

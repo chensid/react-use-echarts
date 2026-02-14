@@ -432,6 +432,9 @@ const { setOption, getInstance, resize } = useEcharts(chartRef, {
   setOptionOpts: { notMerge: false }, // Default options for setOption
   showLoading: false, // Whether to show loading state
   loadingOption: { text: 'Loading…' }, // Loading configuration
+  autoResize: true, // Auto-resize via ResizeObserver, default true
+  initOpts: { devicePixelRatio: 2 }, // Options passed to echarts.init()
+  onError: (err) => console.error(err), // Error handler for chart operations
   onEvents: {
     click: {
       handler: (params) => console.log(params),
@@ -454,6 +457,9 @@ const { setOption, getInstance, resize } = useEcharts(chartRef, {
 | `showLoading` | `boolean` | `false` | Whether to show loading state |
 | `loadingOption` | `object` | - | Loading configuration |
 | `onEvents` | `EChartsEvents` | - | Event handlers |
+| `autoResize` | `boolean` | `true` | Auto-resize chart via ResizeObserver |
+| `initOpts` | `EChartsInitOpts` | - | Options passed to `echarts.init()` (devicePixelRatio, locale, width, height) |
+| `onError` | `(error: unknown) => void` | - | Error handler for chart operations (init, setOption, etc.) |
 
 #### Returns
 

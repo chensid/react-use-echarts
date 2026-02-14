@@ -16,12 +16,14 @@
 - **事件管理** - `onEvents` 支持查询条件与上下文，卸载时自动解绑
 - **实例复用** - WeakMap 缓存 + 引用计数，自动释放（支持 StrictMode 多次挂载/卸载）
 
-### v1.0.2 要点
+### v1.0.2 ~ v1.0.4 要点
 
 - 主题切换后保持组联动与 loading 状态
 - 懒加载完成后自动加入组联动
 - `onEvents` 变更时自动重绑，避免旧 handler 残留
 - 文档补充实例缓存与组联动工具导出
+- 新增 `autoResize`、`initOpts`、`onError` 选项
+- `initOpts` 内部序列化为稳定 key，避免内联对象导致实例反复重建
 
 ## 核心 API：useEcharts (v1.0)
 
@@ -45,6 +47,9 @@ function useEcharts(
 | `showLoading` | `boolean` | `false` | 是否显示加载状态 |
 | `loadingOption` | `object` | - | 加载配置项 |
 | `onEvents` | `EChartsEvents` | - | 事件配置 |
+| `autoResize` | `boolean` | `true` | 容器尺寸变化时是否自动 resize（ResizeObserver） |
+| `initOpts` | `EChartsInitOpts` | - | 传递给 `echarts.init()` 的选项（devicePixelRatio / locale / width / height） |
+| `onError` | `(error: unknown) => void` | - | 图表操作（init / setOption 等）的错误处理回调 |
 
 ### UseEchartsReturn
 
@@ -97,7 +102,7 @@ IntersectionObserver 封装，用于懒加载场景。
 
 ```ts
 function useLazyInit(
-  ref: React.RefObject<HTMLElement | null>,
+  elementRef: React.RefObject<Element | null>,
   options?: boolean | IntersectionObserverInit
 ): boolean;  // 返回元素是否已进入视口
 ```
@@ -121,6 +126,9 @@ registerCustomTheme(themeName: string, themeConfig: object): void
 
 // 注册内置主题到 ECharts（模块加载时自动调用，一般无需手动调用）
 registerBuiltinThemes(): void
+
+// 确保内置主题已注册（幂等，Hook 内部自动调用）
+ensureBuiltinThemesRegistered(): void
 ```
 
 ### 实例缓存与组联动工具（高级）
