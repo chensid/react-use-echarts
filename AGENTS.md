@@ -115,8 +115,8 @@ function useLazyInit(
 // 获取所有可用的内置主题名称
 getAvailableThemes(): BuiltinTheme[]  // ['light', 'dark', 'macarons']
 
-// 检查是否为内置主题
-isBuiltinTheme(themeName: string): boolean
+// 检查是否为内置主题（type guard）
+isBuiltinTheme(themeName: string): themeName is BuiltinTheme
 
 // 获取内置主题配置对象
 getBuiltinTheme(themeName: BuiltinTheme): object | null
