@@ -48,7 +48,7 @@ function useEcharts(
 | `loadingOption` | `object` | - | 加载配置项 |
 | `onEvents` | `EChartsEvents` | - | 事件配置 |
 | `autoResize` | `boolean` | `true` | 容器尺寸变化时是否自动 resize（ResizeObserver） |
-| `initOpts` | `EChartsInitOpts` | - | 传递给 `echarts.init()` 的选项（devicePixelRatio / locale / width / height） |
+| `initOpts` | `EChartsInitOpts` | - | 传递给 `echarts.init()` 的选项（devicePixelRatio / locale / width / height / useDirtyRect / useCoarsePointer / pointerSize） |
 | `onError` | `(error: unknown) => void` | - | 图表操作（init / setOption 等）的错误处理回调 |
 
 ### UseEchartsReturn
@@ -70,6 +70,22 @@ interface EChartsEvents {
   };
 }
 ```
+
+### EChartsInitOpts
+
+类型从 ECharts 官方派生，主要字段：
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| `devicePixelRatio` | `number` | 设备像素比 |
+| `locale` | `string` | 语言区域 |
+| `width` | `number \| string` | 画布宽度 |
+| `height` | `number \| string` | 画布高度 |
+| `useDirtyRect` | `boolean` | Canvas 脏矩形渲染优化（since ECharts 5.0） |
+| `useCoarsePointer` | `boolean` | 移动端智能指针捕获（since ECharts 5.4） |
+| `pointerSize` | `number` | 指针捕获半径，默认 44px（since ECharts 5.4） |
+
+注：`ssr` 与 `renderer` 已从本 Hook 的 `EChartsInitOpts` 中剔除（`renderer` 作为 Hook 独立参数，`ssr` 在 Hook 场景不适用）。
 
 ### 基本用法
 

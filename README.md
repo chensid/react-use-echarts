@@ -458,7 +458,7 @@ const { setOption, getInstance, resize } = useEcharts(chartRef, {
 | `loadingOption` | `object` | - | Loading configuration |
 | `onEvents` | `EChartsEvents` | - | Event handlers |
 | `autoResize` | `boolean` | `true` | Auto-resize chart via ResizeObserver |
-| `initOpts` | `EChartsInitOpts` | - | Options passed to `echarts.init()` (devicePixelRatio, locale, width, height) |
+| `initOpts` | `EChartsInitOpts` | - | Options passed to `echarts.init()`: devicePixelRatio, locale, width, height; useDirtyRect (dirty rect optimization, 5.0+), useCoarsePointer (mobile pointer capture, 5.4+), pointerSize (pointer radius, default 44px, 5.4+) |
 | `onError` | `(error: unknown) => void` | - | Error handler for chart operations (init, setOption, etc.) |
 
 #### Returns
