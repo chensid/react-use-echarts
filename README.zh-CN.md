@@ -400,17 +400,26 @@ function ResizableChart() {
 
 ```tsx
 import {
+  // 实例缓存工具
   getCachedInstance,
+  setCachedInstance,
+  replaceCachedInstance,
+  releaseCachedInstance,
+  getReferenceCount,
   clearInstanceCache,
-  getGroupInstances,
-  updateGroup,
+  // 组联动工具
   addToGroup,
   removeFromGroup,
+  updateGroup,
+  getGroupInstances,
+  getInstanceGroup,
+  isInGroup,
+  clearGroups,
 } from 'react-use-echarts';
 ```
 
-- `getCachedInstance` / `clearInstanceCache`：查询或清理内部实例缓存
-- `getGroupInstances` / `addToGroup` / `removeFromGroup` / `updateGroup`：手动管理 ECharts 组联动
+- `getCachedInstance` / `setCachedInstance` / `replaceCachedInstance` / `releaseCachedInstance` / `getReferenceCount` / `clearInstanceCache`：查询、设置、替换、释放、引用计数或清理内部实例缓存
+- `addToGroup` / `removeFromGroup` / `updateGroup` / `getGroupInstances` / `getInstanceGroup` / `isInGroup` / `clearGroups`：手动管理 ECharts 组联动
 
 ## 📖 API
 
@@ -432,6 +441,9 @@ const { setOption, getInstance, resize } = useEcharts(chartRef, {
   setOptionOpts: { notMerge: false }, // setOption 的默认选项
   showLoading: false, // 是否显示加载状态
   loadingOption: { text: 'Loading…' }, // 加载配置
+  autoResize: true, // 通过 ResizeObserver 自动 resize，默认 true
+  initOpts: { devicePixelRatio: 2 }, // 传递给 echarts.init() 的选项
+  onError: (err) => console.error(err), // 图表操作的错误处理回调
   onEvents: {
     click: {
       handler: (params) => console.log(params),
@@ -454,6 +466,9 @@ const { setOption, getInstance, resize } = useEcharts(chartRef, {
 | `showLoading` | `boolean` | `false` | 是否显示加载状态 |
 | `loadingOption` | `object` | - | 加载配置 |
 | `onEvents` | `EChartsEvents` | - | 事件处理器 |
+| `autoResize` | `boolean` | `true` | 容器尺寸变化时是否通过 ResizeObserver 自动 resize |
+| `initOpts` | `EChartsInitOpts` | - | 传递给 `echarts.init()` 的选项：devicePixelRatio、locale、width、height；useDirtyRect（脏矩形优化，5.0+）、useCoarsePointer（移动端指针捕获，5.4+）、pointerSize（指针半径，默认 44px，5.4+）|
+| `onError` | `(error: unknown) => void` | - | 图表操作（init、setOption 等）的错误处理回调 |
 
 #### Returns
 
