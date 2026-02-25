@@ -400,17 +400,26 @@ Advanced scenarios can directly use exported utility functions:
 
 ```tsx
 import {
+  // Instance cache utilities
   getCachedInstance,
+  setCachedInstance,
+  replaceCachedInstance,
+  releaseCachedInstance,
+  getReferenceCount,
   clearInstanceCache,
-  getGroupInstances,
-  updateGroup,
+  // Group linkage utilities
   addToGroup,
   removeFromGroup,
+  updateGroup,
+  getGroupInstances,
+  getInstanceGroup,
+  isInGroup,
+  clearGroups,
 } from 'react-use-echarts';
 ```
 
-- `getCachedInstance` / `clearInstanceCache`: Query or clear internal instance cache
-- `getGroupInstances` / `addToGroup` / `removeFromGroup` / `updateGroup`: Manually manage ECharts group linkage
+- `getCachedInstance` / `setCachedInstance` / `replaceCachedInstance` / `releaseCachedInstance` / `getReferenceCount` / `clearInstanceCache`: Query, set, replace, release, count references, or clear internal instance cache
+- `addToGroup` / `removeFromGroup` / `updateGroup` / `getGroupInstances` / `getInstanceGroup` / `isInGroup` / `clearGroups`: Manually manage ECharts group linkage
 
 ## 📖 API
 
