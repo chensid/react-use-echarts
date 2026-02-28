@@ -4,6 +4,8 @@
 
 [![NPM version](https://img.shields.io/npm/v/react-use-echarts.svg)](https://www.npmjs.com/package/react-use-echarts)
 [![NPM downloads](https://img.shields.io/npm/dm/react-use-echarts.svg)](https://www.npmjs.com/package/react-use-echarts)
+[![CI](https://github.com/chensid/react-use-echarts/actions/workflows/ci.yml/badge.svg)](https://github.com/chensid/react-use-echarts/actions/workflows/ci.yml)
+[![codecov](https://codecov.io/gh/chensid/react-use-echarts/graph/badge.svg)](https://codecov.io/gh/chensid/react-use-echarts)
 [![GitHub Actions Workflow Status](https://img.shields.io/github/actions/workflow/status/chensid/react-use-echarts/npm-publish.yml)](https://github.com/chensid/react-use-echarts/actions/workflows/npm-publish.yml)
 [![GitHub issues](https://img.shields.io/github/issues/chensid/react-use-echarts)](https://github.com/chensid/react-use-echarts/issues)
 [![GitHub pull requests](https://img.shields.io/github/issues-pr/chensid/react-use-echarts)](https://github.com/chensid/react-use-echarts/pulls)
@@ -46,6 +48,58 @@ pnpm add react-use-echarts echarts
 
 ## 🔨 Usage
 
+### Declarative Component
+
+The simplest way to use ECharts — no ref needed:
+
+```tsx
+import { EChart } from 'react-use-echarts';
+
+function MyChart() {
+  return (
+    <EChart
+      option={{
+        xAxis: { type: 'category', data: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'] },
+        yAxis: { type: 'value' },
+        series: [{ data: [820, 932, 901, 934, 1290, 1330, 1320], type: 'line' }]
+      }}
+    />
+  );
+}
+```
+
+Access chart methods via ref:
+
+```tsx
+import { useRef } from 'react';
+import { EChart } from 'react-use-echarts';
+import type { UseEchartsReturn } from 'react-use-echarts';
+
+function MyChart() {
+  const chartRef = useRef<UseEchartsReturn>(null);
+
+  return (
+    <div>
+      <button onClick={() => chartRef.current?.resize()}>Resize</button>
+      <EChart
+        ref={chartRef}
+        option={{
+          xAxis: { type: 'category', data: ['A', 'B', 'C'] },
+          yAxis: { type: 'value' },
+          series: [{ data: [120, 200, 150], type: 'bar' }]
+        }}
+        style={{ height: '600px' }}
+        className="my-chart"
+      />
+    </div>
+  );
+}
+```
+
+### Hook API
+
+For full control, use the `useEcharts` hook directly:
+
 ```tsx
 import { useRef } from 'react';
 import { useEcharts } from 'react-use-echarts';
@@ -70,6 +124,8 @@ function MyChart() {
 
 ### Event Handling
 
+Supports both shorthand (function) and full config (object with query/context):
+
 ```tsx
 import { useRef } from 'react';
 import { useEcharts } from 'react-use-echarts';
@@ -87,11 +143,11 @@ function InteractiveChart() {
   useEcharts(chartRef, {
     option: options,
     onEvents: {
-      click: {
-        handler: (params) => {
-          console.log('Clicked:', params);
-        }
+      // Shorthand — just pass a function
+      click: (params) => {
+        console.log('Clicked:', params);
       },
+      // Full config — when you need query or context
       mouseover: {
         handler: (params) => {
           console.log('Hover:', params);
@@ -102,6 +158,27 @@ function InteractiveChart() {
   });
 
   return <div ref={chartRef} style={{ width: '100%', height: '400px' }} />;
+}
+```
+
+Or with the `<EChart />` component:
+
+```tsx
+import { EChart } from 'react-use-echarts';
+
+function InteractiveChart() {
+  return (
+    <EChart
+      option={{
+        xAxis: { type: 'category', data: ['A', 'B', 'C'] },
+        yAxis: { type: 'value' },
+        series: [{ data: [120, 200, 150], type: 'bar' }]
+      }}
+      onEvents={{
+        click: (params) => console.log('Clicked:', params),
+      }}
+    />
+  );
 }
 ```
 
@@ -423,6 +500,22 @@ import {
 
 ## 📖 API
 
+### EChart Component
+
+Declarative component wrapping `useEcharts`. Accepts all `useEcharts` options as props, plus `style` and `className`.
+
+```tsx
+import { EChart } from 'react-use-echarts';
+import type { EChartProps, UseEchartsReturn } from 'react-use-echarts';
+```
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `style` | `React.CSSProperties` | `{ width: '100%', height: '400px' }` | Container div style (merged with defaults) |
+| `className` | `string` | - | Container div CSS class |
+| `ref` | `Ref<UseEchartsReturn>` | - | Exposes `{ setOption, getInstance, resize }` |
+| *...options* | `UseEchartsOptions` | - | All `useEcharts` options (see below) |
+
 ### useEcharts
 
 The main Hook for using ECharts in React components.
@@ -445,7 +538,8 @@ const { setOption, getInstance, resize } = useEcharts(chartRef, {
   initOpts: { devicePixelRatio: 2 }, // Options passed to echarts.init()
   onError: (err) => console.error(err), // Error handler for chart operations
   onEvents: {
-    click: {
+    click: (params) => console.log(params), // Shorthand
+    mouseover: {
       handler: (params) => console.log(params),
       query: 'series', // Optional: event query condition
     },
@@ -465,7 +559,7 @@ const { setOption, getInstance, resize } = useEcharts(chartRef, {
 | `setOptionOpts` | `SetOptionOpts` | - | Default options for setOption |
 | `showLoading` | `boolean` | `false` | Whether to show loading state |
 | `loadingOption` | `object` | - | Loading configuration |
-| `onEvents` | `EChartsEvents` | - | Event handlers |
+| `onEvents` | `EChartsEvents` | - | Event handlers (function shorthand or `{ handler, query?, context? }`) |
 | `autoResize` | `boolean` | `true` | Auto-resize chart via ResizeObserver |
 | `initOpts` | `EChartsInitOpts` | - | Options passed to `echarts.init()`: devicePixelRatio, locale, width, height; useDirtyRect (dirty rect optimization, 5.0+), useCoarsePointer (mobile pointer capture, 5.4+), pointerSize (pointer radius, default 44px, 5.4+) |
 | `onError` | `(error: unknown) => void` | - | Error handler for chart operations (init, setOption, etc.) |
@@ -493,6 +587,7 @@ import {
   getBuiltinTheme,
   registerCustomTheme,
   registerBuiltinThemes,
+  ensureBuiltinThemesRegistered,
 } from 'react-use-echarts';
 
 getAvailableThemes(); // ['light', 'dark', 'macarons']
@@ -500,6 +595,7 @@ isBuiltinTheme('dark'); // true
 getBuiltinTheme('dark'); // Get built-in theme configuration
 registerCustomTheme('my-theme', { color: ['#ff0000', '#00ff00'] }); // Register custom theme
 registerBuiltinThemes(); // Register built-in themes (automatically called on module load, usually no need to call manually)
+ensureBuiltinThemesRegistered(); // Ensure built-in themes are registered (idempotent, called automatically before chart init)
 ```
 
 ### useLazyInit

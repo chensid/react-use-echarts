@@ -6,6 +6,7 @@ import {
   isBuiltinTheme,
   registerCustomTheme,
   getAvailableThemes,
+  getOrRegisterCustomTheme,
 } from "../../themes";
 
 // Mock ECharts
@@ -94,6 +95,44 @@ describe("themes utilities", () => {
       registerCustomTheme("myCustomTheme", customTheme);
 
       expect(echarts.registerTheme).toHaveBeenCalledWith("myCustomTheme", customTheme);
+    });
+  });
+
+  describe("getOrRegisterCustomTheme", () => {
+    it("should return cached name for same object reference (WeakMap hit)", () => {
+      const theme = { color: ["#aaa", "#bbb"] };
+
+      const name1 = getOrRegisterCustomTheme(theme);
+      vi.clearAllMocks();
+      const name2 = getOrRegisterCustomTheme(theme);
+
+      expect(name1).toBe(name2);
+      // Second call should NOT register again
+      expect(echarts.registerTheme).not.toHaveBeenCalled();
+    });
+
+    it("should deduplicate different references with same content (contentHash hit)", () => {
+      const theme1 = { color: ["#111", "#222", "#333"] };
+      const theme2 = { color: ["#111", "#222", "#333"] };
+
+      const name1 = getOrRegisterCustomTheme(theme1);
+      vi.clearAllMocks();
+      const name2 = getOrRegisterCustomTheme(theme2);
+
+      expect(name1).toBe(name2);
+      // Second call should NOT register again (content hash match)
+      expect(echarts.registerTheme).not.toHaveBeenCalled();
+    });
+
+    it("should register different themes with different names", () => {
+      const themeA = { color: ["#aaa"] };
+      const themeB = { color: ["#bbb"] };
+
+      const nameA = getOrRegisterCustomTheme(themeA);
+      const nameB = getOrRegisterCustomTheme(themeB);
+
+      expect(nameA).not.toBe(nameB);
+      expect(echarts.registerTheme).toHaveBeenCalledTimes(2);
     });
   });
 });

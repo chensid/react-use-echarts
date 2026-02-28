@@ -220,6 +220,36 @@ describe("connect utilities", () => {
     });
   });
 
+  describe("removeFromGroup edge cases", () => {
+    it("should not clear group property if instance.group was changed to a different group", () => {
+      const instance = createMockInstance();
+      addToGroup(instance, "group1");
+
+      // Externally change the instance's group property
+      (instance as unknown as { group: string }).group = "otherGroup";
+
+      removeFromGroup(instance, "group1");
+
+      // group property should NOT be cleared because it no longer matches
+      expect((instance as unknown as { group: string }).group).toBe("otherGroup");
+    });
+  });
+
+  describe("getInstanceGroup edge cases", () => {
+    it("should skip non-matching groups and find the correct one", () => {
+      const instance1 = createMockInstance();
+      const instance2 = createMockInstance();
+      const target = createMockInstance();
+
+      addToGroup(instance1, "groupA");
+      addToGroup(instance2, "groupB");
+      addToGroup(target, "groupC");
+
+      // getInstanceGroup must iterate past groupA and groupB to find target in groupC
+      expect(getInstanceGroup(target)).toBe("groupC");
+    });
+  });
+
   describe("clearGroups", () => {
     it("should disconnect all groups and clear registry", () => {
       const instance1 = createMockInstance();

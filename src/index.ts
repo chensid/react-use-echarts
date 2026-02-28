@@ -13,6 +13,12 @@
 export { default as useEcharts } from "./hooks/use-echarts";
 
 /**
+ * Declarative EChart component
+ * 声明式 EChart 组件
+ */
+export { default as EChart } from "./components/EChart";
+
+/**
  * Lazy initialization hook
  * 懒加载初始化 Hook
  */
@@ -26,7 +32,9 @@ export type {
   UseEchartsOptions,
   UseEchartsReturn,
   EChartsEvents,
+  EChartsEventConfig,
   EChartsInitOpts,
+  EChartProps,
   BuiltinTheme,
 } from "./types";
 

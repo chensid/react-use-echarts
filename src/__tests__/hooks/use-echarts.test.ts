@@ -598,6 +598,114 @@ describe("useEcharts", () => {
     });
   });
 
+  describe("event shorthand API", () => {
+    it("should bind function shorthand events", () => {
+      const element = document.createElement("div");
+      const ref = { current: element };
+      const mockInstance = createMockInstance(element);
+      (echarts.init as ReturnType<typeof vi.fn>).mockReturnValue(mockInstance);
+
+      const clickHandler = vi.fn();
+      const onEvents = {
+        click: clickHandler,
+      };
+
+      renderHook(() => useEcharts(ref, { option: baseOption, onEvents }));
+
+      expect(mockInstance.on).toHaveBeenCalledWith("click", clickHandler, undefined);
+    });
+
+    it("should unbind function shorthand events on unmount", () => {
+      const element = document.createElement("div");
+      const ref = { current: element };
+      const mockInstance = createMockInstance(element);
+      (echarts.init as ReturnType<typeof vi.fn>).mockReturnValue(mockInstance);
+
+      const clickHandler = vi.fn();
+      const onEvents = { click: clickHandler };
+
+      const { unmount } = renderHook(() =>
+        useEcharts(ref, { option: baseOption, onEvents })
+      );
+
+      unmount();
+
+      expect(mockInstance.off).toHaveBeenCalledWith("click", clickHandler);
+    });
+
+    it("should support mixed shorthand and full config", () => {
+      const element = document.createElement("div");
+      const ref = { current: element };
+      const mockInstance = createMockInstance(element);
+      (echarts.init as ReturnType<typeof vi.fn>).mockReturnValue(mockInstance);
+
+      const clickHandler = vi.fn();
+      const mouseoverHandler = vi.fn();
+      const onEvents = {
+        click: clickHandler,
+        mouseover: { handler: mouseoverHandler, query: "series" },
+      };
+
+      renderHook(() => useEcharts(ref, { option: baseOption, onEvents }));
+
+      expect(mockInstance.on).toHaveBeenCalledWith("click", clickHandler, undefined);
+      expect(mockInstance.on).toHaveBeenCalledWith("mouseover", "series", mouseoverHandler, undefined);
+    });
+  });
+
+  describe("option update error handling", () => {
+    it("should call onError when setOption throws on option update", async () => {
+      const element = document.createElement("div");
+      const ref = { current: element };
+      const mockInstance = createMockInstance(element);
+      (echarts.init as ReturnType<typeof vi.fn>).mockReturnValue(mockInstance);
+
+      const onError = vi.fn();
+      const option1: EChartsOption = { series: [{ type: "line", data: [1, 2, 3] }] };
+      const option2: EChartsOption = { series: [{ type: "bar", data: [4, 5, 6] }] };
+
+      const { rerender } = renderHook(
+        ({ option }) => useEcharts(ref, { option, onError }),
+        { initialProps: { option: option1 } }
+      );
+
+      // Make setOption throw on the next call
+      const error = new Error("setOption failed");
+      mockInstance.setOption.mockImplementation(() => {
+        throw error;
+      });
+
+      rerender({ option: option2 });
+
+      await waitFor(() => {
+        expect(onError).toHaveBeenCalledWith(error);
+      });
+    });
+
+    it("should rethrow error when no onError is provided on option update", async () => {
+      const element = document.createElement("div");
+      const ref = { current: element };
+      const mockInstance = createMockInstance(element);
+      (echarts.init as ReturnType<typeof vi.fn>).mockReturnValue(mockInstance);
+
+      const option1: EChartsOption = { series: [{ type: "line", data: [1, 2, 3] }] };
+      const option2: EChartsOption = { series: [{ type: "bar", data: [4, 5, 6] }] };
+
+      const { rerender } = renderHook(
+        ({ option }) => useEcharts(ref, { option }),
+        { initialProps: { option: option1 } }
+      );
+
+      const error = new Error("setOption failed");
+      mockInstance.setOption.mockImplementation(() => {
+        throw error;
+      });
+
+      // The error should propagate (React will catch it)
+      expect(() => rerender({ option: option2 })).toThrow("setOption failed");
+    });
+  });
+
   describe("ResizeObserver", () => {
     it("should setup resize observer", () => {
       const element = document.createElement("div");
@@ -612,6 +720,33 @@ describe("useEcharts", () => {
       expect(resizeObserverInstances[0].observe).toHaveBeenCalled();
     });
 
+    it("should gracefully handle ResizeObserver constructor failure", () => {
+      const originalResizeObserver = global.ResizeObserver;
+      global.ResizeObserver = class {
+        constructor() {
+          throw new Error("ResizeObserver not supported");
+        }
+      } as unknown as typeof ResizeObserver;
+
+      const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+
+      const element = document.createElement("div");
+      const ref = { current: element };
+      const mockInstance = createMockInstance(element);
+      (echarts.init as ReturnType<typeof vi.fn>).mockReturnValue(mockInstance);
+
+      // Should not throw
+      renderHook(() => useEcharts(ref, { option: baseOption }));
+
+      expect(warnSpy).toHaveBeenCalledWith(
+        "ResizeObserver not available:",
+        expect.any(Error)
+      );
+
+      warnSpy.mockRestore();
+      global.ResizeObserver = originalResizeObserver;
+    });
+
     it("should disconnect resize observer on unmount", () => {
       const element = document.createElement("div");
       const ref = { current: element };
@@ -623,6 +758,233 @@ describe("useEcharts", () => {
       unmount();
 
       expect(resizeObserverInstances[0].disconnect).toHaveBeenCalled();
+    });
+
+    it("should resize chart when ResizeObserver fires", () => {
+      const element = document.createElement("div");
+      const ref = { current: element };
+      const mockInstance = createMockInstance(element);
+      (echarts.init as ReturnType<typeof vi.fn>).mockReturnValue(mockInstance);
+
+      renderHook(() => useEcharts(ref, { option: baseOption }));
+
+      // Trigger the ResizeObserver callback
+      const observer = resizeObserverInstances[0] as unknown as MockResizeObserver;
+      act(() => {
+        observer.callback([] as unknown as ResizeObserverEntry[], observer as unknown as ResizeObserver);
+      });
+
+      // resize is called from the ResizeObserver callback
+      expect(mockInstance.resize).toHaveBeenCalled();
+    });
+
+    it("should not create resize observer when autoResize is false", () => {
+      const element = document.createElement("div");
+      const ref = { current: element };
+      const mockInstance = createMockInstance(element);
+      (echarts.init as ReturnType<typeof vi.fn>).mockReturnValue(mockInstance);
+
+      renderHook(() => useEcharts(ref, { option: baseOption, autoResize: false }));
+
+      expect(resizeObserverInstances).toHaveLength(0);
+    });
+  });
+
+  describe("initOpts", () => {
+    it("should pass initOpts to echarts.init", () => {
+      const element = document.createElement("div");
+      const ref = { current: element };
+      const mockInstance = createMockInstance(element);
+      (echarts.init as ReturnType<typeof vi.fn>).mockReturnValue(mockInstance);
+
+      renderHook(() =>
+        useEcharts(ref, {
+          option: baseOption,
+          initOpts: { devicePixelRatio: 2, locale: "ZH" },
+        })
+      );
+
+      expect(echarts.init).toHaveBeenCalledWith(element, null, {
+        renderer: "canvas",
+        devicePixelRatio: 2,
+        locale: "ZH",
+      });
+    });
+  });
+
+  describe("non-builtin string theme", () => {
+    it("should treat non-builtin string theme as null", () => {
+      const element = document.createElement("div");
+      const ref = { current: element };
+      const mockInstance = createMockInstance(element);
+      (echarts.init as ReturnType<typeof vi.fn>).mockReturnValue(mockInstance);
+
+      // "custom-theme-string" is not a builtin theme
+      renderHook(() =>
+        useEcharts(ref, { option: baseOption, theme: "custom-theme-string" as never })
+      );
+
+      // resolveThemeName should return null for a non-builtin string
+      expect(echarts.init).toHaveBeenCalledWith(element, null, expect.any(Object));
+    });
+
+    it("should treat unexpected theme type (e.g. number) as null", () => {
+      const element = document.createElement("div");
+      const ref = { current: element };
+      const mockInstance = createMockInstance(element);
+      (echarts.init as ReturnType<typeof vi.fn>).mockReturnValue(mockInstance);
+
+      // Force a non-string, non-object, non-null theme to exercise the defensive fallback
+      renderHook(() =>
+        useEcharts(ref, { option: baseOption, theme: 42 as never })
+      );
+
+      expect(echarts.init).toHaveBeenCalledWith(element, null, expect.any(Object));
+    });
+  });
+
+  describe("init error handling", () => {
+    it("should call onError when echarts.init throws", () => {
+      const element = document.createElement("div");
+      const ref = { current: element };
+      const initError = new Error("init failed");
+      (echarts.init as ReturnType<typeof vi.fn>).mockImplementation(() => {
+        throw initError;
+      });
+
+      const onError = vi.fn();
+      renderHook(() => useEcharts(ref, { option: baseOption, onError }));
+
+      expect(onError).toHaveBeenCalledWith(initError);
+    });
+
+    it("should console.error when echarts.init throws without onError", () => {
+      const element = document.createElement("div");
+      const ref = { current: element };
+      const initError = new Error("init failed");
+      (echarts.init as ReturnType<typeof vi.fn>).mockImplementation(() => {
+        throw initError;
+      });
+
+      const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+
+      renderHook(() => useEcharts(ref, { option: baseOption }));
+
+      expect(errorSpy).toHaveBeenCalledWith("ECharts init failed:", initError);
+      errorSpy.mockRestore();
+    });
+
+    it("should call onError when initial setOption throws", () => {
+      const element = document.createElement("div");
+      const ref = { current: element };
+      const mockInstance = createMockInstance(element);
+      const setOptionError = new Error("initial setOption failed");
+      // Only throw once (during init effect), then succeed (for Effect 2)
+      mockInstance.setOption
+        .mockImplementationOnce(() => { throw setOptionError; })
+        .mockImplementation(() => {});
+      (echarts.init as ReturnType<typeof vi.fn>).mockReturnValue(mockInstance);
+
+      const onError = vi.fn();
+      renderHook(() => useEcharts(ref, { option: baseOption, onError }));
+
+      expect(onError).toHaveBeenCalledTimes(1);
+      expect(onError).toHaveBeenCalledWith(setOptionError);
+    });
+
+    it("should console.error when initial setOption throws without onError", () => {
+      const element = document.createElement("div");
+      const ref = { current: element };
+      const mockInstance = createMockInstance(element);
+      const setOptionError = new Error("initial setOption failed");
+      // Only throw once (during init effect), then succeed (for Effect 2)
+      mockInstance.setOption
+        .mockImplementationOnce(() => { throw setOptionError; })
+        .mockImplementation(() => {});
+      (echarts.init as ReturnType<typeof vi.fn>).mockReturnValue(mockInstance);
+
+      const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+
+      renderHook(() => useEcharts(ref, { option: baseOption }));
+
+      expect(errorSpy).toHaveBeenCalledWith("ECharts setOption failed:", setOptionError);
+      errorSpy.mockRestore();
+    });
+  });
+
+  describe("imperative setOption error handling", () => {
+    it("should call onError when imperative setOption throws", () => {
+      const element = document.createElement("div");
+      const ref = { current: element };
+      const mockInstance = createMockInstance(element);
+      (echarts.init as ReturnType<typeof vi.fn>).mockReturnValue(mockInstance);
+
+      const onError = vi.fn();
+      const { result } = renderHook(() =>
+        useEcharts(ref, { option: baseOption, onError })
+      );
+
+      const error = new Error("imperative setOption failed");
+      mockInstance.setOption.mockImplementation(() => {
+        throw error;
+      });
+
+      act(() => {
+        result.current.setOption({ series: [] });
+      });
+
+      expect(onError).toHaveBeenCalledWith(error);
+    });
+
+    it("should rethrow when imperative setOption throws without onError", () => {
+      const element = document.createElement("div");
+      const ref = { current: element };
+      const mockInstance = createMockInstance(element);
+      (echarts.init as ReturnType<typeof vi.fn>).mockReturnValue(mockInstance);
+
+      const { result } = renderHook(() =>
+        useEcharts(ref, { option: baseOption })
+      );
+
+      mockInstance.setOption.mockImplementation(() => {
+        throw new Error("imperative setOption failed");
+      });
+
+      expect(() => {
+        result.current.setOption({ series: [] });
+      }).toThrow("imperative setOption failed");
+    });
+
+    it("should do nothing when imperative setOption is called without instance", () => {
+      const ref = { current: null };
+
+      const { result } = renderHook(() =>
+        useEcharts(ref, { option: baseOption })
+      );
+
+      // Should not throw — early return because no instance
+      act(() => {
+        result.current.setOption({ series: [] });
+      });
+    });
+  });
+
+  describe("cleanup edge cases", () => {
+    it("should handle cleanup when instance is already gone", () => {
+      const element = document.createElement("div");
+      const ref = { current: element };
+      const mockInstance = createMockInstance(element);
+      (echarts.init as ReturnType<typeof vi.fn>).mockReturnValue(mockInstance);
+
+      const { unmount } = renderHook(() =>
+        useEcharts(ref, { option: baseOption })
+      );
+
+      // Clear the cache before unmounting so cleanup finds no instance
+      clearInstanceCache();
+
+      // Should not throw
+      unmount();
     });
   });
 });

@@ -4,6 +4,8 @@
 
 [![NPM version](https://img.shields.io/npm/v/react-use-echarts.svg)](https://www.npmjs.com/package/react-use-echarts)
 [![NPM downloads](https://img.shields.io/npm/dm/react-use-echarts.svg)](https://www.npmjs.com/package/react-use-echarts)
+[![CI](https://github.com/chensid/react-use-echarts/actions/workflows/ci.yml/badge.svg)](https://github.com/chensid/react-use-echarts/actions/workflows/ci.yml)
+[![codecov](https://codecov.io/gh/chensid/react-use-echarts/graph/badge.svg)](https://codecov.io/gh/chensid/react-use-echarts)
 [![GitHub Actions Workflow Status](https://img.shields.io/github/actions/workflow/status/chensid/react-use-echarts/npm-publish.yml)](https://github.com/chensid/react-use-echarts/actions/workflows/npm-publish.yml)
 [![GitHub issues](https://img.shields.io/github/issues/chensid/react-use-echarts)](https://github.com/chensid/react-use-echarts/issues)
 [![GitHub pull requests](https://img.shields.io/github/issues-pr/chensid/react-use-echarts)](https://github.com/chensid/react-use-echarts/pulls)
@@ -46,6 +48,58 @@ pnpm add react-use-echarts echarts
 
 ## 🔨 用法
 
+### 声明式组件
+
+最简单的用法 — 无需手动管理 ref：
+
+```tsx
+import { EChart } from 'react-use-echarts';
+
+function MyChart() {
+  return (
+    <EChart
+      option={{
+        xAxis: { type: 'category', data: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'] },
+        yAxis: { type: 'value' },
+        series: [{ data: [820, 932, 901, 934, 1290, 1330, 1320], type: 'line' }]
+      }}
+    />
+  );
+}
+```
+
+通过 ref 访问图表方法：
+
+```tsx
+import { useRef } from 'react';
+import { EChart } from 'react-use-echarts';
+import type { UseEchartsReturn } from 'react-use-echarts';
+
+function MyChart() {
+  const chartRef = useRef<UseEchartsReturn>(null);
+
+  return (
+    <div>
+      <button onClick={() => chartRef.current?.resize()}>Resize</button>
+      <EChart
+        ref={chartRef}
+        option={{
+          xAxis: { type: 'category', data: ['A', 'B', 'C'] },
+          yAxis: { type: 'value' },
+          series: [{ data: [120, 200, 150], type: 'bar' }]
+        }}
+        style={{ height: '600px' }}
+        className="my-chart"
+      />
+    </div>
+  );
+}
+```
+
+### Hook API
+
+需要完全控制时，直接使用 `useEcharts` Hook：
+
 ```tsx
 import { useRef } from 'react';
 import { useEcharts } from 'react-use-echarts';
@@ -70,6 +124,8 @@ function MyChart() {
 
 ### 事件处理
 
+支持简写（函数）和完整配置（带 query/context 的对象）两种写法：
+
 ```tsx
 import { useRef } from 'react';
 import { useEcharts } from 'react-use-echarts';
@@ -87,11 +143,11 @@ function InteractiveChart() {
   useEcharts(chartRef, {
     option: options,
     onEvents: {
-      click: {
-        handler: (params) => {
-          console.log('Clicked:', params);
-        }
+      // 简写 — 直接传函数
+      click: (params) => {
+        console.log('Clicked:', params);
       },
+      // 完整配置 — 需要 query 或 context 时使用
       mouseover: {
         handler: (params) => {
           console.log('Hover:', params);
@@ -102,6 +158,27 @@ function InteractiveChart() {
   });
 
   return <div ref={chartRef} style={{ width: '100%', height: '400px' }} />;
+}
+```
+
+或使用 `<EChart />` 组件：
+
+```tsx
+import { EChart } from 'react-use-echarts';
+
+function InteractiveChart() {
+  return (
+    <EChart
+      option={{
+        xAxis: { type: 'category', data: ['A', 'B', 'C'] },
+        yAxis: { type: 'value' },
+        series: [{ data: [120, 200, 150], type: 'bar' }]
+      }}
+      onEvents={{
+        click: (params) => console.log('Clicked:', params),
+      }}
+    />
+  );
 }
 ```
 
@@ -423,6 +500,22 @@ import {
 
 ## 📖 API
 
+### EChart 组件
+
+封装了 `useEcharts` 的声明式组件。接受所有 `useEcharts` 选项作为 props，另外支持 `style` 和 `className`。
+
+```tsx
+import { EChart } from 'react-use-echarts';
+import type { EChartProps, UseEchartsReturn } from 'react-use-echarts';
+```
+
+| Prop | 类型 | 默认值 | 说明 |
+|------|------|--------|------|
+| `style` | `React.CSSProperties` | `{ width: '100%', height: '400px' }` | 容器 div 样式（与默认样式合并） |
+| `className` | `string` | - | 容器 div CSS 类名 |
+| `ref` | `Ref<UseEchartsReturn>` | - | 暴露 `{ setOption, getInstance, resize }` |
+| *...options* | `UseEchartsOptions` | - | 所有 `useEcharts` 选项（见下方） |
+
 ### useEcharts
 
 在 React 组件中使用 ECharts 的主 Hook。
@@ -445,7 +538,8 @@ const { setOption, getInstance, resize } = useEcharts(chartRef, {
   initOpts: { devicePixelRatio: 2 }, // 传递给 echarts.init() 的选项
   onError: (err) => console.error(err), // 图表操作的错误处理回调
   onEvents: {
-    click: {
+    click: (params) => console.log(params), // 简写
+    mouseover: {
       handler: (params) => console.log(params),
       query: 'series', // 可选：事件查询条件
     },
@@ -465,7 +559,7 @@ const { setOption, getInstance, resize } = useEcharts(chartRef, {
 | `setOptionOpts` | `SetOptionOpts` | - | setOption 的默认选项 |
 | `showLoading` | `boolean` | `false` | 是否显示加载状态 |
 | `loadingOption` | `object` | - | 加载配置 |
-| `onEvents` | `EChartsEvents` | - | 事件处理器 |
+| `onEvents` | `EChartsEvents` | - | 事件处理器（函数简写或 `{ handler, query?, context? }`） |
 | `autoResize` | `boolean` | `true` | 容器尺寸变化时是否通过 ResizeObserver 自动 resize |
 | `initOpts` | `EChartsInitOpts` | - | 传递给 `echarts.init()` 的选项：devicePixelRatio、locale、width、height；useDirtyRect（脏矩形优化，5.0+）、useCoarsePointer（移动端指针捕获，5.4+）、pointerSize（指针半径，默认 44px，5.4+）|
 | `onError` | `(error: unknown) => void` | - | 图表操作（init、setOption 等）的错误处理回调 |
@@ -493,6 +587,7 @@ import {
   getBuiltinTheme,
   registerCustomTheme,
   registerBuiltinThemes,
+  ensureBuiltinThemesRegistered,
 } from 'react-use-echarts';
 
 getAvailableThemes(); // ['light', 'dark', 'macarons']
@@ -500,6 +595,7 @@ isBuiltinTheme('dark'); // true
 getBuiltinTheme('dark'); // 获取内置主题配置
 registerCustomTheme('my-theme', { color: ['#ff0000', '#00ff00'] }); // 注册自定义主题
 registerBuiltinThemes(); // 注册内置主题（模块加载时自动调用，通常无需手动调用）
+ensureBuiltinThemesRegistered(); // 确保内置主题已注册（幂等，图表初始化前自动调用）
 ```
 
 ### useLazyInit
