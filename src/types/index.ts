@@ -7,42 +7,44 @@ import type { EChartsOption, ECharts, SetOptionOpts, EChartsInitOpts as RawEChar
 export type BuiltinTheme = 'light' | 'dark' | 'macarons';
 
 /**
+ * Event configuration: shorthand function or full config object
+ * 事件配置：简写函数或完整配置对象
+ * @example
+ * ```typescript
+ * // Shorthand 简写
+ * onEvents={{ click: (params) => console.log(params) }}
+ * // Full config 完整写法
+ * onEvents={{ click: { handler: fn, query: 'series' } }}
+ * ```
+ */
+export type EChartsEventConfig =
+  | ((params: unknown) => void)
+  | {
+      handler: (params: unknown) => void;
+      query?: string | object;
+      context?: object;
+    };
+
+/**
  * Event configuration interface for ECharts
  * ECharts 事件配置接口
  * @example
  * ```typescript
  * const events: EChartsEvents = {
- *   'click': {
- *     handler: (params) => console.log('clicked', params),
- *     query: '.series-name',
- *     context: this
+ *   'click': (params) => console.log('clicked', params),
+ *   'mouseover': {
+ *     handler: (params) => console.log('hovered', params),
+ *     query: 'series',
  *   }
  * }
  * ```
  */
 export interface EChartsEvents {
   /**
-   * Event name as key
-   * 事件名称作为键
+   * Event name as key, value can be a handler function or full config
+   * 事件名称作为键，值可以是处理函数或完整配置
    */
-  [eventName: string]: {
-    /**
-     * Event handler function
-     * 事件处理函数
-     */
-    handler: (params: unknown) => void;
-    /**
-     * Query condition for the event
-     * 事件的查询条件
-     * @see https://echarts.apache.org/en/api.html#bindbindEvent query
-     */
-    query?: string | object;
-    /**
-     * Context for the event handler
-     * 事件处理函数的上下文
-     */
-    context?: object;
-  };
+  [eventName: string]: EChartsEventConfig;
 }
 
 /**
@@ -164,4 +166,22 @@ export interface UseEchartsReturn {
    * 手动触发 resize
    */
   resize: () => void;
+}
+
+/**
+ * Props for the EChart declarative component
+ * EChart 声明式组件的属性
+ */
+export interface EChartProps extends UseEchartsOptions {
+  /**
+   * Inline style for the container div
+   * 容器 div 的内联样式
+   */
+  style?: React.CSSProperties;
+
+  /**
+   * CSS class name for the container div
+   * 容器 div 的 CSS 类名
+   */
+  className?: string;
 }
