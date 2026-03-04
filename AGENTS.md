@@ -31,7 +31,7 @@ function useEcharts(
 ### UseEchartsOptions
 
 | 属性 | 类型 | 默认值 | 说明 |
-|------|------|--------|------|
+| ------ | ------ | -------- | ------ |
 | `option` | `EChartsOption` | **必填** | ECharts 配置项 |
 | `theme` | `BuiltinTheme \| object \| null` | `null` | 主题名（`'light'` / `'dark'` / `'macarons'`）或自定义主题对象 |
 | `renderer` | `'canvas' \| 'svg'` | `'canvas'` | 渲染器类型 |
@@ -48,7 +48,7 @@ function useEcharts(
 ### UseEchartsReturn
 
 | 方法 | 类型 | 说明 |
-|------|------|------|
+| ------ | ------ | ------ |
 | `setOption` | `(option: EChartsOption, opts?: SetOptionOpts) => void` | 动态更新配置 |
 | `getInstance` | `() => ECharts \| undefined` | 获取 ECharts 实例（初始化前返回 `undefined`） |
 | `resize` | `() => void` | 手动触发 resize |
@@ -103,7 +103,7 @@ function SimpleChart() {
 继承 `UseEchartsOptions` 全部属性，额外增加：
 
 | 属性 | 类型 | 默认值 | 说明 |
-|------|------|--------|------|
+| ------ | ------ | -------- | ------ |
 | `style` | `React.CSSProperties` | `{ width: '100%', height: '400px' }` | 容器内联样式（与默认值合并） |
 | `className` | `string` | - | 容器 div 的 CSS 类名 |
 
@@ -155,7 +155,7 @@ onEvents={{
 类型从 ECharts 官方派生（`Omit<RawEChartsInitOpts, 'renderer' | 'ssr'>`），主要字段：
 
 | 字段 | 类型 | 说明 |
-|------|------|------|
+| ------ | ------ | ------ |
 | `devicePixelRatio` | `number` | 设备像素比 |
 | `locale` | `string` | 语言区域 |
 | `width` | `number \| string` | 画布宽度 |
@@ -255,7 +255,7 @@ export {
 `useEcharts` 内部按职责拆分为 6 个 Effect，便于理解依赖关系和调试：
 
 | Effect | 调度 | 依赖 | 职责 |
-|--------|------|------|------|
+| -------- | ------ | ------ | ------ |
 | 1. Instance Lifecycle | `useLayoutEffect` | `shouldInit, ref, themeKey, renderer, initOptsKey` | 创建/销毁实例，首次 setOption、事件绑定、loading、group |
 | 2. Option Updates | `useEffect` | `getInstance, option, setOptionOpts` | option 变更后调用 `setOption`（跳过 init 已应用的相同值） |
 | 3. Loading State | `useEffect` | `getInstance, showLoading, loadingOption` | 切换 loading 状态 |
@@ -351,7 +351,7 @@ npm version <type> && npm publish
 ## 排障备忘
 
 | 问题 | 原因 | 解决方案 |
-|------|------|----------|
+| ------ | ------ | ---------- |
 | 图表空白 | `chartRef` 未挂载或容器无尺寸 | 确认 ref 已绑定，容器有 width/height |
 | 事件无效 | `query` 不匹配或已被解绑 | 检查 `onEvents.query` 配置，确认事件名正确 |
 | 内存上涨 | 重复 `init` 或未 `dispose` | 使用 `getInstance()` 检查实例状态 |
