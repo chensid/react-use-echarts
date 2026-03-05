@@ -4,7 +4,7 @@ Thanks for your interest in improving `react-use-echarts`!
 
 ## Prerequisites
 
-- Node.js 22.x (active LTS; required for the current Vite toolchain)
+- Node.js 24.x (matches CI; required for the current Vite toolchain)
 - pnpm ≥ 10
 - Git
 
