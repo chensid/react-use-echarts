@@ -1,0 +1,75 @@
+# CLAUDE.md
+
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+
+## Project Overview
+
+`react-use-echarts` is a React hooks library for Apache ECharts. It provides a `useEcharts` hook and a declarative `EChart` component. Built with TypeScript 5.9, Vite (Rolldown), tested with Vitest + Testing Library. Zero runtime dependencies beyond React 19 and ECharts 6. Package manager is **pnpm**.
+
+## Commands
+
+```bash
+pnpm install          # Install dependencies
+pnpm dev              # Dev server (localhost:3000, serves examples/)
+pnpm build            # tsc + vite build → dist/
+pnpm test             # Vitest (watch mode by default)
+pnpm test -- --run    # Single run
+pnpm test -- src/__tests__/hooks/use-echarts.test.ts  # Run single test file
+pnpm coverage         # Coverage report (v8)
+pnpm lint             # ESLint
+pnpm typecheck        # tsc -b
+```
+
+Pre-PR checklist: `pnpm lint && pnpm typecheck && pnpm test -- --run`
+
+## Architecture
+
+```
+src/
+├── index.ts                    # Package entry, re-exports everything
+├── components/EChart.tsx       # Declarative component wrapping useEcharts
+├── hooks/
+│   ├── use-echarts.ts          # Core hook (6 internal effects, see below)
+│   └── use-lazy-init.ts        # IntersectionObserver hook
+├── themes/
+│   ├── index.ts                # Theme registration & utilities
+│   └── presets/                # Built-in theme JSON (light/dark/macarons)
+├── utils/
+│   ├── instance-cache.ts       # WeakMap instance cache + reference counting
+│   └── connect.ts              # Chart group linkage logic
+├── types/index.ts              # All type definitions
+└── __tests__/                  # Mirror structure: components/, hooks/, themes/, utils/
+```
+
+### useEcharts Internal Effects
+
+The hook is split into 6 effects by responsibility:
+
+1. **Instance Lifecycle** (`useLayoutEffect`) — create/destroy instance, initial setOption, events, loading, group
+2. **Option Updates** (`useEffect`) — call `setOption` when option changes
+3. **Loading State** (`useEffect`) — toggle loading
+4. **Event Rebinding** (`useEffect`) — unbind old, bind new when `onEvents` changes
+5. **Group Changes** (`useEffect`) — switch chart group dynamically
+6. **Resize Observer** (`useEffect`) — create/destroy ResizeObserver
+
+### Key Design Patterns
+
+- **Ref passed in by caller** — hook does not create refs internally
+- **WeakMap instance cache + reference counting** — supports React StrictMode double mount/unmount
+- **initOpts stabilization** — serialized to stable key to prevent instance recreation from inline objects
+- **Two-level theme cache** — custom theme objects auto-deduplicated
+- **React Compiler** — babel-plugin-react-compiler is enabled in the Vite config
+
+## Testing
+
+- Vitest + jsdom, ECharts API fully mocked
+- Tests live in `src/__tests__/` mirroring `src/` structure
+- Config: `vitest.config.ts` — threads pool, clearMocks/mockReset/restoreMocks all enabled
+
+## Conventions
+
+- Commit format: `feat|fix|docs|test|refactor|chore: <subject>`
+- New features: add types in `src/types/index.ts` first, then implement, test, update README
+- All side effects must have paired cleanup functions
+- Build outputs: `dist/index.es.js`, `dist/index.umd.js`, `dist/index.d.ts`
+- External peers (not bundled): react, react-dom, echarts
