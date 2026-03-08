@@ -51,7 +51,8 @@
     "coverage": "vitest run --coverage",
     "lint": "eslint .",
     "prepublishOnly": "pnpm build",
-    "typecheck": "tsc -b"
+    "typecheck": "tsc -b",
+    "prepare": "husky"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
@@ -68,7 +69,9 @@
     "eslint-plugin-react-hooks": "^7.0.1",
     "eslint-plugin-react-refresh": "^0.5.2",
     "globals": "^17.4.0",
+    "husky": "^9.1.7",
     "jsdom": "^28.1.0",
+    "lint-staged": "^16.3.2",
     "react": "^19.2.4",
     "react-dom": "^19.2.4",
     "typescript": "~5.9.3",
@@ -81,6 +84,11 @@
     "echarts": "^6.0.0",
     "react": "^19.2.0",
     "react-dom": "^19.2.0"
+  },
+  "lint-staged": {
+    "*.{ts,tsx}": [
+      "eslint"
+    ]
   },
   "pnpm": {
     "overrides": {
