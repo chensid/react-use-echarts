@@ -9,7 +9,7 @@ export default defineConfig({
       provider: "v8",
       reporter: ["text", "json", "html", "lcov"],
       include: ["src/**/*"],
-      exclude: ["node_modules/", "src/setupTests.ts"],
+      exclude: ["node_modules/", "src/__tests__/**"],
     },
     testTimeout: 10000,
     clearMocks: true,

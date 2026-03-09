@@ -8,19 +8,10 @@ import {
   clearInstanceCache,
 } from "../../utils/instance-cache";
 import type { ECharts } from "echarts";
+import { createMockInstance as createBaseMockInstance } from "../helpers";
 
-// Create mock instance factory
 function createMockInstance() {
-  return {
-    setOption: vi.fn(),
-    dispose: vi.fn(),
-    showLoading: vi.fn(),
-    hideLoading: vi.fn(),
-    on: vi.fn(),
-    off: vi.fn(),
-    getDom: vi.fn(),
-    resize: vi.fn(),
-  } as unknown as ECharts;
+  return createBaseMockInstance() as unknown as ECharts;
 }
 
 describe("instance-cache utilities", () => {

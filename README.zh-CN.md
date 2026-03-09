@@ -594,7 +594,7 @@ getAvailableThemes(); // ['light', 'dark', 'macarons']
 isBuiltinTheme('dark'); // true
 getBuiltinTheme('dark'); // 获取内置主题配置
 registerCustomTheme('my-theme', { color: ['#ff0000', '#00ff00'] }); // 注册自定义主题
-registerBuiltinThemes(); // 注册内置主题（模块加载时自动调用，通常无需手动调用）
+registerBuiltinThemes(); // 手动注册所有内置主题（通常无需调用 — ensureBuiltinThemesRegistered 在图表初始化前自动调用）
 ensureBuiltinThemesRegistered(); // 确保内置主题已注册（幂等，图表初始化前自动调用）
 ```
 

@@ -9,6 +9,7 @@ import {
   isInGroup,
   clearGroups,
 } from "../../utils/connect";
+import { createMockInstance as createBaseMockInstance } from "../helpers";
 
 // Mock ECharts
 vi.mock("echarts", () => ({
@@ -16,17 +17,9 @@ vi.mock("echarts", () => ({
   disconnect: vi.fn(),
 }));
 
-// Create mock instance factory
 function createMockInstance() {
   return {
-    setOption: vi.fn(),
-    dispose: vi.fn(),
-    showLoading: vi.fn(),
-    hideLoading: vi.fn(),
-    on: vi.fn(),
-    off: vi.fn(),
-    getDom: vi.fn(),
-    resize: vi.fn(),
+    ...createBaseMockInstance(),
     group: undefined,
   } as unknown as echarts.ECharts;
 }

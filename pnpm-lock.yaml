@@ -35,9 +35,6 @@ importers:
       babel-plugin-react-compiler:
         specifier: ^1.0.0
         version: 1.0.0
-      baseline-browser-mapping:
-        specifier: ^2.10.0
-        version: 2.10.0
       echarts:
         specifier: ^6.0.0
         version: 6.0.0

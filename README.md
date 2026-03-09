@@ -594,7 +594,7 @@ getAvailableThemes(); // ['light', 'dark', 'macarons']
 isBuiltinTheme('dark'); // true
 getBuiltinTheme('dark'); // Get built-in theme configuration
 registerCustomTheme('my-theme', { color: ['#ff0000', '#00ff00'] }); // Register custom theme
-registerBuiltinThemes(); // Register built-in themes (automatically called on module load, usually no need to call manually)
+registerBuiltinThemes(); // Manually register all built-in themes (usually no need — ensureBuiltinThemesRegistered is called automatically before chart init)
 ensureBuiltinThemesRegistered(); // Ensure built-in themes are registered (idempotent, called automatically before chart init)
 ```
 
