@@ -64,7 +64,9 @@ The hook is split into 6 effects by responsibility:
 
 - Vitest + jsdom, ECharts API fully mocked
 - Tests live in `src/__tests__/` mirroring `src/` structure
+- Shared mocks (`createMockInstance`, `MockResizeObserver`, `MockIntersectionObserver`) in `src/__tests__/helpers.ts`
 - Config: `vitest.config.ts` — threads pool, clearMocks/mockReset/restoreMocks all enabled
+- TypeScript: `tsconfig.test.json` extends `tsconfig.app.json` to cover test files (JSX support in IDE)
 
 ## Conventions
 
