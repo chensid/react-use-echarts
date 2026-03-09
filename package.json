@@ -63,7 +63,6 @@
     "@vitejs/plugin-react": "^5.1.4",
     "@vitest/coverage-v8": "^4.0.18",
     "babel-plugin-react-compiler": "^1.0.0",
-    "baseline-browser-mapping": "^2.10.0",
     "echarts": "^6.0.0",
     "eslint": "^10.0.3",
     "eslint-plugin-react-hooks": "^7.0.1",

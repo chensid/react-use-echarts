@@ -6,6 +6,11 @@ import { clearInstanceCache, getCachedInstance } from "../../utils/instance-cach
 import { clearGroups, getGroupInstances } from "../../utils/connect";
 import type { EChartsOption } from "echarts";
 import type { BuiltinTheme } from "../../types";
+import {
+  createMockInstance,
+  MockResizeObserver,
+  MockIntersectionObserver,
+} from "../helpers";
 
 // Mock ECharts
 vi.mock("echarts", () => ({
@@ -15,56 +20,17 @@ vi.mock("echarts", () => ({
   registerTheme: vi.fn(),
 }));
 
-// Mock ResizeObserver
-let resizeObserverInstances: { observe: ReturnType<typeof vi.fn>; disconnect: ReturnType<typeof vi.fn> }[] = [];
+// Track ResizeObserver instances for specific tests
+let resizeObserverInstances: MockResizeObserver[] = [];
 
-class MockResizeObserver {
-  callback: ResizeObserverCallback;
-  observe = vi.fn();
-  disconnect = vi.fn();
-  unobserve = vi.fn();
-
+class TrackingResizeObserver extends MockResizeObserver {
   constructor(callback: ResizeObserverCallback) {
-    this.callback = callback;
+    super(callback);
     resizeObserverInstances.push(this);
   }
 }
-global.ResizeObserver = MockResizeObserver as unknown as typeof ResizeObserver;
-
-// Mock IntersectionObserver
-class MockIntersectionObserver implements IntersectionObserver {
-  callback: IntersectionObserverCallback;
-  disconnect = vi.fn();
-  unobserve = vi.fn();
-  takeRecords = vi.fn(() => [] as IntersectionObserverEntry[]);
-  root: Document | Element | null = null;
-  rootMargin = "0px";
-  thresholds: ReadonlyArray<number> = [0];
-
-  constructor(callback: IntersectionObserverCallback) {
-    this.callback = callback;
-  }
-
-  // Trigger callback synchronously in observe() to match test expectations
-  observe = vi.fn(() => {
-    this.callback([{ isIntersecting: true } as IntersectionObserverEntry], this);
-  });
-}
+global.ResizeObserver = TrackingResizeObserver as unknown as typeof ResizeObserver;
 global.IntersectionObserver = MockIntersectionObserver as unknown as typeof IntersectionObserver;
-
-// Create mock instance factory
-function createMockInstance(element?: HTMLElement) {
-  return {
-    setOption: vi.fn(),
-    dispose: vi.fn(),
-    showLoading: vi.fn(),
-    hideLoading: vi.fn(),
-    on: vi.fn(),
-    off: vi.fn(),
-    getDom: vi.fn(() => element),
-    resize: vi.fn(),
-  };
-}
 
 describe("useEcharts", () => {
   beforeEach(() => {
@@ -347,7 +313,7 @@ describe("useEcharts", () => {
   });
 
   describe("group handling", () => {
-    it("should add chart to group", () => {
+    it("should add chart to group", async () => {
       const element = document.createElement("div");
       const ref = { current: element };
       const mockInstance = createMockInstance(element);
@@ -355,11 +321,12 @@ describe("useEcharts", () => {
 
       renderHook(() => useEcharts(ref, { option: baseOption, group: "myGroup" }));
 
-      // Group is handled in useEffect, check connect was called
-      // Note: connect is only called when multiple instances in group
+      await waitFor(() => {
+        expect(getGroupInstances("myGroup")).toContain(mockInstance);
+      });
     });
 
-    it("should update group when changed", () => {
+    it("should update group when changed", async () => {
       const element = document.createElement("div");
       const ref = { current: element };
       const mockInstance = createMockInstance(element);
@@ -370,9 +337,16 @@ describe("useEcharts", () => {
         { initialProps: { group: "group1" } }
       );
 
+      await waitFor(() => {
+        expect(getGroupInstances("group1")).toContain(mockInstance);
+      });
+
       rerender({ group: "group2" });
 
-      // Group update logic is handled
+      await waitFor(() => {
+        expect(getGroupInstances("group2")).toContain(mockInstance);
+        expect(getGroupInstances("group1")).not.toContain(mockInstance);
+      });
     });
 
     it("should keep group linkage after theme change", async () => {
@@ -571,7 +545,7 @@ describe("useEcharts", () => {
       expect(mockInstance.dispose).toHaveBeenCalled();
     });
 
-    it("should remove from group on unmount", () => {
+    it("should remove from group on unmount", async () => {
       const element = document.createElement("div");
       const ref = { current: element };
       const mockInstance = createMockInstance(element);
@@ -581,9 +555,13 @@ describe("useEcharts", () => {
         useEcharts(ref, { option: baseOption, group: "testGroup" })
       );
 
+      await waitFor(() => {
+        expect(getGroupInstances("testGroup")).toContain(mockInstance);
+      });
+
       unmount();
 
-      // Group cleanup is handled internally
+      expect(getGroupInstances("testGroup")).not.toContain(mockInstance);
     });
 
     it("should cache instance correctly", () => {

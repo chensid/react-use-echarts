@@ -3,7 +3,13 @@ import { renderHook } from "@testing-library/react";
 import * as echarts from "echarts";
 import useEcharts from "../../hooks/use-echarts";
 import { getCachedInstance, clearInstanceCache } from "../../utils/instance-cache";
+import { clearGroups } from "../../utils/connect";
 import type { BuiltinTheme } from "../../types";
+import {
+  createMockInstance,
+  MockResizeObserver,
+  MockIntersectionObserver,
+} from "../helpers";
 
 // Mock ECharts
 vi.mock("echarts", () => ({
@@ -13,27 +19,13 @@ vi.mock("echarts", () => ({
   registerTheme: vi.fn(),
 }));
 
-// Mock ResizeObserver
-class MockResizeObserver {
-  observe = vi.fn();
-  disconnect = vi.fn();
-  unobserve = vi.fn();
-}
 global.ResizeObserver = MockResizeObserver as unknown as typeof ResizeObserver;
-
-// Mock IntersectionObserver
-global.IntersectionObserver = vi.fn().mockImplementation((callback) => ({
-  observe: vi.fn(() => {
-    // Immediately trigger as intersecting for tests
-    callback([{ isIntersecting: true }]);
-  }),
-  disconnect: vi.fn(),
-  unobserve: vi.fn(),
-}));
+global.IntersectionObserver = MockIntersectionObserver as unknown as typeof IntersectionObserver;
 
 describe("Theme change behavior", () => {
   beforeEach(() => {
     clearInstanceCache();
+    clearGroups();
     vi.clearAllMocks();
   });
 
@@ -41,28 +33,8 @@ describe("Theme change behavior", () => {
     const element = document.createElement("div");
     const ref = { current: element };
 
-    // Mock instances
-    const mockInstance1 = {
-      setOption: vi.fn(),
-      dispose: vi.fn(),
-      showLoading: vi.fn(),
-      hideLoading: vi.fn(),
-      on: vi.fn(),
-      off: vi.fn(),
-      getDom: vi.fn(() => element),
-      resize: vi.fn(),
-    };
-
-    const mockInstance2 = {
-      setOption: vi.fn(),
-      dispose: vi.fn(),
-      showLoading: vi.fn(),
-      hideLoading: vi.fn(),
-      on: vi.fn(),
-      off: vi.fn(),
-      getDom: vi.fn(() => element),
-      resize: vi.fn(),
-    };
+    const mockInstance1 = createMockInstance(element);
+    const mockInstance2 = createMockInstance(element);
 
     // First call returns instance1
     (echarts.init as ReturnType<typeof vi.fn>).mockReturnValueOnce(mockInstance1);
