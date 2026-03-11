@@ -17,7 +17,7 @@
 
 - 🎨 **易于使用** - 基于 React Hooks 的简洁直观 API
 - 🚀 **TypeScript 支持** - 使用 TypeScript 编写，提供完整的类型定义
-- 📦 **轻量级** - 除 React 和 ECharts 外零依赖
+- 📦 **轻量级** - 除 React（`react` + `react-dom`）和 ECharts 外零依赖
 - 🛠 **灵活** - 完全访问 ECharts 实例和配置选项
 - ⚡ **自动更新** - 数据或配置变化时自动更新图表
 - 📱 **响应式** - 通过 ResizeObserver 自动处理容器尺寸变化
@@ -28,7 +28,7 @@
 
 ## 📋 要求
 
-- React 19.x
+- React 19.x（`react` + `react-dom`）
 - ECharts 6.x
 
 > **注意**：此库仅适用于客户端渲染（CSR）。由于 ECharts 需要 DOM 访问，不支持服务端渲染（SSR）。
