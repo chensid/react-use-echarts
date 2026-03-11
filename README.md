@@ -17,7 +17,7 @@ A React hooks library for Apache ECharts with full TypeScript support. Simple, l
 
 - 🎨 **Easy to use** - Simple and intuitive API with React Hooks
 - 🚀 **TypeScript support** - Written in TypeScript with complete type definitions
-- 📦 **Lightweight** - Zero dependencies except for React and ECharts
+- 📦 **Lightweight** - Zero dependencies beyond React (`react` + `react-dom`) and ECharts
 - 🛠 **Flexible** - Full access to ECharts instance and options
 - ⚡ **Auto-updating** - Automatically updates chart when data or options change
 - 📱 **Responsive** - Handles container resizing automatically with ResizeObserver
@@ -28,7 +28,7 @@ A React hooks library for Apache ECharts with full TypeScript support. Simple, l
 
 ## 📋 Requirements
 
-- React 19.x
+- React 19.x (`react` + `react-dom`)
 - ECharts 6.x
 
 > **Note**: This library is designed for client-side rendering (CSR) only. Server-side rendering (SSR) is not supported as ECharts requires DOM access.
