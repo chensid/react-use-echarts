@@ -66,6 +66,7 @@ The hook is split into 6 effects by responsibility:
 - Tests live in `src/__tests__/` mirroring `src/` structure
 - Shared mocks (`createMockInstance`, `MockResizeObserver`, `MockIntersectionObserver`) in `src/__tests__/helpers.ts`
 - Config: `vitest.config.ts` — threads pool, clearMocks/mockReset/restoreMocks all enabled
+- `globals: true` — test files use `describe`/`it`/`expect` without imports
 - TypeScript: `tsconfig.test.json` extends `tsconfig.app.json` to cover test files (JSX support in IDE)
 
 ## Conventions
@@ -75,3 +76,4 @@ The hook is split into 6 effects by responsibility:
 - All side effects must have paired cleanup functions
 - Build outputs: `dist/index.es.js`, `dist/index.umd.js`, `dist/index.d.ts`
 - External peers (not bundled): react, react-dom, echarts
+- `vite` is aliased to `rolldown-vite` via pnpm overrides in `package.json`
