@@ -76,4 +76,4 @@ The hook is split into 6 effects by responsibility:
 - All side effects must have paired cleanup functions
 - Build outputs: `dist/index.es.js`, `dist/index.umd.js`, `dist/index.d.ts`
 - External peers (not bundled): react, react-dom, echarts
-- `vite` is aliased to `rolldown-vite` via pnpm overrides in `package.json`
+- Vite 8 with built-in Rolldown; React Compiler via `@rolldown/plugin-babel`
