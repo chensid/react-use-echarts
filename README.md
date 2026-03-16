@@ -28,7 +28,7 @@ A React hooks library for Apache ECharts with full TypeScript support. Simple, l
 
 ## 📋 Requirements
 
-- React 19.x (`react` + `react-dom`)
+- React 19.2+ (`react` + `react-dom`)
 - ECharts 6.x
 
 > **Note**: This library is designed for client-side rendering (CSR) only. Server-side rendering (SSR) is not supported as ECharts requires DOM access.
@@ -561,7 +561,7 @@ const { setOption, getInstance, resize } = useEcharts(chartRef, {
 | `loadingOption` | `object` | - | Loading configuration |
 | `onEvents` | `EChartsEvents` | - | Event handlers (function shorthand or `{ handler, query?, context? }`) |
 | `autoResize` | `boolean` | `true` | Auto-resize chart via ResizeObserver |
-| `initOpts` | `EChartsInitOpts` | - | Options passed to `echarts.init()`: devicePixelRatio, locale, width, height; useDirtyRect (dirty rect optimization, 5.0+), useCoarsePointer (mobile pointer capture, 5.4+), pointerSize (pointer radius, default 44px, 5.4+) |
+| `initOpts` | `EChartsInitOpts` | - | Options passed to `echarts.init()`: devicePixelRatio, locale, width, height, useDirtyRect, useCoarsePointer, pointerSize |
 | `onError` | `(error: unknown) => void` | - | Error handler for chart operations (init, setOption, etc.) |
 
 #### Returns

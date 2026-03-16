@@ -28,7 +28,7 @@
 
 ## 📋 要求
 
-- React 19.x（`react` + `react-dom`）
+- React 19.2+（`react` + `react-dom`）
 - ECharts 6.x
 
 > **注意**：此库仅适用于客户端渲染（CSR）。由于 ECharts 需要 DOM 访问，不支持服务端渲染（SSR）。
@@ -561,7 +561,7 @@ const { setOption, getInstance, resize } = useEcharts(chartRef, {
 | `loadingOption` | `object` | - | 加载配置 |
 | `onEvents` | `EChartsEvents` | - | 事件处理器（函数简写或 `{ handler, query?, context? }`） |
 | `autoResize` | `boolean` | `true` | 容器尺寸变化时是否通过 ResizeObserver 自动 resize |
-| `initOpts` | `EChartsInitOpts` | - | 传递给 `echarts.init()` 的选项：devicePixelRatio、locale、width、height；useDirtyRect（脏矩形优化，5.0+）、useCoarsePointer（移动端指针捕获，5.4+）、pointerSize（指针半径，默认 44px，5.4+）|
+| `initOpts` | `EChartsInitOpts` | - | 传递给 `echarts.init()` 的选项：devicePixelRatio、locale、width、height、useDirtyRect、useCoarsePointer、pointerSize |
 | `onError` | `(error: unknown) => void` | - | 图表操作（init、setOption 等）的错误处理回调 |
 
 #### Returns
