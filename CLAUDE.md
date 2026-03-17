@@ -45,7 +45,7 @@ src/
 
 The hook is split into 6 effects by responsibility:
 
-1. **Instance Lifecycle** (`useLayoutEffect`) — create/destroy instance, initial setOption, events, loading, group
+1. **Instance Lifecycle** (`useLayoutEffect`) — reuse cached or create instance, initial setOption, events, loading, group
 2. **Option Updates** (`useEffect`) — call `setOption` when option changes
 3. **Loading State** (`useEffect`) — toggle loading
 4. **Event Rebinding** (`useEffect`) — unbind old, bind new when `onEvents` changes
@@ -58,7 +58,8 @@ The hook is split into 6 effects by responsibility:
 - **WeakMap instance cache + reference counting** — supports React StrictMode double mount/unmount
 - **initOpts stabilization** — serialized to stable key to prevent instance recreation from inline objects
 - **Two-level theme cache** — custom theme objects auto-deduplicated
-- **React Compiler** — babel-plugin-react-compiler is enabled in the Vite config
+- **Memoized return value** — `useMemo` ensures referential stability of `{ setOption, getInstance, resize }`
+- **React Compiler** — enabled via `@vitejs/plugin-react` + `@rolldown/plugin-babel` with `reactCompilerPreset()`
 
 ## Testing
 
