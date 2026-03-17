@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { renderHook, act, waitFor } from "@testing-library/react";
 import * as echarts from "echarts";
 import useEcharts from "../../hooks/use-echarts";
-import { clearInstanceCache, getCachedInstance } from "../../utils/instance-cache";
+import { clearInstanceCache, getCachedInstance, setCachedInstance } from "../../utils/instance-cache";
 import { clearGroups, getGroupInstances } from "../../utils/connect";
 import type { EChartsOption } from "echarts";
 import type { BuiltinTheme } from "../../types";
@@ -944,6 +944,24 @@ describe("useEcharts", () => {
       act(() => {
         result.current.setOption({ series: [] });
       });
+    });
+  });
+
+  describe("cache hit on init", () => {
+    it("should reuse existing cached instance instead of calling echarts.init", () => {
+      const element = document.createElement("div");
+      const ref = { current: element };
+      const existingInstance = createMockInstance(element);
+
+      // Pre-populate the cache as if another hook already owns this element
+      setCachedInstance(element, existingInstance as never);
+
+      renderHook(() => useEcharts(ref, { option: baseOption }));
+
+      // echarts.init should NOT be called since the cache already had an instance
+      expect(echarts.init).not.toHaveBeenCalled();
+      // The existing instance should still be used (setOption called on it)
+      expect(existingInstance.setOption).toHaveBeenCalledWith(baseOption, undefined);
     });
   });
 
