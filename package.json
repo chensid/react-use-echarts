@@ -38,7 +38,8 @@
     ".": {
       "types": "./dist/index.d.ts",
       "import": "./dist/index.es.js",
-      "require": "./dist/index.umd.js"
+      "require": "./dist/index.umd.js",
+      "default": "./dist/index.es.js"
     }
   },
   "files": [
@@ -46,7 +47,7 @@
   ],
   "scripts": {
     "dev": "vite",
-    "build": "tsc -b && vite build",
+    "build": "vite build",
     "test": "vitest",
     "coverage": "vitest run --coverage",
     "lint": "eslint .",
@@ -58,8 +59,8 @@
     "@babel/core": "^7.29.0",
     "@eslint/js": "^10.0.1",
     "@rolldown/plugin-babel": "^0.2.1",
-    "@testing-library/react": "^16.3.2",
     "@types/babel__core": "^7.20.5",
+    "@testing-library/react": "^16.3.2",
     "@types/node": "^25.5.0",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",

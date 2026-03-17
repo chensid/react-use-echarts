@@ -11,7 +11,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ```bash
 pnpm install          # Install dependencies
 pnpm dev              # Dev server (localhost:3000, serves examples/)
-pnpm build            # tsc + vite build → dist/
+pnpm build            # vite build → dist/
 pnpm test             # Vitest (watch mode by default)
 pnpm test -- --run    # Single run
 pnpm test -- src/__tests__/hooks/use-echarts.test.ts  # Run single test file
@@ -65,7 +65,7 @@ The hook is split into 6 effects by responsibility:
 - Vitest + jsdom, ECharts API fully mocked
 - Tests live in `src/__tests__/` mirroring `src/` structure
 - Shared mocks (`createMockInstance`, `MockResizeObserver`, `MockIntersectionObserver`) in `src/__tests__/helpers.ts`
-- Config: `vitest.config.ts` — threads pool, clearMocks/mockReset/restoreMocks all enabled
+- Config: `test` block in `vite.config.ts` — threads pool, clearMocks/mockReset/restoreMocks all enabled
 - `globals: true` — test files use `describe`/`it`/`expect` without imports
 - TypeScript: `tsconfig.test.json` extends `tsconfig.app.json` to cover test files (JSX support in IDE)
 

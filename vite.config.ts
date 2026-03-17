@@ -1,3 +1,4 @@
+/// <reference types="vitest/config" />
 import { defineConfig } from "vite";
 import babel from '@rolldown/plugin-babel'
 import react, { reactCompilerPreset } from '@vitejs/plugin-react'
@@ -34,5 +35,20 @@ export default defineConfig({
   },
   server: {
     port: 3000,
+  },
+  test: {
+    pool: "threads",
+    globals: true,
+    environment: "jsdom",
+    coverage: {
+      provider: "v8",
+      reporter: ["text", "json", "html", "lcov"],
+      include: ["src/**/*"],
+      exclude: ["node_modules/", "src/__tests__/**"],
+    },
+    testTimeout: 10000,
+    clearMocks: true,
+    mockReset: true,
+    restoreMocks: true,
   },
 });
