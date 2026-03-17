@@ -256,7 +256,7 @@ export {
 
 | Effect | 调度 | 依赖 | 职责 |
 | -------- | ------ | ------ | ------ |
-| 1. Instance Lifecycle | `useLayoutEffect` | `shouldInit, ref, themeKey, renderer, initOptsKey` | 创建/销毁实例，首次 setOption、事件绑定、loading、group |
+| 1. Instance Lifecycle | `useLayoutEffect` | `shouldInit, ref, themeKey, renderer, initOptsKey` | 复用缓存或创建实例，首次 setOption、事件绑定、loading、group |
 | 2. Option Updates | `useEffect` | `getInstance, option, setOptionOpts` | option 变更后调用 `setOption`（跳过 init 已应用的相同值） |
 | 3. Loading State | `useEffect` | `getInstance, showLoading, loadingOption` | 切换 loading 状态 |
 | 4. Event Rebinding | `useEffect` | `getInstance, onEvents` | `onEvents` 引用变更时解绑旧、绑定新 |
