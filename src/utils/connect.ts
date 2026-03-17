@@ -106,12 +106,7 @@ export function getGroupInstances(groupId: string): ECharts[] {
  * @returns Group ID or undefined
  */
 export function getInstanceGroup(instance: ECharts): string | undefined {
-  for (const [groupId, instances] of groupRegistry.entries()) {
-    if (instances.has(instance)) {
-      return groupId;
-    }
-  }
-  return undefined;
+  return (instance as EChartsWithGroup).group;
 }
 
 /**

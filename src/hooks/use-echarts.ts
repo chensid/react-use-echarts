@@ -205,22 +205,29 @@ function useEcharts(
     ensureBuiltinThemesRegistered();
     const resolvedTheme = resolveThemeName(themeRef.current);
 
+    // Re-use existing instance if another hook (or StrictMode re-mount)
+    // already owns this element, avoiding a redundant init + dispose cycle.
+    const existing = getCachedInstance(element);
     let instance: ECharts;
-    try {
-      instance = echarts.init(element, resolvedTheme, {
-        renderer,
-        ...initOptsRef.current,
-      });
-    } catch (error) {
-      if (onErrorRef.current) {
-        onErrorRef.current(error);
-      } else {
-        console.error("ECharts init failed:", error);
+    if (existing) {
+      instance = existing;
+      setCachedInstance(element, existing); // bump ref count
+    } else {
+      try {
+        instance = echarts.init(element, resolvedTheme, {
+          renderer,
+          ...initOptsRef.current,
+        });
+      } catch (error) {
+        if (onErrorRef.current) {
+          onErrorRef.current(error);
+        } else {
+          console.error("ECharts init failed:", error);
+        }
+        return;
       }
-      return;
+      setCachedInstance(element, instance);
     }
-
-    setCachedInstance(element, instance);
 
     // Apply initial option
     try {
@@ -368,7 +375,7 @@ function useEcharts(
     };
   }, [ref, autoResize]);
 
-  return { setOption, getInstance, resize };
+  return useMemo(() => ({ setOption, getInstance, resize }), [setOption, getInstance, resize]);
 }
 
 export default useEcharts;
