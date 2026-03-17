@@ -306,7 +306,7 @@ pnpm test        # vitest
 pnpm coverage    # 覆盖率报告
 pnpm lint        # eslint
 pnpm typecheck   # tsc -b
-pnpm build       # tsc + vite build
+pnpm build       # vite build
 npm version <type> && npm publish
 ```
 
