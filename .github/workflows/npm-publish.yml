@@ -11,6 +11,7 @@ on:
     types: [created]
 
 env:
+  # pnpm/action-setup has not released a Node 24 native version yet
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 jobs:
@@ -21,12 +22,12 @@ jobs:
       id-token: write # Required for OIDC trusted publishing
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           fetch-depth: 0
           ref: main
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: 24 # npm >= 11.5.1 required for trusted publishing
           registry-url: https://registry.npmjs.org/
