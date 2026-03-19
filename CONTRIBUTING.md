@@ -19,13 +19,14 @@ Thanks for your interest in improving `react-use-echarts`!
 ## Development Commands
 
 - `pnpm dev` – run the Vite dev server with the examples under `examples/`.
-- `pnpm lint` – run ESLint to check for issues.
+- `pnpm lint` – run Oxlint to check for issues.
+- `pnpm check` – run `vp check` (lint + format + typecheck) in one command.
 - `pnpm typecheck` – validate TypeScript types.
 - `pnpm test` – execute the Vitest suite (`pnpm test -- --watch` for watch mode).
 - `pnpm coverage` – generate coverage reports.
 - `pnpm build` – build the library bundles and type declarations into `dist/`.
 
-Run `pnpm lint`, `pnpm typecheck`, `pnpm test`, and `pnpm build` before opening a pull request. This is the same set of checks we rely on for releases.
+Run `pnpm check && pnpm test -- --run` before opening a pull request. This is the same set of checks we rely on for releases.
 
 ## Pull Request Guidelines
 
