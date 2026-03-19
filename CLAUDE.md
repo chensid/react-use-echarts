@@ -4,23 +4,24 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-`react-use-echarts` is a React hooks library for Apache ECharts. It provides a `useEcharts` hook and a declarative `EChart` component. Built with TypeScript 5.9, Vite (Rolldown), tested with Vitest + Testing Library. Zero runtime dependencies beyond React 19 and ECharts 6. Package manager is **pnpm**.
+`react-use-echarts` is a React hooks library for Apache ECharts. It provides a `useEcharts` hook and a declarative `EChart` component. Built with TypeScript 5.9, Vite+ (vite-plus unified toolchain), tested with Vitest + Testing Library. Zero runtime dependencies beyond React 19 and ECharts 6. Package manager is **pnpm**.
 
 ## Commands
 
 ```bash
 pnpm install          # Install dependencies
 pnpm dev              # Dev server (localhost:3000, serves examples/)
-pnpm build            # vite build → dist/
+pnpm build            # vp build → dist/
 pnpm test             # Vitest (watch mode by default)
 pnpm test -- --run    # Single run
 pnpm test -- src/__tests__/hooks/use-echarts.test.ts  # Run single test file
 pnpm coverage         # Coverage report (v8)
-pnpm lint             # ESLint
+pnpm lint             # Oxlint (via vp lint)
+pnpm check            # vp check (lint + format + typecheck)
 pnpm typecheck        # tsc -b
 ```
 
-Pre-PR checklist: `pnpm lint && pnpm typecheck && pnpm test -- --run`
+Pre-PR checklist: `pnpm check && pnpm test -- --run`
 
 ## Architecture
 
@@ -67,7 +68,7 @@ The hook is split into 6 effects by responsibility:
 - Tests live in `src/__tests__/` mirroring `src/` structure
 - Shared mocks (`createMockInstance`, `MockResizeObserver`, `MockIntersectionObserver`) in `src/__tests__/helpers.ts`
 - Config: `test` block in `vite.config.ts` — threads pool, clearMocks/mockReset/restoreMocks all enabled
-- `globals: true` — test files use `describe`/`it`/`expect` without imports
+- `globals: true` — test files import from `"vite-plus/test"` for type safety
 - TypeScript: `tsconfig.test.json` extends `tsconfig.app.json` to cover test files (JSX support in IDE)
 
 ## Conventions
@@ -77,4 +78,4 @@ The hook is split into 6 effects by responsibility:
 - All side effects must have paired cleanup functions
 - Build outputs: `dist/index.es.js`, `dist/index.umd.js`, `dist/index.d.ts`
 - External peers (not bundled): react, react-dom, echarts
-- Vite 8 with built-in Rolldown; React Compiler via `@rolldown/plugin-babel`
+- Vite+ (vite-plus) unified toolchain with Rolldown; React Compiler via `@rolldown/plugin-babel`

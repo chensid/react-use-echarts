@@ -2,7 +2,7 @@
 
 ## 快速概览
 
-`react-use-echarts` 是基于 React 19 与 Apache ECharts 6 的 Hooks 封装，使用 TypeScript 5.9、Vite (Rolldown) 构建，Vitest+Testing Library 做测试。包管理统一使用 `pnpm`，除 `react` 与 `echarts` 外零运行时依赖，输出 `dist/index.es.js`、`dist/index.umd.js` 与 `dist/index.d.ts`。
+`react-use-echarts` 是基于 React 19 与 Apache ECharts 6 的 Hooks 封装，使用 TypeScript 5.9、Vite+ (vite-plus 统一工具链) 构建，Vitest+Testing Library 做测试。包管理统一使用 `pnpm`，除 `react` 与 `echarts` 外零运行时依赖，输出 `dist/index.es.js`、`dist/index.umd.js` 与 `dist/index.d.ts`。
 
 ### 核心特性
 
@@ -320,9 +320,10 @@ pnpm dev
 ```bash
 pnpm test        # vitest
 pnpm coverage    # 覆盖率报告
-pnpm lint        # eslint
+pnpm lint        # Oxlint (via vp lint)
+pnpm check       # vp check (lint + format + typecheck)
 pnpm typecheck   # tsc -b
-pnpm build       # vite build
+pnpm build       # vp build
 npm version <type> && npm publish
 ```
 
@@ -379,7 +380,7 @@ npm version <type> && npm publish
 ### 提交前检查
 
 ```bash
-pnpm lint && pnpm test
+pnpm check && pnpm test
 ```
 
 ### Commit 规范
