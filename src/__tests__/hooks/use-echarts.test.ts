@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach } from "vite-plus/test";
 import { renderHook, act, waitFor } from "@testing-library/react";
 import * as echarts from "echarts";
 import useEcharts from "../../hooks/use-echarts";
@@ -29,8 +29,8 @@ class TrackingResizeObserver extends MockResizeObserver {
     resizeObserverInstances.push(this);
   }
 }
-global.ResizeObserver = TrackingResizeObserver as unknown as typeof ResizeObserver;
-global.IntersectionObserver = MockIntersectionObserver as unknown as typeof IntersectionObserver;
+globalThis.ResizeObserver = TrackingResizeObserver as unknown as typeof ResizeObserver;
+globalThis.IntersectionObserver = MockIntersectionObserver as unknown as typeof IntersectionObserver;
 
 describe("useEcharts", () => {
   beforeEach(() => {
@@ -84,7 +84,7 @@ describe("useEcharts", () => {
         unobserve = vi.fn();
         constructor() {}
       }
-      global.IntersectionObserver = NonTriggeringIntersectionObserver as unknown as typeof IntersectionObserver;
+      globalThis.IntersectionObserver = NonTriggeringIntersectionObserver as unknown as typeof IntersectionObserver;
 
       const element = document.createElement("div");
       const ref = { current: element };
@@ -94,7 +94,7 @@ describe("useEcharts", () => {
       expect(echarts.init).not.toHaveBeenCalled();
 
       // Restore
-      global.IntersectionObserver = MockIntersectionObserver as unknown as typeof IntersectionObserver;
+      globalThis.IntersectionObserver = MockIntersectionObserver as unknown as typeof IntersectionObserver;
     });
   });
 
@@ -387,10 +387,10 @@ describe("useEcharts", () => {
     });
 
     it("should join group after lazy init enters viewport", async () => {
-      const originalIntersectionObserver = global.IntersectionObserver;
+      const originalIntersectionObserver = globalThis.IntersectionObserver;
       let triggerIntersect: ((entries: { isIntersecting: boolean }[]) => void) | undefined;
 
-      class ControlledIntersectionObserver implements IntersectionObserver {
+      class ControlledIntersectionObserver {
         root: Document | Element | null = null;
         rootMargin = "0px";
         thresholds: ReadonlyArray<number> = [0];
@@ -401,11 +401,11 @@ describe("useEcharts", () => {
 
         constructor(callback: IntersectionObserverCallback) {
           triggerIntersect = (entries) =>
-            callback(entries as unknown as IntersectionObserverEntry[], this);
+            callback(entries as unknown as IntersectionObserverEntry[], this as unknown as IntersectionObserver);
         }
       }
 
-      global.IntersectionObserver = ControlledIntersectionObserver as unknown as typeof IntersectionObserver;
+      globalThis.IntersectionObserver = ControlledIntersectionObserver as unknown as typeof IntersectionObserver;
 
       const element = document.createElement("div");
       const ref = { current: element };
@@ -428,7 +428,7 @@ describe("useEcharts", () => {
         expect(getGroupInstances("lazyGroup")).toContain(mockInstance);
       });
 
-      global.IntersectionObserver = originalIntersectionObserver;
+      globalThis.IntersectionObserver = originalIntersectionObserver;
     });
   });
 
@@ -699,8 +699,8 @@ describe("useEcharts", () => {
     });
 
     it("should gracefully handle ResizeObserver constructor failure", () => {
-      const originalResizeObserver = global.ResizeObserver;
-      global.ResizeObserver = class {
+      const originalResizeObserver = globalThis.ResizeObserver;
+      globalThis.ResizeObserver = class {
         constructor() {
           throw new Error("ResizeObserver not supported");
         }
@@ -722,7 +722,7 @@ describe("useEcharts", () => {
       );
 
       warnSpy.mockRestore();
-      global.ResizeObserver = originalResizeObserver;
+      globalThis.ResizeObserver = originalResizeObserver;
     });
 
     it("should disconnect resize observer on unmount", () => {
