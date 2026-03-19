@@ -6,11 +6,7 @@ import EChart from "../../components/EChart";
 import { clearInstanceCache } from "../../utils/instance-cache";
 import { clearGroups } from "../../utils/connect";
 import type { UseEchartsReturn } from "../../types";
-import {
-  createMockInstance,
-  MockResizeObserver,
-  MockIntersectionObserver,
-} from "../helpers";
+import { createMockInstance, MockResizeObserver, MockIntersectionObserver } from "../helpers";
 
 // Mock ECharts
 vi.mock("echarts", () => ({
@@ -21,7 +17,8 @@ vi.mock("echarts", () => ({
 }));
 
 globalThis.ResizeObserver = MockResizeObserver as unknown as typeof ResizeObserver;
-globalThis.IntersectionObserver = MockIntersectionObserver as unknown as typeof IntersectionObserver;
+globalThis.IntersectionObserver =
+  MockIntersectionObserver as unknown as typeof IntersectionObserver;
 
 describe("EChart component", () => {
   beforeEach(() => {
@@ -33,11 +30,11 @@ describe("EChart component", () => {
   it("should render a container div", () => {
     // Mock echarts.init to return a mock for any element
     (echarts.init as ReturnType<typeof vi.fn>).mockImplementation((el: HTMLElement) =>
-      createMockInstance(el)
+      createMockInstance(el),
     );
 
     const { container } = render(
-      <EChart option={{ series: [{ type: "line", data: [1, 2, 3] }] }} />
+      <EChart option={{ series: [{ type: "line", data: [1, 2, 3] }] }} />,
     );
 
     expect(container.firstChild).toBeInstanceOf(HTMLDivElement);
@@ -46,11 +43,11 @@ describe("EChart component", () => {
 
   it("should apply default style (width 100%, height 400px)", () => {
     (echarts.init as ReturnType<typeof vi.fn>).mockImplementation((el: HTMLElement) =>
-      createMockInstance(el)
+      createMockInstance(el),
     );
 
     const { container } = render(
-      <EChart option={{ series: [{ type: "line", data: [1, 2, 3] }] }} />
+      <EChart option={{ series: [{ type: "line", data: [1, 2, 3] }] }} />,
     );
 
     const div = container.firstChild as HTMLDivElement;
@@ -60,14 +57,14 @@ describe("EChart component", () => {
 
   it("should merge custom style with defaults", () => {
     (echarts.init as ReturnType<typeof vi.fn>).mockImplementation((el: HTMLElement) =>
-      createMockInstance(el)
+      createMockInstance(el),
     );
 
     const { container } = render(
       <EChart
         option={{ series: [{ type: "line", data: [1, 2, 3] }] }}
         style={{ height: "600px", border: "1px solid red" }}
-      />
+      />,
     );
 
     const div = container.firstChild as HTMLDivElement;
@@ -78,14 +75,11 @@ describe("EChart component", () => {
 
   it("should apply className", () => {
     (echarts.init as ReturnType<typeof vi.fn>).mockImplementation((el: HTMLElement) =>
-      createMockInstance(el)
+      createMockInstance(el),
     );
 
     const { container } = render(
-      <EChart
-        option={{ series: [{ type: "line", data: [1, 2, 3] }] }}
-        className="my-chart"
-      />
+      <EChart option={{ series: [{ type: "line", data: [1, 2, 3] }] }} className="my-chart" />,
     );
 
     const div = container.firstChild as HTMLDivElement;
@@ -94,17 +88,12 @@ describe("EChart component", () => {
 
   it("should expose chart methods via ref", () => {
     (echarts.init as ReturnType<typeof vi.fn>).mockImplementation((el: HTMLElement) =>
-      createMockInstance(el)
+      createMockInstance(el),
     );
 
     const ref = createRef<UseEchartsReturn>();
 
-    render(
-      <EChart
-        ref={ref}
-        option={{ series: [{ type: "line", data: [1, 2, 3] }] }}
-      />
-    );
+    render(<EChart ref={ref} option={{ series: [{ type: "line", data: [1, 2, 3] }] }} />);
 
     expect(ref.current).toBeDefined();
     expect(typeof ref.current!.setOption).toBe("function");
@@ -114,7 +103,7 @@ describe("EChart component", () => {
 
   it("should pass options through to useEcharts", () => {
     (echarts.init as ReturnType<typeof vi.fn>).mockImplementation((el: HTMLElement) =>
-      createMockInstance(el)
+      createMockInstance(el),
     );
 
     render(
@@ -122,13 +111,13 @@ describe("EChart component", () => {
         option={{ series: [{ type: "line", data: [1, 2, 3] }] }}
         renderer="svg"
         theme="dark"
-      />
+      />,
     );
 
     expect(echarts.init).toHaveBeenCalledWith(
       expect.any(HTMLDivElement),
       "dark",
-      expect.objectContaining({ renderer: "svg" })
+      expect.objectContaining({ renderer: "svg" }),
     );
   });
 });

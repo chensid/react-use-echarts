@@ -72,11 +72,7 @@ export function removeFromGroup(instance: ECharts, groupId: string): void {
  * @param oldGroupId Previous group ID (if any)
  * @param newGroupId New group ID (if any)
  */
-export function updateGroup(
-  instance: ECharts,
-  oldGroupId?: string,
-  newGroupId?: string
-): void {
+export function updateGroup(instance: ECharts, oldGroupId?: string, newGroupId?: string): void {
   // Remove from old group if exists
   if (oldGroupId) {
     removeFromGroup(instance, oldGroupId);

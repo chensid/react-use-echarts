@@ -10,9 +10,7 @@ const BarChart: React.FC = () => {
     tooltip: {},
     xAxis: { data: ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"] },
     yAxis: {},
-    series: [
-      { name: "Sales", type: "bar", data: [23, 24, 18, 25, 27, 28, 25] },
-    ],
+    series: [{ name: "Sales", type: "bar", data: [23, 24, 18, 25, 27, 28, 25] }],
   };
 
   useEcharts(chartRef, { option: options });

@@ -11,9 +11,9 @@ import macaronsTheme from "./presets/macarons.json";
  * 内置主题注册表
  */
 const themeRegistry = new Map<string, object>([
-  ['light', lightTheme],
-  ['dark', darkTheme],
-  ['macarons', macaronsTheme],
+  ["light", lightTheme],
+  ["dark", darkTheme],
+  ["macarons", macaronsTheme],
 ]);
 
 /**

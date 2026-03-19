@@ -21,7 +21,8 @@ describe("useLazyInit", () => {
       disconnect = mockDisconnect;
       unobserve = mockUnobserve;
     }
-    globalThis.IntersectionObserver = MockIntersectionObserver as unknown as typeof IntersectionObserver;
+    globalThis.IntersectionObserver =
+      MockIntersectionObserver as unknown as typeof IntersectionObserver;
   });
 
   afterEach(() => {
@@ -165,4 +166,3 @@ describe("useLazyInit", () => {
     expect(mockObserve).not.toHaveBeenCalled();
   });
 });
-

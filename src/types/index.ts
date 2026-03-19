@@ -1,10 +1,15 @@
-import type { EChartsOption, ECharts, SetOptionOpts, EChartsInitOpts as RawEChartsInitOpts } from "echarts";
+import type {
+  EChartsOption,
+  ECharts,
+  SetOptionOpts,
+  EChartsInitOpts as RawEChartsInitOpts,
+} from "echarts";
 
 /**
  * Built-in theme names
  * 内置主题名称
  */
-export type BuiltinTheme = 'light' | 'dark' | 'macarons';
+export type BuiltinTheme = "light" | "dark" | "macarons";
 
 /**
  * Event configuration: shorthand function or full config object
@@ -57,7 +62,7 @@ export interface EChartsEvents {
  *
  * @see https://echarts.apache.org/en/api.html#echarts.init
  */
-export type EChartsInitOpts = Omit<RawEChartsInitOpts, 'renderer' | 'ssr'>;
+export type EChartsInitOpts = Omit<RawEChartsInitOpts, "renderer" | "ssr">;
 
 /**
  * Configuration options for useEcharts hook
@@ -81,7 +86,7 @@ export interface UseEchartsOptions {
    * 渲染器类型
    * @default 'canvas'
    */
-  renderer?: 'canvas' | 'svg';
+  renderer?: "canvas" | "svg";
 
   /**
    * Lazy initialization: only init when container enters viewport

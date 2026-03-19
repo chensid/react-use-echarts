@@ -24,7 +24,7 @@ const EChart = forwardRef<UseEchartsReturn, EChartProps>(
         className={className}
       />
     );
-  }
+  },
 );
 
 EChart.displayName = "EChart";

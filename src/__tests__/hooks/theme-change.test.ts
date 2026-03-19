@@ -5,11 +5,7 @@ import useEcharts from "../../hooks/use-echarts";
 import { getCachedInstance, clearInstanceCache } from "../../utils/instance-cache";
 import { clearGroups } from "../../utils/connect";
 import type { BuiltinTheme } from "../../types";
-import {
-  createMockInstance,
-  MockResizeObserver,
-  MockIntersectionObserver,
-} from "../helpers";
+import { createMockInstance, MockResizeObserver, MockIntersectionObserver } from "../helpers";
 
 // Mock ECharts
 vi.mock("echarts", () => ({
@@ -20,7 +16,8 @@ vi.mock("echarts", () => ({
 }));
 
 globalThis.ResizeObserver = MockResizeObserver as unknown as typeof ResizeObserver;
-globalThis.IntersectionObserver = MockIntersectionObserver as unknown as typeof IntersectionObserver;
+globalThis.IntersectionObserver =
+  MockIntersectionObserver as unknown as typeof IntersectionObserver;
 
 describe("Theme change behavior", () => {
   beforeEach(() => {
@@ -47,10 +44,9 @@ describe("Theme change behavior", () => {
     const { rerender } = renderHook<
       ReturnType<typeof useEcharts>,
       { ref: typeof ref; theme: BuiltinTheme }
-    >(
-      ({ ref, theme }) => useEcharts(ref, { option: baseOption, theme }),
-      { initialProps: { ref, theme: "light" } }
-    );
+    >(({ ref, theme }) => useEcharts(ref, { option: baseOption, theme }), {
+      initialProps: { ref, theme: "light" },
+    });
 
     // Should have created first instance
     expect(echarts.init).toHaveBeenCalledTimes(1);
