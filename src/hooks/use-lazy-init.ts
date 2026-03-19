@@ -22,23 +22,17 @@ export function useLazyInit(
   const optRoot = isObject ? options.root : null;
   const optRootMargin = isObject ? options.rootMargin : undefined;
   const optThreshold = isObject ? options.threshold : undefined;
-  // Serialize threshold for stable comparison (can be number or array)
-  // 序列化 threshold 用于稳定比较（可以是数字或数组）
-  const thresholdKey = optThreshold !== undefined ? JSON.stringify(optThreshold) : undefined;
 
   // Create stable observer options to avoid unnecessary recreation
   // when inline objects are passed (e.g. lazyInit={{ threshold: 0.5 }})
   // 创建稳定的 observer 配置，避免传入内联对象时不必要的 observer 重建
-  // Note: thresholdKey is used instead of optThreshold for stable array comparison
-  // 注意：使用 thresholdKey 而非 optThreshold，确保数组类型的 threshold 比较稳定
   const observerOptions = useMemo(
     (): IntersectionObserverInit => ({
       root: optRoot ?? null,
       rootMargin: optRootMargin ?? "50px",
       threshold: optThreshold ?? 0.1,
-      // oxlint-disable-next-line react-hooks/exhaustive-deps
     }),
-    [optRoot, optRootMargin, thresholdKey],
+    [optRoot, optRootMargin, optThreshold],
   );
 
   useEffect(() => {
