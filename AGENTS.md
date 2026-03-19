@@ -24,55 +24,55 @@
 ```ts
 function useEcharts(
   ref: React.RefObject<HTMLDivElement | null>,
-  options: UseEchartsOptions
+  options: UseEchartsOptions,
 ): UseEchartsReturn;
 ```
 
 ### UseEchartsOptions
 
-| 属性 | 类型 | 默认值 | 说明 |
-| ------ | ------ | -------- | ------ |
-| `option` | `EChartsOption` | **必填** | ECharts 配置项 |
-| `theme` | `BuiltinTheme \| object \| null` | `null` | 主题名（`'light'` / `'dark'` / `'macarons'`）或自定义主题对象 |
-| `renderer` | `'canvas' \| 'svg'` | `'canvas'` | 渲染器类型 |
-| `lazyInit` | `boolean \| IntersectionObserverInit` | `false` | 懒加载配置 |
-| `group` | `string` | - | 图表组 ID，用于联动 |
-| `setOptionOpts` | `SetOptionOpts` | - | setOption 默认选项 |
-| `showLoading` | `boolean` | `false` | 是否显示加载状态 |
-| `loadingOption` | `object` | - | 加载配置项 |
-| `onEvents` | `EChartsEvents` | - | 事件配置（支持简写与完整写法） |
-| `autoResize` | `boolean` | `true` | 容器尺寸变化时是否自动 resize（ResizeObserver） |
-| `initOpts` | `EChartsInitOpts` | - | 传递给 `echarts.init()` 的选项 |
-| `onError` | `(error: unknown) => void` | - | 图表操作的错误处理回调 |
+| 属性            | 类型                                  | 默认值     | 说明                                                          |
+| --------------- | ------------------------------------- | ---------- | ------------------------------------------------------------- |
+| `option`        | `EChartsOption`                       | **必填**   | ECharts 配置项                                                |
+| `theme`         | `BuiltinTheme \| object \| null`      | `null`     | 主题名（`'light'` / `'dark'` / `'macarons'`）或自定义主题对象 |
+| `renderer`      | `'canvas' \| 'svg'`                   | `'canvas'` | 渲染器类型                                                    |
+| `lazyInit`      | `boolean \| IntersectionObserverInit` | `false`    | 懒加载配置                                                    |
+| `group`         | `string`                              | -          | 图表组 ID，用于联动                                           |
+| `setOptionOpts` | `SetOptionOpts`                       | -          | setOption 默认选项                                            |
+| `showLoading`   | `boolean`                             | `false`    | 是否显示加载状态                                              |
+| `loadingOption` | `object`                              | -          | 加载配置项                                                    |
+| `onEvents`      | `EChartsEvents`                       | -          | 事件配置（支持简写与完整写法）                                |
+| `autoResize`    | `boolean`                             | `true`     | 容器尺寸变化时是否自动 resize（ResizeObserver）               |
+| `initOpts`      | `EChartsInitOpts`                     | -          | 传递给 `echarts.init()` 的选项                                |
+| `onError`       | `(error: unknown) => void`            | -          | 图表操作的错误处理回调                                        |
 
 ### UseEchartsReturn
 
-| 方法 | 类型 | 说明 |
-| ------ | ------ | ------ |
-| `setOption` | `(option: EChartsOption, opts?: SetOptionOpts) => void` | 动态更新配置 |
-| `getInstance` | `() => ECharts \| undefined` | 获取 ECharts 实例（初始化前返回 `undefined`） |
-| `resize` | `() => void` | 手动触发 resize |
+| 方法          | 类型                                                    | 说明                                          |
+| ------------- | ------------------------------------------------------- | --------------------------------------------- |
+| `setOption`   | `(option: EChartsOption, opts?: SetOptionOpts) => void` | 动态更新配置                                  |
+| `getInstance` | `() => ECharts \| undefined`                            | 获取 ECharts 实例（初始化前返回 `undefined`） |
+| `resize`      | `() => void`                                            | 手动触发 resize                               |
 
 ### 基本用法
 
 ```tsx
-import { useRef } from 'react';
-import { useEcharts } from 'react-use-echarts';
+import { useRef } from "react";
+import { useEcharts } from "react-use-echarts";
 
 function LineChart() {
   const chartRef = useRef<HTMLDivElement>(null);
 
   const { setOption } = useEcharts(chartRef, {
     option: {
-      xAxis: { type: 'category', data: ['Mon', 'Tue', 'Wed'] },
-      yAxis: { type: 'value' },
-      series: [{ type: 'line', data: [120, 200, 150] }],
+      xAxis: { type: "category", data: ["Mon", "Tue", "Wed"] },
+      yAxis: { type: "value" },
+      series: [{ type: "line", data: [120, 200, 150] }],
     },
-    theme: 'dark',
+    theme: "dark",
     lazyInit: true,
   });
 
-  return <div ref={chartRef} style={{ width: '100%', height: 400 }} />;
+  return <div ref={chartRef} style={{ width: "100%", height: 400 }} />;
 }
 ```
 
@@ -81,15 +81,15 @@ function LineChart() {
 `useEcharts` 的薄封装，适用于不需要手动管理 ref 的场景。
 
 ```tsx
-import { EChart } from 'react-use-echarts';
+import { EChart } from "react-use-echarts";
 
 function SimpleChart() {
   return (
     <EChart
       option={{
-        xAxis: { type: 'category', data: ['Mon', 'Tue', 'Wed'] },
-        yAxis: { type: 'value' },
-        series: [{ type: 'line', data: [120, 200, 150] }],
+        xAxis: { type: "category", data: ["Mon", "Tue", "Wed"] },
+        yAxis: { type: "value" },
+        series: [{ type: "line", data: [120, 200, 150] }],
       }}
       theme="dark"
       style={{ height: 300 }}
@@ -102,10 +102,10 @@ function SimpleChart() {
 
 继承 `UseEchartsOptions` 全部属性，额外增加：
 
-| 属性 | 类型 | 默认值 | 说明 |
-| ------ | ------ | -------- | ------ |
-| `style` | `React.CSSProperties` | `{ width: '100%', height: '400px' }` | 容器内联样式（与默认值合并） |
-| `className` | `string` | - | 容器 div 的 CSS 类名 |
+| 属性        | 类型                  | 默认值                               | 说明                         |
+| ----------- | --------------------- | ------------------------------------ | ---------------------------- |
+| `style`     | `React.CSSProperties` | `{ width: '100%', height: '400px' }` | 容器内联样式（与默认值合并） |
+| `className` | `string`              | -                                    | 容器 div 的 CSS 类名         |
 
 ### ref 暴露
 
@@ -125,9 +125,9 @@ const chartRef = useRef<UseEchartsReturn>(null);
 
 ```ts
 type EChartsEventConfig =
-  | ((params: unknown) => void)                // 简写：直接传函数
+  | ((params: unknown) => void) // 简写：直接传函数
   | {
-      handler: (params: unknown) => void;      // 完整写法
+      handler: (params: unknown) => void; // 完整写法
       query?: string | object;
       context?: object;
     };
@@ -154,15 +154,15 @@ onEvents={{
 
 类型从 ECharts 官方派生（`Omit<RawEChartsInitOpts, 'renderer' | 'ssr'>`），主要字段：
 
-| 字段 | 类型 | 说明 |
-| ------ | ------ | ------ |
-| `devicePixelRatio` | `number` | 设备像素比 |
-| `locale` | `string` | 语言区域 |
-| `width` | `number \| string` | 画布宽度 |
-| `height` | `number \| string` | 画布高度 |
-| `useDirtyRect` | `boolean` | Canvas 脏矩形渲染优化 |
-| `useCoarsePointer` | `boolean` | 移动端智能指针捕获 |
-| `pointerSize` | `number` | 指针捕获半径，默认 44px |
+| 字段               | 类型               | 说明                    |
+| ------------------ | ------------------ | ----------------------- |
+| `devicePixelRatio` | `number`           | 设备像素比              |
+| `locale`           | `string`           | 语言区域                |
+| `width`            | `number \| string` | 画布宽度                |
+| `height`           | `number \| string` | 画布高度                |
+| `useDirtyRect`     | `boolean`          | Canvas 脏矩形渲染优化   |
+| `useCoarsePointer` | `boolean`          | 移动端智能指针捕获      |
+| `pointerSize`      | `number`           | 指针捕获半径，默认 44px |
 
 注：`renderer` 作为 Hook 独立参数，`ssr` 在 Hook 场景不适用，均已剔除。
 
@@ -175,8 +175,8 @@ IntersectionObserver 封装，用于懒加载场景。
 ```ts
 function useLazyInit(
   elementRef: React.RefObject<Element | null>,
-  options?: boolean | IntersectionObserverInit
-): boolean;  // 返回元素是否已进入视口
+  options?: boolean | IntersectionObserverInit,
+): boolean; // 返回元素是否已进入视口
 ```
 
 默认配置：`rootMargin: '50px'`，`threshold: 0.1`。
@@ -217,36 +217,52 @@ clearGroups(): void
 
 ```ts
 // Hook
-export { useEcharts } from './hooks/use-echarts';
-export { useLazyInit } from './hooks/use-lazy-init';
+export { useEcharts } from "./hooks/use-echarts";
+export { useLazyInit } from "./hooks/use-lazy-init";
 
 // 组件
-export { EChart } from './components/EChart';
+export { EChart } from "./components/EChart";
 
 // 类型
 export type {
-  UseEchartsOptions, UseEchartsReturn,
-  EChartsEvents, EChartsEventConfig,
-  EChartsInitOpts, EChartProps, BuiltinTheme,
+  UseEchartsOptions,
+  UseEchartsReturn,
+  EChartsEvents,
+  EChartsEventConfig,
+  EChartsInitOpts,
+  EChartProps,
+  BuiltinTheme,
 };
 
 // 主题工具
 export {
-  registerBuiltinThemes, ensureBuiltinThemesRegistered,
-  getBuiltinTheme, isBuiltinTheme,
-  registerCustomTheme, getAvailableThemes,
+  registerBuiltinThemes,
+  ensureBuiltinThemesRegistered,
+  getBuiltinTheme,
+  isBuiltinTheme,
+  registerCustomTheme,
+  getAvailableThemes,
 };
 
 // 实例缓存
 export {
-  getCachedInstance, setCachedInstance, replaceCachedInstance,
-  releaseCachedInstance, getReferenceCount, clearInstanceCache,
+  getCachedInstance,
+  setCachedInstance,
+  replaceCachedInstance,
+  releaseCachedInstance,
+  getReferenceCount,
+  clearInstanceCache,
 };
 
 // 组联动
 export {
-  addToGroup, removeFromGroup, updateGroup,
-  getGroupInstances, getInstanceGroup, isInGroup, clearGroups,
+  addToGroup,
+  removeFromGroup,
+  updateGroup,
+  getGroupInstances,
+  getInstanceGroup,
+  isInGroup,
+  clearGroups,
 };
 ```
 
@@ -254,14 +270,14 @@ export {
 
 `useEcharts` 内部按职责拆分为 6 个 Effect，便于理解依赖关系和调试：
 
-| Effect | 调度 | 依赖 | 职责 |
-| -------- | ------ | ------ | ------ |
+| Effect                | 调度              | 依赖                                               | 职责                                                         |
+| --------------------- | ----------------- | -------------------------------------------------- | ------------------------------------------------------------ |
 | 1. Instance Lifecycle | `useLayoutEffect` | `shouldInit, ref, themeKey, renderer, initOptsKey` | 复用缓存或创建实例，首次 setOption、事件绑定、loading、group |
-| 2. Option Updates | `useEffect` | `getInstance, option, setOptionOpts` | option 变更后调用 `setOption`（跳过 init 已应用的相同值） |
-| 3. Loading State | `useEffect` | `getInstance, showLoading, loadingOption` | 切换 loading 状态 |
-| 4. Event Rebinding | `useEffect` | `getInstance, onEvents` | `onEvents` 引用变更时解绑旧、绑定新 |
-| 5. Group Changes | `useEffect` | `getInstance, group` | 动态切换图表组 |
-| 6. Resize Observer | `useEffect` | `ref, autoResize` | 创建/销毁 ResizeObserver |
+| 2. Option Updates     | `useEffect`       | `getInstance, option, setOptionOpts`               | option 变更后调用 `setOption`（跳过 init 已应用的相同值）    |
+| 3. Loading State      | `useEffect`       | `getInstance, showLoading, loadingOption`          | 切换 loading 状态                                            |
+| 4. Event Rebinding    | `useEffect`       | `getInstance, onEvents`                            | `onEvents` 引用变更时解绑旧、绑定新                          |
+| 5. Group Changes      | `useEffect`       | `getInstance, group`                               | 动态切换图表组                                               |
+| 6. Resize Observer    | `useEffect`       | `ref, autoResize`                                  | 创建/销毁 ResizeObserver                                     |
 
 ## 目录速览
 
@@ -349,14 +365,14 @@ npm version <type> && npm publish
 
 ## 排障备忘
 
-| 问题 | 原因 | 解决方案 |
-| ------ | ------ | ---------- |
-| 图表空白 | `chartRef` 未挂载或容器无尺寸 | 确认 ref 已绑定，容器有 width/height |
-| 事件无效 | `query` 不匹配或已被解绑 | 检查 `onEvents.query` 配置，确认事件名正确 |
-| 内存上涨 | 重复 `init` 或未 `dispose` | 使用 `getInstance()` 检查实例状态 |
-| Resize 报错 | 测试/旧浏览器缺少 ResizeObserver | 忽略警告或手动 polyfill |
-| 主题不生效 | 主题名拼写错误或类型错误 | 内置主题用字符串，自定义主题用对象 |
-| 自定义主题重复创建 | 每次渲染传入新对象 | 使用 `useMemo` 缓存主题对象（Hook 内部有两级缓存兜底） |
+| 问题               | 原因                             | 解决方案                                               |
+| ------------------ | -------------------------------- | ------------------------------------------------------ |
+| 图表空白           | `chartRef` 未挂载或容器无尺寸    | 确认 ref 已绑定，容器有 width/height                   |
+| 事件无效           | `query` 不匹配或已被解绑         | 检查 `onEvents.query` 配置，确认事件名正确             |
+| 内存上涨           | 重复 `init` 或未 `dispose`       | 使用 `getInstance()` 检查实例状态                      |
+| Resize 报错        | 测试/旧浏览器缺少 ResizeObserver | 忽略警告或手动 polyfill                                |
+| 主题不生效         | 主题名拼写错误或类型错误         | 内置主题用字符串，自定义主题用对象                     |
+| 自定义主题重复创建 | 每次渲染传入新对象               | 使用 `useMemo` 缓存主题对象（Hook 内部有两级缓存兜底） |
 
 ## 贡献流程
 

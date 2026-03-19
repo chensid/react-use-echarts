@@ -261,4 +261,3 @@ describe("connect utilities", () => {
     });
   });
 });
-

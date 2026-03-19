@@ -183,18 +183,13 @@
     "splitLine": {
       "show": false,
       "lineStyle": {
-        "color": [
-          "#444444"
-        ]
+        "color": ["#444444"]
       }
     },
     "splitArea": {
       "show": false,
       "areaStyle": {
-        "color": [
-          "rgba(255,255,255,0.05)",
-          "rgba(255,255,255,0.1)"
-        ]
+        "color": ["rgba(255,255,255,0.05)", "rgba(255,255,255,0.1)"]
       }
     }
   },
@@ -218,18 +213,13 @@
     "splitLine": {
       "show": true,
       "lineStyle": {
-        "color": [
-          "#444444"
-        ]
+        "color": ["#444444"]
       }
     },
     "splitArea": {
       "show": false,
       "areaStyle": {
-        "color": [
-          "rgba(255,255,255,0.05)",
-          "rgba(255,255,255,0.1)"
-        ]
+        "color": ["rgba(255,255,255,0.05)", "rgba(255,255,255,0.1)"]
       }
     }
   },
@@ -253,18 +243,13 @@
     "splitLine": {
       "show": true,
       "lineStyle": {
-        "color": [
-          "#444444"
-        ]
+        "color": ["#444444"]
       }
     },
     "splitArea": {
       "show": false,
       "areaStyle": {
-        "color": [
-          "rgba(255,255,255,0.05)",
-          "rgba(255,255,255,0.1)"
-        ]
+        "color": ["rgba(255,255,255,0.05)", "rgba(255,255,255,0.1)"]
       }
     }
   },
@@ -288,18 +273,13 @@
     "splitLine": {
       "show": true,
       "lineStyle": {
-        "color": [
-          "#444444"
-        ]
+        "color": ["#444444"]
       }
     },
     "splitArea": {
       "show": false,
       "areaStyle": {
-        "color": [
-          "rgba(255,255,255,0.05)",
-          "rgba(255,255,255,0.1)"
-        ]
+        "color": ["rgba(255,255,255,0.05)", "rgba(255,255,255,0.1)"]
       }
     }
   },
@@ -366,11 +346,7 @@
     }
   },
   "visualMap": {
-    "color": [
-      "#ff6e76",
-      "#fddd60",
-      "#7cffb2"
-    ]
+    "color": ["#ff6e76", "#fddd60", "#7cffb2"]
   },
   "dataZoom": {
     "backgroundColor": "rgba(47,69,84,0)",
@@ -389,7 +365,7 @@
     "emphasis": {
       "label": {
         "color": "#cccccc"
-    }
+      }
     }
   }
 }

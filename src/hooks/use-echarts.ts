@@ -1,7 +1,13 @@
 import { useEffect, useRef, useCallback, useLayoutEffect, useMemo } from "react";
 import * as echarts from "echarts";
 import type { ECharts, SetOptionOpts, EChartsOption } from "echarts";
-import type { UseEchartsOptions, UseEchartsReturn, EChartsEvents, EChartsEventConfig, BuiltinTheme } from "../types";
+import type {
+  UseEchartsOptions,
+  UseEchartsReturn,
+  EChartsEvents,
+  EChartsEventConfig,
+  BuiltinTheme,
+} from "../types";
 import { useLazyInit } from "./use-lazy-init";
 import {
   getCachedInstance,
@@ -22,8 +28,8 @@ import { isBuiltinTheme, getOrRegisterCustomTheme, ensureBuiltinThemesRegistered
  */
 function computeThemeKey(theme: BuiltinTheme | object | null | undefined): string | null {
   if (theme == null) return null;
-  if (typeof theme === 'string') return isBuiltinTheme(theme) ? theme : null;
-  if (typeof theme === 'object') return JSON.stringify(theme);
+  if (typeof theme === "string") return isBuiltinTheme(theme) ? theme : null;
+  if (typeof theme === "object") return JSON.stringify(theme);
   return null;
 }
 
@@ -35,8 +41,8 @@ function computeThemeKey(theme: BuiltinTheme | object | null | undefined): strin
  */
 function resolveThemeName(theme: BuiltinTheme | object | null | undefined): string | null {
   if (theme == null) return null;
-  if (typeof theme === 'string' && isBuiltinTheme(theme)) return theme;
-  if (typeof theme === 'object') return getOrRegisterCustomTheme(theme);
+  if (typeof theme === "string" && isBuiltinTheme(theme)) return theme;
+  if (typeof theme === "object") return getOrRegisterCustomTheme(theme);
   return null;
 }
 
@@ -44,8 +50,12 @@ function resolveThemeName(theme: BuiltinTheme | object | null | undefined): stri
  * Normalize event config to full object form
  * 将事件配置标准化为完整对象形式
  */
-function normalizeEventConfig(config: EChartsEventConfig): { handler: (params: unknown) => void; query?: string | object; context?: object } {
-  if (typeof config === 'function') {
+function normalizeEventConfig(config: EChartsEventConfig): {
+  handler: (params: unknown) => void;
+  query?: string | object;
+  context?: object;
+} {
+  if (typeof config === "function") {
     return { handler: config };
   }
   return config;
@@ -91,12 +101,12 @@ function unbindEvents(instance: ECharts, events: EChartsEvents | undefined): voi
  */
 function useEcharts(
   ref: React.RefObject<HTMLDivElement | null>,
-  options: UseEchartsOptions
+  options: UseEchartsOptions,
 ): UseEchartsReturn {
   const {
     option,
     theme,
-    renderer = 'canvas',
+    renderer = "canvas",
     lazyInit = false,
     group,
     setOptionOpts,
@@ -137,7 +147,9 @@ function useEcharts(
 
   // Track what option/opts was last applied by init effect,
   // used to prevent duplicate setOption call from the option update effect
-  const lastAppliedRef = useRef<{ option: EChartsOption; opts: SetOptionOpts | undefined } | null>(null);
+  const lastAppliedRef = useRef<{ option: EChartsOption; opts: SetOptionOpts | undefined } | null>(
+    null,
+  );
 
   // Lazy initialization
   const shouldInit = useLazyInit(ref, lazyInit);
@@ -151,10 +163,7 @@ function useEcharts(
   // Prevents infinite re-init when users pass inline objects.
   // 稳定的 initOpts 标识键（与 themeKey 同模式），
   // 避免用户传入内联对象时 effect 无限重跑。
-  const initOptsKey = useMemo(
-    () => (initOpts ? JSON.stringify(initOpts) : null),
-    [initOpts]
-  );
+  const initOptsKey = useMemo(() => (initOpts ? JSON.stringify(initOpts) : null), [initOpts]);
 
   // --- Public API ---
 
@@ -178,7 +187,7 @@ function useEcharts(
         }
       }
     },
-    [getInstance]
+    [getInstance],
   );
 
   const resize = useCallback(() => {
