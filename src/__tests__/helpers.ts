@@ -1,4 +1,4 @@
-import { vi } from "vitest";
+import { vi } from "vite-plus/test";
 
 export function createMockInstance(element?: HTMLElement) {
   return {
@@ -24,7 +24,7 @@ export class MockResizeObserver {
   }
 }
 
-export class MockIntersectionObserver implements IntersectionObserver {
+export class MockIntersectionObserver {
   callback: IntersectionObserverCallback;
   disconnect = vi.fn();
   unobserve = vi.fn();
@@ -40,7 +40,7 @@ export class MockIntersectionObserver implements IntersectionObserver {
   observe = vi.fn(() => {
     this.callback(
       [{ isIntersecting: true } as IntersectionObserverEntry],
-      this,
+      this as unknown as IntersectionObserver,
     );
   });
 }

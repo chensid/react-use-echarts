@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vite-plus/test";
 import { renderHook, act, waitFor } from "@testing-library/react";
 import { useLazyInit } from "../../hooks/use-lazy-init";
 
@@ -21,7 +21,7 @@ describe("useLazyInit", () => {
       disconnect = mockDisconnect;
       unobserve = mockUnobserve;
     }
-    global.IntersectionObserver = MockIntersectionObserver as unknown as typeof IntersectionObserver;
+    globalThis.IntersectionObserver = MockIntersectionObserver as unknown as typeof IntersectionObserver;
   });
 
   afterEach(() => {

@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach } from "vite-plus/test";
 import { render } from "@testing-library/react";
 import { createRef } from "react";
 import * as echarts from "echarts";
@@ -20,8 +20,8 @@ vi.mock("echarts", () => ({
   registerTheme: vi.fn(),
 }));
 
-global.ResizeObserver = MockResizeObserver as unknown as typeof ResizeObserver;
-global.IntersectionObserver = MockIntersectionObserver as unknown as typeof IntersectionObserver;
+globalThis.ResizeObserver = MockResizeObserver as unknown as typeof ResizeObserver;
+globalThis.IntersectionObserver = MockIntersectionObserver as unknown as typeof IntersectionObserver;
 
 describe("EChart component", () => {
   beforeEach(() => {

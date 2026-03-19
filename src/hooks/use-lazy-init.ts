@@ -35,7 +35,7 @@ export function useLazyInit(
     root: optRoot ?? null,
     rootMargin: optRootMargin ?? '50px',
     threshold: optThreshold ?? 0.1,
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // oxlint-disable-next-line react-hooks/exhaustive-deps
   }), [optRoot, optRootMargin, thresholdKey]);
 
   useEffect(() => {
