@@ -59,7 +59,10 @@ function MyChart() {
   return (
     <EChart
       option={{
-        xAxis: { type: "category", data: ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"] },
+        xAxis: {
+          type: "category",
+          data: ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
+        },
         yAxis: { type: "value" },
         series: [{ data: [820, 932, 901, 934, 1290, 1330, 1320], type: "line" }],
       }}
@@ -110,7 +113,10 @@ function MyChart() {
 
   useEcharts(chartRef, {
     option: {
-      xAxis: { type: "category", data: ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"] },
+      xAxis: {
+        type: "category",
+        data: ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
+      },
       yAxis: { type: "value" },
       series: [{ data: [820, 932, 901, 934, 1290, 1330, 1320], type: "line" }],
     },
@@ -203,7 +209,10 @@ function ChartWithLoading() {
 
   useEcharts(chartRef, {
     option: {
-      xAxis: { type: "category", data: ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"] },
+      xAxis: {
+        type: "category",
+        data: ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
+      },
       yAxis: { type: "value" },
       series: [{ data, type: "line" }],
     },
@@ -429,7 +438,11 @@ function ChartWithInstance() {
   const exportImage = () => {
     const instance = getInstance();
     if (instance) {
-      const url = instance.getDataURL({ type: "png", pixelRatio: 2, backgroundColor: "#fff" });
+      const url = instance.getDataURL({
+        type: "png",
+        pixelRatio: 2,
+        backgroundColor: "#fff",
+      });
       const link = document.createElement("a");
       link.download = "chart.png";
       link.href = url;
