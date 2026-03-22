@@ -459,6 +459,36 @@ function ChartWithInstance() {
 }
 ```
 
+### 错误处理
+
+通过 `onError` 回调统一捕获图表操作（init、setOption 等）中的异常：
+
+```tsx
+import { useRef, useCallback } from "react";
+import { useEcharts } from "react-use-echarts";
+
+function SafeChart() {
+  const chartRef = useRef<HTMLDivElement>(null);
+
+  const handleError = useCallback((error: unknown) => {
+    console.error("图表错误:", error);
+  }, []);
+
+  useEcharts(chartRef, {
+    option: {
+      xAxis: { type: "category", data: ["A", "B", "C"] },
+      yAxis: { type: "value" },
+      series: [{ data: [120, 200, 150], type: "bar" }],
+    },
+    onError: handleError,
+  });
+
+  return <div ref={chartRef} style={{ width: "100%", height: "400px" }} />;
+}
+```
+
+未提供 `onError` 时，异常将正常传播，可被 React 错误边界捕获。
+
 ### 手动调整尺寸
 
 手动触发图表尺寸调整（通常由 ResizeObserver 自动处理）。
