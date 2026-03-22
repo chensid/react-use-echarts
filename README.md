@@ -459,6 +459,36 @@ function ChartWithInstance() {
 }
 ```
 
+### Error Handling
+
+Handle errors from chart operations (init, setOption, etc.) with the `onError` callback:
+
+```tsx
+import { useRef, useCallback } from "react";
+import { useEcharts } from "react-use-echarts";
+
+function SafeChart() {
+  const chartRef = useRef<HTMLDivElement>(null);
+
+  const handleError = useCallback((error: unknown) => {
+    console.error("Chart error:", error);
+  }, []);
+
+  useEcharts(chartRef, {
+    option: {
+      xAxis: { type: "category", data: ["A", "B", "C"] },
+      yAxis: { type: "value" },
+      series: [{ data: [120, 200, 150], type: "bar" }],
+    },
+    onError: handleError,
+  });
+
+  return <div ref={chartRef} style={{ width: "100%", height: "400px" }} />;
+}
+```
+
+Without `onError`, exceptions propagate normally and can be caught by React error boundaries.
+
 ### Manual Resize
 
 Manually trigger chart resize (usually handled automatically by ResizeObserver).
