@@ -4,25 +4,25 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-`react-use-echarts` is a React hooks library for Apache ECharts. It provides a `useEcharts` hook and a declarative `EChart` component. Built with TypeScript 5.9, Vite+ (vite-plus unified toolchain), tested with Vitest + Testing Library. Zero runtime dependencies beyond React 19 and ECharts 6. Package manager is **pnpm**.
+`react-use-echarts` is a React hooks library for Apache ECharts. It provides a `useEcharts` hook and a declarative `EChart` component. Built with TypeScript 5.9, Vite+ (vite-plus unified toolchain), tested with Vitest + Testing Library. Zero runtime dependencies beyond React 19 and ECharts 6. Development commands are unified under **Vite+ (`vp`)**; dependency installs are delegated through `packageManager` (currently pnpm).
 
 ## Commands
 
 ```bash
-pnpm install          # Install dependencies
-pnpm dev              # Dev server (localhost:3000, serves examples/)
-pnpm build            # vp build (examples app)
-pnpm pack:lib         # vp pack → dist/ (library build for npm)
-pnpm test             # Vitest (watch mode by default)
-pnpm test -- --run    # Single run
-pnpm test -- src/__tests__/hooks/use-echarts.test.ts  # Run single test file
-pnpm coverage         # Coverage report (v8)
-pnpm lint             # Oxlint (via vp lint)
-pnpm check            # vp check (lint + format + typecheck)
-pnpm typecheck        # tsc -b
+vp install          # Install dependencies
+vp dev              # Dev server (localhost:3000, serves examples/)
+vp build            # Build examples app
+vp pack             # Library build → dist/
+vp test             # Vitest (watch mode by default)
+vp test run         # Single run
+vp test src/__tests__/hooks/use-echarts.test.ts  # Run single test file
+vp test run --coverage # Coverage report (v8)
+vp lint .           # Oxlint
+vp check            # format + lint + typecheck
+vp run typecheck    # tsc -b
 ```
 
-Pre-PR checklist: `pnpm check && pnpm test -- --run`
+Pre-PR checklist: `vp check && vp test run`
 
 ## Architecture
 
