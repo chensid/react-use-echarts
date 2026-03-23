@@ -36,6 +36,6 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
       - name: Build package
-        run: pnpm build
+        run: pnpm pack:lib
       - name: Publish to NPM
         run: npm publish --provenance --access public

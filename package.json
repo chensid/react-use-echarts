@@ -31,14 +31,14 @@
   "type": "module",
   "sideEffects": false,
   "main": "./dist/index.umd.js",
-  "module": "./dist/index.es.js",
+  "module": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
-      "import": "./dist/index.es.js",
+      "import": "./dist/index.js",
       "require": "./dist/index.umd.js",
-      "default": "./dist/index.es.js"
+      "default": "./dist/index.js"
     }
   },
   "publishConfig": {
@@ -48,11 +48,12 @@
   "scripts": {
     "dev": "vp dev",
     "build": "vp build",
+    "pack:lib": "vp pack",
     "test": "vp test",
     "coverage": "vp test run --coverage",
     "lint": "vp lint .",
     "check": "vp check",
-    "prepublishOnly": "pnpm build",
+    "prepublishOnly": "pnpm pack:lib",
     "typecheck": "tsc -b",
     "prepare": "vp config"
   },
@@ -72,7 +73,6 @@
     "react-dom": "^19.2.4",
     "typescript": "~5.9.3",
     "vite": "npm:@voidzero-dev/vite-plus-core@^0.1.13",
-    "vite-plugin-dts": "^4.5.4",
     "vite-plus": "latest",
     "vitest": "npm:@voidzero-dev/vite-plus-test@^0.1.13"
   },

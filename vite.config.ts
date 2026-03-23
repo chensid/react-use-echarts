@@ -1,8 +1,6 @@
 import { defineConfig } from "vite-plus";
 import babel from "@rolldown/plugin-babel";
 import react, { reactCompilerPreset } from "@vitejs/plugin-react";
-import { resolve } from "node:path";
-import dts from "vite-plugin-dts";
 
 // https://viteplus.dev/config/
 export default defineConfig({
@@ -40,31 +38,23 @@ export default defineConfig({
   staged: {
     "*": "vp check --fix",
   },
-  plugins: [
-    react(),
-    babel({ presets: [reactCompilerPreset()] }),
-    dts({
-      outDir: "dist",
-      tsconfigPath: "./tsconfig.app.json",
-    }),
-  ],
-  build: {
-    lib: {
-      entry: resolve(import.meta.dirname, "src/index.ts"),
-      name: "react-use-echarts",
-      formats: ["es", "umd"],
-      fileName: (format) => `index.${format}.js`,
-    },
-    rolldownOptions: {
-      external: ["react", "react-dom", "echarts"],
-      output: {
-        globals: {
-          react: "React",
-          "react-dom": "ReactDOM",
-          echarts: "echarts",
-        },
+  plugins: [react(), babel({ presets: [reactCompilerPreset()] })],
+  pack: {
+    entry: "src/index.ts",
+    format: ["esm", "umd"],
+    dts: { build: true },
+    platform: "browser",
+    globalName: "react-use-echarts",
+    outputOptions: {
+      globals: {
+        react: "React",
+        "react-dom": "ReactDOM",
+        "react/jsx-runtime": "ReactJSXRuntime",
+        "react/compiler-runtime": "ReactCompilerRuntime",
+        echarts: "echarts",
       },
     },
+    plugins: [babel({ presets: [reactCompilerPreset()] })],
   },
   server: {
     port: 3000,

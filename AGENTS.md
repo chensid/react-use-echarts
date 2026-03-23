@@ -2,7 +2,7 @@
 
 ## 快速概览
 
-`react-use-echarts` 是基于 React 19 与 Apache ECharts 6 的 Hooks 封装，使用 TypeScript 5.9、Vite+ (vite-plus 统一工具链) 构建，Vitest+Testing Library 做测试。包管理统一使用 `pnpm`，除 `react` 与 `echarts` 外零运行时依赖，输出 `dist/index.es.js`、`dist/index.umd.js` 与 `dist/index.d.ts`。
+`react-use-echarts` 是基于 React 19 与 Apache ECharts 6 的 Hooks 封装，使用 TypeScript 5.9、Vite+ (vite-plus 统一工具链) 构建，Vitest+Testing Library 做测试。包管理统一使用 `pnpm`，除 `react` 与 `echarts` 外零运行时依赖。库通过 `vp pack`（tsdown）构建，输出 `dist/index.js`（ESM）、`dist/index.umd.js`（UMD）与 `dist/index.d.ts`；示例应用通过 `vp build`（Vite）构建。
 
 ### 核心特性
 
@@ -303,7 +303,7 @@ src/
 │   └── utils/
 └── index.ts                 # 包入口
 examples/                    # React 示例应用
-dist/                        # 构建输出 (es/umd/d.ts)
+dist/                        # 库构建输出 (esm/umd/d.ts, via vp pack)
 ```
 
 ## 开发流程
@@ -323,11 +323,12 @@ pnpm coverage    # 覆盖率报告
 pnpm lint        # Oxlint (via vp lint)
 pnpm check       # vp check (lint + format + typecheck)
 pnpm typecheck   # tsc -b
-pnpm build       # vp build
+pnpm build       # vp build（构建 examples 示例应用）
+pnpm pack:lib    # vp pack（构建 npm 库产物 → dist/）
 npm version <type> && npm publish
 ```
 
-构建产物默认写入 `dist/`，并由 `files` 字段自动打包。
+库构建产物默认写入 `dist/`，并由 `files` 字段自动打包。`prepublishOnly` 自动调用 `pnpm pack:lib`。
 
 ## 测试与质量
 

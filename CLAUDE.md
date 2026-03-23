@@ -11,7 +11,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ```bash
 pnpm install          # Install dependencies
 pnpm dev              # Dev server (localhost:3000, serves examples/)
-pnpm build            # vp build → dist/
+pnpm build            # vp build (examples app)
+pnpm pack:lib         # vp pack → dist/ (library build for npm)
 pnpm test             # Vitest (watch mode by default)
 pnpm test -- --run    # Single run
 pnpm test -- src/__tests__/hooks/use-echarts.test.ts  # Run single test file
@@ -76,6 +77,7 @@ The hook is split into 6 effects by responsibility:
 - Commit format: `feat|fix|docs|test|refactor|chore: <subject>`
 - New features: add types in `src/types/index.ts` first, then implement, test, update README
 - All side effects must have paired cleanup functions
-- Build outputs: `dist/index.es.js`, `dist/index.umd.js`, `dist/index.d.ts`
+- Build outputs: `dist/index.js` (ESM), `dist/index.umd.js` (UMD), `dist/index.d.ts`
+- Library built via `vp pack` (tsdown); examples app built via `vp build` (Vite)
 - External peers (not bundled): react, react-dom, echarts
-- Vite+ (vite-plus) unified toolchain with Rolldown; React Compiler via `@rolldown/plugin-babel`
+- Vite+ (vite-plus) unified toolchain; React Compiler via `@rolldown/plugin-babel`
