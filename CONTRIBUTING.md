@@ -24,7 +24,8 @@ Thanks for your interest in improving `react-use-echarts`!
 - `pnpm typecheck` – validate TypeScript types.
 - `pnpm test` – execute the Vitest suite (`pnpm test -- --watch` for watch mode).
 - `pnpm coverage` – generate coverage reports.
-- `pnpm build` – build the library bundles and type declarations into `dist/`.
+- `pnpm build` – build the examples application with Vite.
+- `pnpm pack:lib` – build the library bundles (ESM + UMD) and type declarations into `dist/`.
 
 Run `pnpm check && pnpm test -- --run` before opening a pull request. This is the same set of checks we rely on for releases.
 
