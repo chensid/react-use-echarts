@@ -5,36 +5,36 @@ Thanks for your interest in improving `react-use-echarts`!
 ## Prerequisites
 
 - Node.js 24.x (matches CI; required for the current Vite toolchain)
-- pnpm ≥ 10
+- Vite+ CLI (`vp`) available in your shell
 - Git
 
 ## Quick Start
 
 1. Fork this repository and clone it locally.
-2. Install dependencies: `pnpm install`.
+2. Install dependencies: `vp install`.
 3. Create a feature branch: `git checkout -b feat/my-feature`.
-4. Start the playground for manual verification: `pnpm dev` (serves the examples on <http://localhost:3000>).
+4. Start the playground for manual verification: `vp dev` (serves the examples on <http://localhost:3000>).
 5. Implement and self-test your changes.
 
 ## Development Commands
 
-- `pnpm dev` – run the Vite dev server with the examples under `examples/`.
-- `pnpm lint` – run Oxlint to check for issues.
-- `pnpm check` – run `vp check` (lint + format + typecheck) in one command.
-- `pnpm typecheck` – validate TypeScript types.
-- `pnpm test` – execute the Vitest suite (`pnpm test -- --watch` for watch mode).
-- `pnpm coverage` – generate coverage reports.
-- `pnpm build` – build the examples application with Vite.
-- `pnpm pack:lib` – build the library bundles (ESM + UMD) and type declarations into `dist/`.
+- `vp dev` – run the Vite dev server with the examples under `examples/`.
+- `vp lint .` – run Oxlint to check for issues.
+- `vp check` – run format + lint + typecheck in one command.
+- `vp run typecheck` – run dedicated TypeScript type validation (`tsc -b`).
+- `vp test` – execute the Vitest suite (watch mode by default).
+- `vp test run --coverage` – generate coverage reports.
+- `vp build` – build the examples application with Vite.
+- `vp pack` – build the library bundles (ESM + UMD) and type declarations into `dist/`.
 
-Run `pnpm check && pnpm test -- --run` before opening a pull request. This is the same set of checks we rely on for releases.
+Run `vp check && vp test run` before opening a pull request. This is the same set of checks we rely on for releases.
 
 ## Pull Request Guidelines
 
 - Keep each PR focused on a single feature or fix.
 - Update documentation (`README.md`, `examples/`, API comments) when behavior or public APIs change.
 - Add or update tests in `src/__tests__` for any logic changes.
-- Ensure `pnpm lint`, `pnpm typecheck`, and `pnpm test` pass locally.
+- Ensure `vp check` and `vp test run` pass locally.
 - Describe the motivation, solution, and validation steps in the PR body.
 
 ## Reporting Issues

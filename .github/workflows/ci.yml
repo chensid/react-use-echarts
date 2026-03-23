@@ -6,37 +6,28 @@ on:
   pull_request:
     branches: [main]
 
-env:
-  # pnpm/action-setup and codecov/codecov-action have not released Node 24 native versions yet
-  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
-
 jobs:
   test:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
 
-      - uses: pnpm/action-setup@v4
-
-      - uses: actions/setup-node@v6
+      - uses: voidzero-dev/setup-vp@v1
         with:
-          node-version: 24
-          cache: pnpm
+          node-version: "24"
+          cache: true
 
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+        run: vp install --frozen-lockfile
 
-      - name: Type check
-        run: pnpm typecheck
-
-      - name: Lint
-        run: pnpm lint
+      - name: Static checks
+        run: vp check
 
       - name: Build library
-        run: pnpm pack:lib
+        run: vp pack
 
       - name: Test with coverage
-        run: pnpm coverage
+        run: vp test run --coverage
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v5

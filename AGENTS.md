@@ -2,7 +2,7 @@
 
 ## 快速概览
 
-`react-use-echarts` 是基于 React 19 与 Apache ECharts 6 的 Hooks 封装，使用 TypeScript 5.9、Vite+ (vite-plus 统一工具链) 构建，Vitest+Testing Library 做测试。包管理统一使用 `pnpm`，除 `react` 与 `echarts` 外零运行时依赖。库通过 `vp pack`（tsdown）构建，输出 `dist/index.js`（ESM）、`dist/index.umd.js`（UMD）与 `dist/index.d.ts`；示例应用通过 `vp build`（Vite）构建。
+`react-use-echarts` 是基于 React 19 与 Apache ECharts 6 的 Hooks 封装，使用 TypeScript 5.9、Vite+ (vite-plus 统一工具链) 构建，Vitest+Testing Library 做测试。开发命令统一使用 `vp`，依赖安装会按 `packageManager` 字段自动委派（当前为 pnpm）；除 `react` 与 `echarts` 外零运行时依赖。库通过 `vp pack`（tsdown）构建，输出 `dist/index.js`（ESM）、`dist/index.umd.js`（UMD）与 `dist/index.d.ts`；示例应用通过 `vp build`（Vite）构建。
 
 ### 核心特性
 
@@ -311,24 +311,24 @@ dist/                        # 库构建输出 (esm/umd/d.ts, via vp pack)
 ### 安装与启动
 
 ```bash
-pnpm install
-pnpm dev
+vp install
+vp dev
 ```
 
 ### 常用命令
 
 ```bash
-pnpm test        # vitest
-pnpm coverage    # 覆盖率报告
-pnpm lint        # Oxlint (via vp lint)
-pnpm check       # vp check (lint + format + typecheck)
-pnpm typecheck   # tsc -b
-pnpm build       # vp build（构建 examples 示例应用）
-pnpm pack:lib    # vp pack（构建 npm 库产物 → dist/）
+vp test                  # vitest（watch 模式）
+vp test run --coverage   # 覆盖率报告
+vp lint .                # Oxlint
+vp check                 # format + lint + typecheck
+vp run typecheck         # tsc -b
+vp build                 # 构建 examples 示例应用
+vp pack                  # 构建 npm 库产物 → dist/
 npm version <type> && npm publish
 ```
 
-库构建产物默认写入 `dist/`，并由 `files` 字段自动打包。`prepublishOnly` 自动调用 `pnpm pack:lib`。
+库构建产物默认写入 `dist/`，并由 `files` 字段自动打包。`prepublishOnly` 自动调用 `vp pack`。
 
 ## 测试与质量
 
@@ -362,7 +362,7 @@ npm version <type> && npm publish
 2. 更新类型定义和导出
 3. 补充测试用例
 4. 更新 README/示例
-5. 自测 `pnpm lint && pnpm test`
+5. 自测 `vp check && vp test run`
 6. 提交（commit message 格式：`feat|fix|docs|test|refactor: <subject>`）
 
 ## 排障备忘
@@ -381,7 +381,7 @@ npm version <type> && npm publish
 ### 提交前检查
 
 ```bash
-pnpm check && pnpm test
+vp check && vp test run
 ```
 
 ### Commit 规范
