@@ -71,17 +71,17 @@
     "jsdom": "^29.0.1",
     "react": "^19.2.4",
     "react-dom": "^19.2.4",
-    "typescript": "~5.9.3",
-    "vite": "npm:@voidzero-dev/vite-plus-core@^0.1.13",
+    "typescript": "~6.0.2",
+    "vite": "npm:@voidzero-dev/vite-plus-core@^0.1.14",
     "vite-plus": "latest",
-    "vitest": "npm:@voidzero-dev/vite-plus-test@^0.1.13"
+    "vitest": "npm:@voidzero-dev/vite-plus-test@^0.1.14"
   },
   "peerDependencies": {
     "echarts": "^6.0.0",
     "react": "^19.2.0",
     "react-dom": "^19.2.0"
   },
-  "packageManager": "pnpm@10.32.1",
+  "packageManager": "pnpm@10.33.0",
   "pnpm": {
     "overrides": {
       "vite": "npm:@voidzero-dev/vite-plus-core@latest",
