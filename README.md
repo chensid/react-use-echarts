@@ -17,14 +17,14 @@ A React hooks library for Apache ECharts with full TypeScript support. Simple, l
 
 - **Hook + Component** — use `useEcharts` hook or the declarative `<EChart />` component
 - **TypeScript first** — written in TypeScript with complete type definitions
-- **Zero dependencies** — only requires `react` and `echarts` as peer dependencies
+- **Zero dependencies** — no runtime deps beyond peer deps: `react`, `react-dom`, and `echarts`
 - **Auto-resize** — handles container resizing via ResizeObserver
 - **Themes** — built-in light, dark, and macarons themes, plus custom theme support
 - **Chart linkage** — connect multiple charts for synchronized interactions
 - **Lazy initialization** — defer chart init until element enters viewport
 - **Event handling** — flexible event system with shorthand and full config modes
 - **Loading state** — built-in loading indicator management
-- **Error handling** — optional error callback or propagation to React error boundaries
+- **Error handling** — optional `onError` callback with deterministic fallback behavior
 - **StrictMode safe** — instance cache with reference counting handles double mount/unmount
 
 ## Requirements
@@ -197,7 +197,7 @@ useEcharts(chartRef, {
 });
 ```
 
-Without `onError`, exceptions propagate normally and can be caught by React error boundaries.
+Without `onError`: init / first `setOption` failures are reported with `console.error`; option-update or imperative `setOption` failures are rethrown.
 
 ### Using the Component Ref
 
@@ -249,7 +249,7 @@ Declarative component wrapping `useEcharts`. Accepts all hook options as props p
 | `onEvents`      | `EChartsEvents`                                     | —          | Event handlers (`fn` or `{ handler, query?, context? }`)           |
 | `autoResize`    | `boolean`                                           | `true`     | Auto-resize via ResizeObserver                                     |
 | `initOpts`      | `EChartsInitOpts`                                   | —          | Passed to `echarts.init()` (devicePixelRatio, locale, width, etc.) |
-| `onError`       | `(error: unknown) => void`                          | —          | Error handler for chart operations                                 |
+| `onError`       | `(error: unknown) => void`                          | —          | Error handler for init/setOption operations                        |
 
 #### Returns
 
@@ -322,6 +322,23 @@ import type {
   BuiltinTheme,
 } from "react-use-echarts";
 ```
+
+## Development (Vite+)
+
+This repository is aligned with the Vite+ toolchain:
+
+- `vp install` — install dependencies (delegates to `packageManager`, currently pnpm)
+- `vp dev` — run the examples dev server (`http://localhost:3000`)
+- `vp check` — run format + lint + typecheck
+- `vp test run --coverage` — run tests with coverage
+- `vp pack` — build library artifacts into `dist/`
+
+`package.json` also maps core tools to Vite+ packages:
+
+- `vite` → `@voidzero-dev/vite-plus-core`
+- `vitest` → `@voidzero-dev/vite-plus-test`
+
+CI and release workflows use `voidzero-dev/setup-vp` plus `vp` commands for install/check/build.
 
 ## Contributing
 

@@ -143,7 +143,10 @@ export interface UseEchartsOptions {
   /**
    * Error handler for chart operations (init, setOption, etc.)
    * 图表操作（init、setOption 等）的错误处理回调
-   * Without this, errors propagate normally (may trigger React error boundaries)
+   * Without this: init-time failures are logged via console.error,
+   * while update-time failures are thrown.
+   * 未提供时：初始化阶段失败会通过 console.error 输出，
+   * 更新阶段失败会直接抛出异常。
    */
   onError?: (error: unknown) => void;
 }
