@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-`react-use-echarts` is a React hooks library for Apache ECharts. It provides a `useEcharts` hook and a declarative `EChart` component. Built with TypeScript 5.9, Vite+ (vite-plus unified toolchain), tested with Vitest + Testing Library. Zero runtime dependencies beyond React 19 and ECharts 6. Development commands are unified under **Vite+ (`vp`)**; dependency installs are delegated through `packageManager` (currently pnpm).
+`react-use-echarts` is a React hooks library for Apache ECharts. It provides a `useEcharts` hook and a declarative `EChart` component. Built with TypeScript 6.0, Vite+ (vite-plus unified toolchain), tested with Vitest + Testing Library. Zero runtime dependencies beyond peer dependencies (`react`, `react-dom`, `echarts`). Development commands are unified under **Vite+ (`vp`)**; dependency installs are delegated through `packageManager` (currently pnpm).
 
 ## Commands
 

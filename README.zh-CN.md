@@ -17,14 +17,14 @@
 
 - **Hook + 组件** — 使用 `useEcharts` Hook 或声明式 `<EChart />` 组件
 - **TypeScript 优先** — 使用 TypeScript 编写，提供完整的类型定义
-- **零依赖** — 仅需 `react` 和 `echarts` 作为 peer dependencies
+- **零依赖** — 除 peer 依赖 `react`、`react-dom`、`echarts` 外无运行时依赖
 - **自动 resize** — 通过 ResizeObserver 自动处理容器尺寸变化
 - **主题** — 内置 light、dark、macarons 主题，支持自定义主题
 - **图表联动** — 连接多个图表实现同步交互
 - **懒加载** — 图表进入视口时才初始化
 - **事件处理** — 灵活的事件系统，支持简写和完整配置模式
 - **加载状态** — 内置 loading 指示器管理
-- **错误处理** — 可选的错误回调，或向上传播到 React Error Boundary
+- **错误处理** — 支持可选 `onError` 回调，并提供可预期的兜底行为
 - **StrictMode 安全** — 实例缓存基于引用计数，正确处理双重挂载/卸载
 
 ## 环境要求
@@ -197,7 +197,7 @@ useEcharts(chartRef, {
 });
 ```
 
-未提供 `onError` 时，异常将正常传播，可被 React Error Boundary 捕获。
+未提供 `onError` 时：初始化 / 首次 `setOption` 失败会通过 `console.error` 输出；后续 option 更新或命令式 `setOption` 失败会直接抛出异常。
 
 ### 通过组件 Ref 访问方法
 
@@ -249,7 +249,7 @@ function MyChart() {
 | `onEvents`      | `EChartsEvents`                                     | —          | 事件处理器（`fn` 或 `{ handler, query?, context? }`）  |
 | `autoResize`    | `boolean`                                           | `true`     | 通过 ResizeObserver 自动 resize                        |
 | `initOpts`      | `EChartsInitOpts`                                   | —          | 传递给 `echarts.init()`（devicePixelRatio、locale 等） |
-| `onError`       | `(error: unknown) => void`                          | —          | 图表操作的错误处理回调                                 |
+| `onError`       | `(error: unknown) => void`                          | —          | init/setOption 操作的错误处理回调                      |
 
 #### 返回值
 
@@ -322,6 +322,23 @@ import type {
   BuiltinTheme,
 } from "react-use-echarts";
 ```
+
+## 开发（Vite+）
+
+仓库开发流程已对齐 Vite+ 工具链：
+
+- `vp install` — 安装依赖（按 `packageManager` 自动委派，当前为 pnpm）
+- `vp dev` — 启动 examples 开发服务（`http://localhost:3000`）
+- `vp check` — 一次执行 format + lint + typecheck
+- `vp test run --coverage` — 执行测试并生成覆盖率
+- `vp pack` — 构建库产物到 `dist/`
+
+`package.json` 中核心工具也映射到了 Vite+ 包：
+
+- `vite` → `@voidzero-dev/vite-plus-core`
+- `vitest` → `@voidzero-dev/vite-plus-test`
+
+CI 和发布工作流同样使用 `voidzero-dev/setup-vp` + `vp` 命令完成安装、检查与构建。
 
 ## 贡献
 
