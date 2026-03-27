@@ -4,10 +4,6 @@ settings:
   autoInstallPeers: true
   excludeLinksFromLockfile: false
 
-overrides:
-  vite: npm:@voidzero-dev/vite-plus-core@latest
-  vitest: npm:@voidzero-dev/vite-plus-test@latest
-
 importers:
 
   .:
@@ -58,7 +54,7 @@ importers:
         specifier: npm:@voidzero-dev/vite-plus-core@^0.1.14
         version: '@voidzero-dev/vite-plus-core@0.1.14(@types/node@25.5.0)(typescript@6.0.2)(yaml@2.8.2)'
       vite-plus:
-        specifier: latest
+        specifier: ^0.1.14
         version: 0.1.14(@types/node@25.5.0)(@voidzero-dev/vite-plus-core@0.1.14(@types/node@25.5.0)(typescript@6.0.2)(yaml@2.8.2))(jsdom@29.0.1)(typescript@6.0.2)(yaml@2.8.2)
       vitest:
         specifier: npm:@voidzero-dev/vite-plus-test@^0.1.14
