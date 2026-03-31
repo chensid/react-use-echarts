@@ -2,18 +2,51 @@
 
 > 项目概述、目录结构、命令、Effect 结构、测试配置和基本约定见 `CLAUDE.md`，此处不再重复。
 
-## 核心特性
+## Vite+ 工具链
 
-- `useEcharts` Hook + `EChart` 声明式组件，双模式按需选用
-- ref 由调用方传入，Hook 不内部管理 ref
-- WeakMap 实例缓存 + 引用计数，支持 StrictMode
-- initOpts 序列化稳定化，避免内联对象导致实例重建
-- 两级主题缓存：内置 `light`/`dark`/`macarons` + 自定义主题对象自动去重
+本项目使用 **Vite+**（统一 Web 工具链），通过全局 CLI `vp` 管理完整开发生命周期。Vite+ 将 Vite 8、Rolldown、Vitest、tsdown、Oxlint、Oxfmt 封装为单一工具链。完整命令列表见 `CLAUDE.md` 或运行 `vp help`。
+
+### 关键规则
+
+- **始终使用 `vp` 命令**，不要直接使用 pnpm/npm/yarn
+- **不要运行 `vp vitest` 或 `vp oxlint`**，正确写法是 `vp test` 和 `vp lint`
+- **从 `vite-plus` 导入模块**，而非 `vite` 或 `vitest`：
+  ```ts
+  import { defineConfig } from "vite-plus";
+  import { expect, test, vi } from "vite-plus/test";
+  ```
+- **不要单独安装** Vitest、Oxlint、Oxfmt 或 tsdown —— 它们已内置于 vite-plus
+- **使用 `vp dlx`** 代替 `npx`/`pnpm dlx`
+- **内置命令优先**：`vp dev`/`vp build`/`vp test` 始终执行内置工具，而非 `package.json` 同名 script。若需运行自定义 script，用 `vp run <script>`
+- **Type-aware linting** 开箱即用：`vp lint --type-aware`，无需额外安装 `oxlint-tsgolint`
+
+### 配置方式
+
+所有工具配置统一在 `vite.config.ts` 中通过扩展块管理：
+
+| 配置块   | 用途           | 替代文件                         |
+| -------- | -------------- | -------------------------------- |
+| `test`   | Vitest 配置    | `vitest.config.ts`               |
+| `lint`   | Oxlint 规则    | `.eslintrc` / `eslint.config.js` |
+| `fmt`    | Oxfmt 格式化   | `.prettierrc`                    |
+| `pack`   | tsdown 库构建  | `tsdown.config.ts`               |
+| `staged` | 暂存文件检查   | `lint-staged` 配置               |
+| `run`    | 任务编排与缓存 | -                                |
+
+### CI 集成
+
+使用 [`voidzero-dev/setup-vp@v1`](https://github.com/voidzero-dev/setup-vp) GitHub Action，替代单独的 setup-node、包管理器和缓存步骤。
+
+> 完整的 Vite+ Agent 指南见 `node_modules/vite-plus/AGENTS.md`。
+
+## 补充特性说明
+
+> 核心设计模式（ref 传入、WeakMap 缓存、initOpts 稳定化、两级主题缓存、React Compiler）见 `CLAUDE.md`。
+
 - `group` 字段实现图表联动（tooltip、highlight 同步）
 - IntersectionObserver 懒加载 + ResizeObserver 自动响应尺寸
 - `onEvents` 支持简写函数与完整配置对象，变更时自动重绑
 - `onError` 统一捕获 init/setOption 异常
-- React Compiler 已启用
 
 ## API 参考
 
@@ -74,12 +107,7 @@ function useLazyInit(
 
 ## 变更流程
 
-1. 先在 `src/types/index.ts` 补充类型定义
-2. 实现功能，确保副作用有成对清理
-3. 补充测试用例
-4. 更新 README / 示例
-5. `vp check && vp test run`
-6. 提交：`feat|fix|docs|test|refactor|chore: <subject>`
+见 `CLAUDE.md` 的 Conventions 部分。
 
 ## 排障备忘
 
