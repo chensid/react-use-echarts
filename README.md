@@ -1,6 +1,6 @@
 # react-use-echarts
 
-> [中文](./README.zh-CN.md) | [English](./README.md)
+> [中文](./README-zh_CN.md) | [English](./README.md)
 
 [![NPM version](https://img.shields.io/npm/v/react-use-echarts.svg)](https://www.npmjs.com/package/react-use-echarts)
 [![NPM downloads](https://img.shields.io/npm/dm/react-use-echarts.svg)](https://www.npmjs.com/package/react-use-echarts)

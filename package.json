@@ -1,6 +1,6 @@
 {
   "name": "react-use-echarts",
-  "version": "1.0.8",
+  "version": "1.0.9",
   "private": false,
   "description": "React hooks & component for Apache ECharts — TypeScript, auto-resize, themes, lazy init",
   "keywords": [
@@ -73,9 +73,9 @@
     "react": "^19.2.4",
     "react-dom": "^19.2.4",
     "typescript": "~6.0.2",
-    "vite": "npm:@voidzero-dev/vite-plus-core@^0.1.14",
-    "vite-plus": "^0.1.14",
-    "vitest": "npm:@voidzero-dev/vite-plus-test@^0.1.14"
+    "vite": "npm:@voidzero-dev/vite-plus-core@^0.1.15",
+    "vite-plus": "^0.1.15",
+    "vitest": "npm:@voidzero-dev/vite-plus-test@^0.1.15"
   },
   "peerDependencies": {
     "echarts": "^6.0.0",
