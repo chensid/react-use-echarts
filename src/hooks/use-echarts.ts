@@ -6,7 +6,6 @@ import type {
   UseEchartsReturn,
   EChartsEvents,
   EChartsEventConfig,
-  BuiltinTheme,
 } from "../types";
 import { useLazyInit } from "./use-lazy-init";
 import {
@@ -15,7 +14,7 @@ import {
   releaseCachedInstance,
 } from "../utils/instance-cache";
 import { updateGroup, getInstanceGroup } from "../utils/connect";
-import { isBuiltinTheme, getOrRegisterCustomTheme, ensureBuiltinThemesRegistered } from "../themes";
+import { getOrRegisterCustomTheme } from "../themes";
 
 /**
  * Pure computation of a stable identity key for theme (no side effects).
@@ -23,12 +22,12 @@ import { isBuiltinTheme, getOrRegisterCustomTheme, ensureBuiltinThemesRegistered
  * 纯粹计算主题的稳定标识键（无副作用），用于渲染阶段的 effect 依赖跟踪。
  *
  * - null/undefined → null
- * - builtin string  → theme name ('light', 'dark', 'macarons')
- * - custom object   → JSON content hash (stable for same content)
+ * - string         → theme name (any registered theme)
+ * - custom object  → JSON content hash (stable for same content)
  */
-function computeThemeKey(theme: BuiltinTheme | object | null | undefined): string | null {
+function computeThemeKey(theme: string | object | null | undefined): string | null {
   if (theme == null) return null;
-  if (typeof theme === "string") return isBuiltinTheme(theme) ? theme : null;
+  if (typeof theme === "string") return theme;
   if (typeof theme === "object") return JSON.stringify(theme);
   return null;
 }
@@ -39,9 +38,9 @@ function computeThemeKey(theme: BuiltinTheme | object | null | undefined): strin
  * 将主题解析为已注册的 ECharts 主题名称（有副作用）。
  * 仅可在 effect 内部调用，不可在渲染阶段调用。
  */
-function resolveThemeName(theme: BuiltinTheme | object | null | undefined): string | null {
+function resolveThemeName(theme: string | object | null | undefined): string | null {
   if (theme == null) return null;
-  if (typeof theme === "string" && isBuiltinTheme(theme)) return theme;
+  if (typeof theme === "string") return theme;
   if (typeof theme === "object") return getOrRegisterCustomTheme(theme);
   return null;
 }
@@ -208,10 +207,8 @@ function useEcharts(
     const element = ref.current;
     if (!element) return;
 
-    // Side effects (theme registration) are safe inside effects.
-    // Read from ref (synced by prior useLayoutEffect) to avoid
-    // capturing `theme` in closure and triggering exhaustive-deps.
-    ensureBuiltinThemesRegistered();
+    // Resolve theme: strings pass through; custom objects get registered
+    // (side effect safe inside effects). Read from ref to avoid closure capture.
     const resolvedTheme = resolveThemeName(themeRef.current);
 
     // Re-use existing instance if another hook (or StrictMode re-mount)

@@ -39,41 +39,13 @@ export type {
 } from "./types";
 
 /**
- * Theme utilities
- * 主题工具函数
+ * Theme utilities (lightweight, no JSON bundled)
+ * 主题工具函数（轻量，不含 JSON）
  */
-export {
-  registerBuiltinThemes,
-  ensureBuiltinThemesRegistered,
-  getBuiltinTheme,
-  isBuiltinTheme,
-  registerCustomTheme,
-  getAvailableThemes,
-} from "./themes";
+export { isBuiltinTheme, registerCustomTheme } from "./themes";
 
 /**
- * Instance cache utilities (advanced)
- * 实例缓存工具（高级用法）
+ * Theme registry (contains JSON presets, tree-shakeable)
+ * 主题注册（含 JSON 预设，可 tree-shake）
  */
-export {
-  getCachedInstance,
-  setCachedInstance,
-  replaceCachedInstance,
-  releaseCachedInstance,
-  getReferenceCount,
-  clearInstanceCache,
-} from "./utils/instance-cache";
-
-/**
- * Chart group/linkage utilities (advanced)
- * 图表联动工具（高级用法）
- */
-export {
-  addToGroup,
-  removeFromGroup,
-  updateGroup,
-  getGroupInstances,
-  getInstanceGroup,
-  isInGroup,
-  clearGroups,
-} from "./utils/connect";
+export { registerBuiltinThemes, getBuiltinTheme, getAvailableThemes } from "./themes/registry";

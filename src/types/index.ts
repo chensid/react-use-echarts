@@ -76,10 +76,10 @@ export interface UseEchartsOptions {
   option: EChartsOption;
 
   /**
-   * Theme: built-in preset name | custom object | null
-   * 主题：内置预设名 | 自定义对象 | null
+   * Theme: any registered theme name | custom object | null
+   * 主题：任意已注册主题名 | 自定义对象 | null
    */
-  theme?: BuiltinTheme | object | null;
+  theme?: BuiltinTheme | (string & {}) | object | null;
 
   /**
    * Renderer type

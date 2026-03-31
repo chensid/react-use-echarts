@@ -1,6 +1,9 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
+import { registerBuiltinThemes } from "../src";
 import App from "./App";
+
+registerBuiltinThemes();
 
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>

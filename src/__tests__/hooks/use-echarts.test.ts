@@ -786,19 +786,16 @@ describe("useEcharts", () => {
   });
 
   describe("non-builtin string theme", () => {
-    it("should treat non-builtin string theme as null", () => {
+    it("should pass non-builtin string theme through to echarts.init", () => {
       const element = document.createElement("div");
       const ref = { current: element };
       const mockInstance = createMockInstance(element);
       (echarts.init as ReturnType<typeof vi.fn>).mockReturnValue(mockInstance);
 
-      // "custom-theme-string" is not a builtin theme
-      renderHook(() =>
-        useEcharts(ref, { option: baseOption, theme: "custom-theme-string" as never }),
-      );
+      renderHook(() => useEcharts(ref, { option: baseOption, theme: "custom-theme-string" }));
 
-      // resolveThemeName should return null for a non-builtin string
-      expect(echarts.init).toHaveBeenCalledWith(element, null, expect.any(Object));
+      // resolveThemeName should pass any string theme through
+      expect(echarts.init).toHaveBeenCalledWith(element, "custom-theme-string", expect.any(Object));
     });
 
     it("should treat unexpected theme type (e.g. number) as null", () => {

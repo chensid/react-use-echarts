@@ -34,7 +34,8 @@ src/
 │   ├── use-echarts.ts          # Core hook (6 internal effects, see below)
 │   └── use-lazy-init.ts        # IntersectionObserver hook
 ├── themes/
-│   ├── index.ts                # Theme registration & utilities
+│   ├── index.ts                # Lightweight theme utilities (no JSON)
+│   ├── registry.ts             # Built-in theme registration (imports JSON presets)
 │   └── presets/                # Built-in theme JSON (light/dark/macarons)
 ├── utils/
 │   ├── instance-cache.ts       # WeakMap instance cache + reference counting

@@ -1,20 +1,11 @@
 import * as echarts from "echarts";
 import type { BuiltinTheme } from "../types";
 
-// Import theme presets
-import lightTheme from "./presets/light.json";
-import darkTheme from "./presets/dark.json";
-import macaronsTheme from "./presets/macarons.json";
-
 /**
- * Theme registry for built-in themes
- * 内置主题注册表
+ * Hardcoded set of built-in theme names (no JSON dependency)
+ * 内置主题名称硬编码集合（不依赖 JSON 数据）
  */
-const themeRegistry = new Map<string, object>([
-  ["light", lightTheme],
-  ["dark", darkTheme],
-  ["macarons", macaronsTheme],
-]);
+const BUILTIN_THEME_NAMES: ReadonlySet<string> = new Set<string>(["light", "dark", "macarons"]);
 
 /**
  * Cache for custom theme names (theme object -> registered theme name)
@@ -30,6 +21,7 @@ const customThemeCache = new WeakMap<object, string>();
  * object references carry identical theme content
  */
 const contentHashCache = new Map<string, string>();
+const CONTENT_HASH_CACHE_MAX_SIZE = 50;
 
 /**
  * Counter for generating unique custom theme names
@@ -38,50 +30,13 @@ const contentHashCache = new Map<string, string>();
 let customThemeCounter = 0;
 
 /**
- * Flag for lazy built-in theme registration
- * 内置主题惰性注册标志
- */
-let builtinThemesRegistered = false;
-
-/**
- * Register built-in themes with ECharts
- * 向 ECharts 注册内置主题
- */
-export function registerBuiltinThemes(): void {
-  for (const [themeName, themeConfig] of themeRegistry.entries()) {
-    echarts.registerTheme(themeName, themeConfig);
-  }
-  builtinThemesRegistered = true;
-}
-
-/**
- * Ensure built-in themes are registered (lazy, idempotent)
- * 确保内置主题已注册（惰性、幂等）
- * Called automatically before chart initialization
- */
-export function ensureBuiltinThemesRegistered(): void {
-  if (builtinThemesRegistered) return;
-  registerBuiltinThemes();
-}
-
-/**
- * Get built-in theme configuration
- * 获取内置主题配置
- * @param themeName Theme name
- * @returns Theme configuration object or null if not found
- */
-export function getBuiltinTheme(themeName: BuiltinTheme): object | null {
-  return themeRegistry.get(themeName) || null;
-}
-
-/**
  * Check if a theme name is a built-in theme
  * 检查主题名是否为内置主题
  * @param themeName Theme name to check
  * @returns True if built-in theme
  */
 export function isBuiltinTheme(themeName: string): themeName is BuiltinTheme {
-  return themeRegistry.has(themeName);
+  return BUILTIN_THEME_NAMES.has(themeName);
 }
 
 /**
@@ -131,16 +86,10 @@ export function getOrRegisterCustomTheme(themeConfig: object): string {
   const themeName = `__custom_theme_${customThemeCounter++}`;
   echarts.registerTheme(themeName, themeConfig);
   customThemeCache.set(themeConfig, themeName);
+  if (contentHashCache.size >= CONTENT_HASH_CACHE_MAX_SIZE) {
+    contentHashCache.clear();
+  }
   contentHashCache.set(contentHash, themeName);
 
   return themeName;
-}
-
-/**
- * Get all available built-in theme names
- * 获取所有可用的内置主题名称
- * @returns Array of built-in theme names
- */
-export function getAvailableThemes(): BuiltinTheme[] {
-  return Array.from(themeRegistry.keys()) as BuiltinTheme[];
 }

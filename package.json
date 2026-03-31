@@ -1,8 +1,8 @@
 {
   "name": "react-use-echarts",
-  "version": "1.0.7",
+  "version": "1.0.8",
   "private": false,
-  "description": "A powerful React hooks library for Apache ECharts",
+  "description": "React hooks & component for Apache ECharts — TypeScript, auto-resize, themes, lazy init",
   "keywords": [
     "chart-linkage",
     "charts",
@@ -13,7 +13,8 @@
     "react",
     "resize-observer",
     "themes",
-    "typescript"
+    "typescript",
+    "vite-plus"
   ],
   "homepage": "https://github.com/chensid/react-use-echarts#readme",
   "bugs": {
