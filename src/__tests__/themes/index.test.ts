@@ -1,13 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vite-plus/test";
 import * as echarts from "echarts";
-import {
-  registerBuiltinThemes,
-  getBuiltinTheme,
-  isBuiltinTheme,
-  registerCustomTheme,
-  getAvailableThemes,
-  getOrRegisterCustomTheme,
-} from "../../themes";
+import { isBuiltinTheme, registerCustomTheme, getOrRegisterCustomTheme } from "../../themes";
 
 // Mock ECharts
 vi.mock("echarts", () => ({
@@ -38,53 +31,6 @@ describe("themes utilities", () => {
 
     it("should return false for empty string", () => {
       expect(isBuiltinTheme("")).toBe(false);
-    });
-  });
-
-  describe("getBuiltinTheme", () => {
-    it("should return light theme config", () => {
-      const theme = getBuiltinTheme("light");
-      expect(theme).toBeDefined();
-      expect(theme).toHaveProperty("color");
-    });
-
-    it("should return dark theme config", () => {
-      const theme = getBuiltinTheme("dark");
-      expect(theme).toBeDefined();
-      expect(theme).toHaveProperty("color");
-    });
-
-    it("should return macarons theme config", () => {
-      const theme = getBuiltinTheme("macarons");
-      expect(theme).toBeDefined();
-      expect(theme).toHaveProperty("color");
-    });
-
-    it("should return null for unknown theme", () => {
-      // @ts-expect-error - testing invalid input
-      const theme = getBuiltinTheme("unknown");
-      expect(theme).toBeNull();
-    });
-  });
-
-  describe("getAvailableThemes", () => {
-    it("should return all builtin theme names", () => {
-      const themes = getAvailableThemes();
-      expect(themes).toContain("light");
-      expect(themes).toContain("dark");
-      expect(themes).toContain("macarons");
-      expect(themes).toHaveLength(3);
-    });
-  });
-
-  describe("registerBuiltinThemes", () => {
-    it("should register all builtin themes with echarts", () => {
-      registerBuiltinThemes();
-
-      expect(echarts.registerTheme).toHaveBeenCalledWith("light", expect.any(Object));
-      expect(echarts.registerTheme).toHaveBeenCalledWith("dark", expect.any(Object));
-      expect(echarts.registerTheme).toHaveBeenCalledWith("macarons", expect.any(Object));
-      expect(echarts.registerTheme).toHaveBeenCalledTimes(3);
     });
   });
 
@@ -133,6 +79,22 @@ describe("themes utilities", () => {
 
       expect(nameA).not.toBe(nameB);
       expect(echarts.registerTheme).toHaveBeenCalledTimes(2);
+    });
+
+    it("should still work correctly after contentHashCache exceeds max size", () => {
+      // Register 55 unique themes to exceed the 50-entry cap
+      for (let i = 0; i < 55; i++) {
+        getOrRegisterCustomTheme({ color: [`#${String(i).padStart(6, "0")}`] });
+      }
+
+      // Should still work correctly after cache clear
+      const theme = { color: ["#unique-after-clear"] };
+      const name = getOrRegisterCustomTheme(theme);
+      expect(name).toMatch(/__custom_theme_\d+/);
+
+      // Same reference should still return the same name (WeakMap fast path)
+      const name2 = getOrRegisterCustomTheme(theme);
+      expect(name2).toBe(name);
     });
   });
 });

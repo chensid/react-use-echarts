@@ -61,20 +61,20 @@ function useEcharts(
 
 **UseEchartsOptions**
 
-| 属性            | 类型                                  | 默认值     | 说明                   |
-| --------------- | ------------------------------------- | ---------- | ---------------------- |
-| `option`        | `EChartsOption`                       | **必填**   | ECharts 配置项         |
-| `theme`         | `BuiltinTheme \| object \| null`      | `null`     | 主题名或自定义主题对象 |
-| `renderer`      | `'canvas' \| 'svg'`                   | `'canvas'` | 渲染器                 |
-| `lazyInit`      | `boolean \| IntersectionObserverInit` | `false`    | 懒加载                 |
-| `group`         | `string`                              | -          | 联动组 ID              |
-| `setOptionOpts` | `SetOptionOpts`                       | -          | setOption 选项         |
-| `showLoading`   | `boolean`                             | `false`    | 加载状态               |
-| `loadingOption` | `object`                              | -          | 加载配置               |
-| `onEvents`      | `EChartsEvents`                       | -          | 事件配置               |
-| `autoResize`    | `boolean`                             | `true`     | 自动 resize            |
-| `initOpts`      | `EChartsInitOpts`                     | -          | `echarts.init()` 选项  |
-| `onError`       | `(error: unknown) => void`            | -          | 错误处理               |
+| 属性            | 类型                                  | 默认值     | 说明                             |
+| --------------- | ------------------------------------- | ---------- | -------------------------------- |
+| `option`        | `EChartsOption`                       | **必填**   | ECharts 配置项                   |
+| `theme`         | `string \| object \| null`            | `null`     | 任意已注册主题名或自定义主题对象 |
+| `renderer`      | `'canvas' \| 'svg'`                   | `'canvas'` | 渲染器                           |
+| `lazyInit`      | `boolean \| IntersectionObserverInit` | `false`    | 懒加载                           |
+| `group`         | `string`                              | -          | 联动组 ID                        |
+| `setOptionOpts` | `SetOptionOpts`                       | -          | setOption 选项                   |
+| `showLoading`   | `boolean`                             | `false`    | 加载状态                         |
+| `loadingOption` | `object`                              | -          | 加载配置                         |
+| `onEvents`      | `EChartsEvents`                       | -          | 事件配置                         |
+| `autoResize`    | `boolean`                             | `true`     | 自动 resize                      |
+| `initOpts`      | `EChartsInitOpts`                     | -          | `echarts.init()` 选项            |
+| `onError`       | `(error: unknown) => void`            | -          | 错误处理                         |
 
 **UseEchartsReturn** — `setOption(option, opts?)` / `getInstance()` / `resize()`
 

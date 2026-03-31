@@ -61,36 +61,6 @@ export function setCachedInstance(element: HTMLElement, instance: ECharts): ECha
 }
 
 /**
- * Replace cached instance (for theme changes)
- * 替换缓存实例（用于主题切换）
- * @param element DOM element
- * @param instance New ECharts instance
- * @returns The new instance
- */
-export function replaceCachedInstance(element: HTMLElement, instance: ECharts): ECharts {
-  const existing = instanceCache.get(element);
-
-  if (existing) {
-    // Dispose old instance before replacing to prevent memory leaks
-    // 替换前销毁旧实例以防止内存泄漏
-    existing.instance.dispose();
-    // Replace the instance but keep the ref count
-    // 替换实例但保持引用计数
-    existing.instance = instance;
-    return instance;
-  } else {
-    // Create new cache entry
-    instanceCache.set(element, {
-      instance,
-      refCount: 1,
-    });
-    // Track element for clearInstanceCache
-    trackedElements.add(element);
-    return instance;
-  }
-}
-
-/**
  * Decrement reference count and dispose if zero
  * 减少引用计数，如果为零则销毁实例
  * @param element DOM element

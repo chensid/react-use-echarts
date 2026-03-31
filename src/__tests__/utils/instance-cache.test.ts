@@ -2,7 +2,6 @@ import { describe, it, expect, vi, beforeEach } from "vite-plus/test";
 import {
   getCachedInstance,
   setCachedInstance,
-  replaceCachedInstance,
   releaseCachedInstance,
   getReferenceCount,
   clearInstanceCache,
@@ -58,33 +57,6 @@ describe("instance-cache utilities", () => {
       // Should return the original cached instance
       expect(result).toBe(instance1);
       expect(getReferenceCount(element)).toBe(2);
-    });
-  });
-
-  describe("replaceCachedInstance", () => {
-    it("should replace existing instance keeping ref count", () => {
-      const element = document.createElement("div");
-      const instance1 = createMockInstance();
-      const instance2 = createMockInstance();
-
-      setCachedInstance(element, instance1);
-      setCachedInstance(element, instance1); // refCount = 2
-
-      const result = replaceCachedInstance(element, instance2);
-
-      expect(result).toBe(instance2);
-      expect(getCachedInstance(element)).toBe(instance2);
-      expect(getReferenceCount(element)).toBe(2); // ref count preserved
-    });
-
-    it("should create new entry if element not cached", () => {
-      const element = document.createElement("div");
-      const instance = createMockInstance();
-
-      const result = replaceCachedInstance(element, instance);
-
-      expect(result).toBe(instance);
-      expect(getReferenceCount(element)).toBe(1);
     });
   });
 
