@@ -1,6 +1,6 @@
 {
   "name": "react-use-echarts",
-  "version": "1.0.9",
+  "version": "1.1.0",
   "private": false,
   "description": "React hooks & component for Apache ECharts — TypeScript, auto-resize, themes, lazy init",
   "keywords": [
@@ -27,6 +27,7 @@
     "url": "git+https://github.com/chensid/react-use-echarts.git"
   },
   "files": [
+    "AGENTS.md",
     "dist"
   ],
   "type": "module",
