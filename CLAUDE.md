@@ -83,7 +83,7 @@ src/
 - **Commit format:** `feat|fix|docs|test|refactor|chore: <subject>`
 - **Types-first:** define types in `src/types/index.ts` before implementing
 - **Paired cleanup:** all side effects must have cleanup functions
-- **Build outputs:** `dist/index.js` (ESM), `dist/index.umd.js` (UMD), `dist/index.d.ts`
+- **Build outputs:** `dist/index.js` (ESM), `dist/index.umd.js` (UMD), `dist/index.d.ts`, `dist/themes/registry.js` + `.d.ts` (theme subpath)
 
 ## Anti-patterns
 

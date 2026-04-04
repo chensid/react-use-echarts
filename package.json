@@ -41,6 +41,11 @@
       "import": "./dist/index.js",
       "require": "./dist/index.umd.js",
       "default": "./dist/index.js"
+    },
+    "./themes/registry": {
+      "types": "./dist/themes/registry.d.ts",
+      "import": "./dist/themes/registry.js",
+      "default": "./dist/themes/registry.js"
     }
   },
   "publishConfig": {
