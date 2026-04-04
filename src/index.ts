@@ -43,9 +43,3 @@ export type {
  * 主题工具函数（轻量，不含 JSON）
  */
 export { isBuiltinTheme, registerCustomTheme } from "./themes";
-
-/**
- * Theme registry (contains JSON presets, tree-shakeable)
- * 主题注册（含 JSON 预设，可 tree-shake）
- */
-export { registerBuiltinThemes, getBuiltinTheme, getAvailableThemes } from "./themes/registry";

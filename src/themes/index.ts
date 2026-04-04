@@ -87,7 +87,10 @@ export function getOrRegisterCustomTheme(themeConfig: object): string {
   echarts.registerTheme(themeName, themeConfig);
   customThemeCache.set(themeConfig, themeName);
   if (contentHashCache.size >= CONTENT_HASH_CACHE_MAX_SIZE) {
-    contentHashCache.clear();
+    const oldestKey = contentHashCache.keys().next().value;
+    if (oldestKey !== undefined) {
+      contentHashCache.delete(oldestKey);
+    }
   }
   contentHashCache.set(contentHash, themeName);
 

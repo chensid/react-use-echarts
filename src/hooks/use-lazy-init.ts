@@ -58,7 +58,8 @@ export function useLazyInit(
     return () => {
       observer.disconnect();
     };
-  }, [elementRef, isLazyMode, isInView, observerOptions]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- isInView excluded: observer self-disconnects on intersection
+  }, [elementRef, isLazyMode, observerOptions]);
 
   return isInView;
 }

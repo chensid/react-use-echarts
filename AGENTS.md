@@ -20,8 +20,8 @@ All `useEcharts` options as props + `style` (default `{ width: '100%', height: '
 
 ### Other Exports
 
-- `registerBuiltinThemes()` — register built-in themes (call once at startup)
-- `getBuiltinTheme(name)`, `getAvailableThemes()`, `isBuiltinTheme(name)`, `registerCustomTheme(name, config)`
+- `isBuiltinTheme(name)`, `registerCustomTheme(name, config)` — from `'react-use-echarts'`
+- `registerBuiltinThemes()`, `getBuiltinTheme(name)`, `getAvailableThemes()` — from `'react-use-echarts/themes/registry'` (separate entry, ~18KB theme JSON)
 - `useLazyInit(ref, options)` — standalone lazy init hook
 
 ## Gotchas
@@ -30,7 +30,7 @@ All `useEcharts` options as props + `style` (default `{ width: '100%', height: '
 - **`option` is reactive** — changes auto-trigger `setOption`, no manual call needed
 - **Custom theme objects must be memoized** — use `useMemo` to avoid instance recreation
 - **`initOpts` changes recreate the instance** — don't pass inline objects
-- **Built-in themes need registration** — call `registerBuiltinThemes()` before using `"light"`, `"dark"`, `"macarons"`
+- **Built-in themes need registration** — `import { registerBuiltinThemes } from 'react-use-echarts/themes/registry'` and call once before using `"light"`, `"dark"`, `"macarons"`
 - **`onEvents` supports two forms** — shorthand `(params) => void` or full `{ handler, query?, context? }`
 - **Chart linkage** — same `group` string syncs tooltips/highlights across charts
 

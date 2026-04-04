@@ -95,7 +95,7 @@ function MyChart() {
 Built-in themes require one-time registration at app startup:
 
 ```tsx
-import { registerBuiltinThemes } from "react-use-echarts";
+import { registerBuiltinThemes } from "react-use-echarts/themes/registry";
 registerBuiltinThemes();
 
 // Built-in theme
@@ -204,14 +204,15 @@ Declarative component wrapping `useEcharts`. Accepts all hook options as props p
 import { useLazyInit } from "react-use-echarts";
 const isInView = useLazyInit(elementRef, true);
 
-// Theme utilities
+// Theme utilities (lightweight, from main entry)
+import { isBuiltinTheme, registerCustomTheme } from "react-use-echarts";
+
+// Theme registry (separate entry, includes ~18KB theme JSON)
 import {
   registerBuiltinThemes, // () => void — register built-in themes
   getBuiltinTheme, // (name) => object | null
   getAvailableThemes, // () => ['light', 'dark', 'macarons']
-  isBuiltinTheme, // (name) => boolean
-  registerCustomTheme, // (name, config) => void
-} from "react-use-echarts";
+} from "react-use-echarts/themes/registry";
 
 // Types
 import type {
