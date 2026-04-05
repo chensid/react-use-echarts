@@ -155,7 +155,10 @@ useEcharts(chartRef2, { option: option2, group: "dashboard" });
 useEcharts(chartRef, { option, lazyInit: true });
 
 // 自定义 IntersectionObserver 配置
-useEcharts(chartRef, { option, lazyInit: { rootMargin: "200px", threshold: 0.5 } });
+useEcharts(chartRef, {
+  option,
+  lazyInit: { rootMargin: "200px", threshold: 0.5 },
+});
 ```
 
 ## API 参考
