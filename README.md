@@ -155,7 +155,10 @@ Defer chart init until the element scrolls into view:
 useEcharts(chartRef, { option, lazyInit: true });
 
 // Custom IntersectionObserver options
-useEcharts(chartRef, { option, lazyInit: { rootMargin: "200px", threshold: 0.5 } });
+useEcharts(chartRef, {
+  option,
+  lazyInit: { rootMargin: "200px", threshold: 0.5 },
+});
 ```
 
 ## API Reference
