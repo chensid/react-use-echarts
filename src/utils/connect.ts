@@ -11,6 +11,18 @@ type EChartsWithGroup = Omit<ECharts, "group"> & { group?: string };
 const groupRegistry = new Map<string, Set<ECharts>>();
 
 /**
+ * Remove disposed instances from group set
+ * 从组集合中移除已销毁的实例
+ */
+function pruneDisposed(group: Set<ECharts>): void {
+  for (const inst of group) {
+    if (inst.isDisposed()) {
+      group.delete(inst);
+    }
+  }
+}
+
+/**
  * Add chart instance to group
  * 将图表实例添加到组
  * @param instance ECharts instance
@@ -22,6 +34,7 @@ export function addToGroup(instance: ECharts, groupId: string): void {
     group = new Set();
     groupRegistry.set(groupId, group);
   }
+  pruneDisposed(group);
 
   (instance as EChartsWithGroup).group = groupId;
   group.add(instance);
@@ -44,8 +57,8 @@ export function removeFromGroup(instance: ECharts, groupId: string): void {
   if (!group) {
     return;
   }
-
   group.delete(instance);
+  pruneDisposed(group);
   if ((instance as EChartsWithGroup).group === groupId) {
     (instance as EChartsWithGroup).group = undefined;
   }
@@ -92,7 +105,9 @@ export function updateGroup(instance: ECharts, oldGroupId?: string, newGroupId?:
  */
 export function getGroupInstances(groupId: string): ECharts[] {
   const group = groupRegistry.get(groupId);
-  return group ? Array.from(group) : [];
+  if (!group) return [];
+  pruneDisposed(group);
+  return Array.from(group);
 }
 
 /**

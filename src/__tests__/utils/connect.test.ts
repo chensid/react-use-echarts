@@ -21,7 +21,7 @@ function createMockInstance() {
   return {
     ...createBaseMockInstance(),
     group: undefined,
-  } as unknown as echarts.ECharts;
+  } as unknown as echarts.ECharts & { isDisposed: ReturnType<typeof vi.fn> };
 }
 
 describe("connect utilities", () => {
@@ -240,6 +240,59 @@ describe("connect utilities", () => {
 
       // getInstanceGroup must iterate past groupA and groupB to find target in groupC
       expect(getInstanceGroup(target)).toBe("groupC");
+    });
+  });
+
+  describe("disposed instance filtering", () => {
+    it("should filter out disposed instances when getting group instances", () => {
+      const instance1 = createMockInstance();
+      const instance2 = createMockInstance();
+
+      addToGroup(instance1, "group1");
+      addToGroup(instance2, "group1");
+
+      instance1.isDisposed.mockReturnValue(true);
+
+      const instances = getGroupInstances("group1");
+      expect(instances).toHaveLength(1);
+      expect(instances).toContain(instance2);
+    });
+
+    it("should filter disposed instances when adding to group", () => {
+      const disposed = createMockInstance();
+      const alive = createMockInstance();
+      const newInst = createMockInstance();
+
+      addToGroup(disposed, "group1");
+      addToGroup(alive, "group1");
+
+      disposed.isDisposed.mockReturnValue(true);
+
+      addToGroup(newInst, "group1");
+
+      const instances = getGroupInstances("group1");
+      expect(instances).not.toContain(disposed);
+      expect(instances).toContain(alive);
+      expect(instances).toContain(newInst);
+    });
+
+    it("should filter disposed instances when removing from group", () => {
+      const disposed = createMockInstance();
+      const alive = createMockInstance();
+      const toRemove = createMockInstance();
+
+      addToGroup(disposed, "group1");
+      addToGroup(alive, "group1");
+      addToGroup(toRemove, "group1");
+
+      disposed.isDisposed.mockReturnValue(true);
+
+      removeFromGroup(toRemove, "group1");
+
+      const instances = getGroupInstances("group1");
+      expect(instances).not.toContain(disposed);
+      expect(instances).not.toContain(toRemove);
+      expect(instances).toContain(alive);
     });
   });
 
