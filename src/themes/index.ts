@@ -21,7 +21,6 @@ const customThemeCache = new WeakMap<object, string>();
  * object references carry identical theme content
  */
 const contentHashCache = new Map<string, string>();
-const CONTENT_HASH_CACHE_MAX_SIZE = 50;
 
 /**
  * Counter for generating unique custom theme names
@@ -86,12 +85,6 @@ export function getOrRegisterCustomTheme(themeConfig: object): string {
   const themeName = `__custom_theme_${customThemeCounter++}`;
   echarts.registerTheme(themeName, themeConfig);
   customThemeCache.set(themeConfig, themeName);
-  if (contentHashCache.size >= CONTENT_HASH_CACHE_MAX_SIZE) {
-    const oldestKey = contentHashCache.keys().next().value;
-    if (oldestKey !== undefined) {
-      contentHashCache.delete(oldestKey);
-    }
-  }
   contentHashCache.set(contentHash, themeName);
 
   return themeName;

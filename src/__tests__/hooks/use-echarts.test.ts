@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from "vite-plus/test";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vite-plus/test";
 import { renderHook, act, waitFor } from "@testing-library/react";
 import * as echarts from "echarts";
 import useEcharts from "../../hooks/use-echarts";
@@ -656,7 +656,7 @@ describe("useEcharts", () => {
       });
     });
 
-    it("should rethrow error when no onError is provided on option update", async () => {
+    it("should console.error when no onError is provided on option update", async () => {
       const element = document.createElement("div");
       const ref = { current: element };
       const mockInstance = createMockInstance(element);
@@ -664,6 +664,8 @@ describe("useEcharts", () => {
 
       const option1: EChartsOption = { series: [{ type: "line", data: [1, 2, 3] }] };
       const option2: EChartsOption = { series: [{ type: "bar", data: [4, 5, 6] }] };
+
+      const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
 
       const { rerender } = renderHook(({ option }) => useEcharts(ref, { option }), {
         initialProps: { option: option1 },
@@ -674,8 +676,44 @@ describe("useEcharts", () => {
         throw error;
       });
 
-      // The error should propagate (React will catch it)
-      expect(() => rerender({ option: option2 })).toThrow("setOption failed");
+      rerender({ option: option2 });
+
+      await waitFor(() => {
+        expect(errorSpy).toHaveBeenCalledWith("ECharts setOption failed:", error);
+      });
+
+      errorSpy.mockRestore();
+    });
+  });
+
+  describe("lastAppliedRef reset on re-init", () => {
+    it("should reapply same option object after theme-triggered re-init", async () => {
+      const element = document.createElement("div");
+      const ref = { current: element };
+      const mockInstance1 = createMockInstance(element);
+      const mockInstance2 = createMockInstance(element);
+      (echarts.init as ReturnType<typeof vi.fn>)
+        .mockReturnValueOnce(mockInstance1)
+        .mockReturnValueOnce(mockInstance2);
+
+      const stableOption: EChartsOption = {
+        series: [{ type: "line", data: [1, 2, 3] }],
+      };
+
+      const { rerender } = renderHook(
+        ({ theme }: { theme: BuiltinTheme }) => useEcharts(ref, { option: stableOption, theme }),
+        { initialProps: { theme: "light" as BuiltinTheme } },
+      );
+
+      expect(mockInstance1.setOption).toHaveBeenCalledWith(stableOption, undefined);
+
+      // Theme change triggers dispose + re-init
+      rerender({ theme: "dark" as BuiltinTheme });
+
+      // New instance must also get setOption even though option reference is same
+      await waitFor(() => {
+        expect(mockInstance2.setOption).toHaveBeenCalledWith(stableOption, undefined);
+      });
     });
   });
 
@@ -730,25 +768,102 @@ describe("useEcharts", () => {
       expect(resizeObserverInstances[0].disconnect).toHaveBeenCalled();
     });
 
-    it("should resize chart when ResizeObserver fires", () => {
-      const element = document.createElement("div");
-      const ref = { current: element };
-      const mockInstance = createMockInstance(element);
-      (echarts.init as ReturnType<typeof vi.fn>).mockReturnValue(mockInstance);
+    describe("RAF throttle", () => {
+      const originalRAF = globalThis.requestAnimationFrame;
+      const originalCAF = globalThis.cancelAnimationFrame;
 
-      renderHook(() => useEcharts(ref, { option: baseOption }));
-
-      // Trigger the ResizeObserver callback
-      const observer = resizeObserverInstances[0] as unknown as MockResizeObserver;
-      act(() => {
-        observer.callback(
-          [] as unknown as ResizeObserverEntry[],
-          observer as unknown as ResizeObserver,
-        );
+      afterEach(() => {
+        globalThis.requestAnimationFrame = originalRAF;
+        globalThis.cancelAnimationFrame = originalCAF;
       });
 
-      // resize is called from the ResizeObserver callback
-      expect(mockInstance.resize).toHaveBeenCalled();
+      it("should resize chart when ResizeObserver fires (via RAF)", () => {
+        const element = document.createElement("div");
+        const ref = { current: element };
+        const mockInstance = createMockInstance(element);
+        (echarts.init as ReturnType<typeof vi.fn>).mockReturnValue(mockInstance);
+
+        globalThis.requestAnimationFrame = vi.fn((cb: FrameRequestCallback) => {
+          cb(0);
+          return 1;
+        });
+
+        renderHook(() => useEcharts(ref, { option: baseOption }));
+
+        const observer = resizeObserverInstances[0] as unknown as MockResizeObserver;
+        act(() => {
+          observer.callback(
+            [] as unknown as ResizeObserverEntry[],
+            observer as unknown as ResizeObserver,
+          );
+        });
+
+        expect(globalThis.requestAnimationFrame).toHaveBeenCalled();
+        expect(mockInstance.resize).toHaveBeenCalled();
+      });
+
+      it("should debounce rapid ResizeObserver callbacks via cancelAnimationFrame", () => {
+        const element = document.createElement("div");
+        const ref = { current: element };
+        const mockInstance = createMockInstance(element);
+        (echarts.init as ReturnType<typeof vi.fn>).mockReturnValue(mockInstance);
+
+        let storedCallback: FrameRequestCallback | undefined;
+        let nextId = 1;
+        globalThis.requestAnimationFrame = vi.fn((cb: FrameRequestCallback) => {
+          storedCallback = cb;
+          return nextId++;
+        });
+        globalThis.cancelAnimationFrame = vi.fn();
+
+        renderHook(() => useEcharts(ref, { option: baseOption }));
+
+        const observer = resizeObserverInstances[0] as unknown as MockResizeObserver;
+
+        // Fire twice rapidly
+        act(() => {
+          observer.callback(
+            [] as unknown as ResizeObserverEntry[],
+            observer as unknown as ResizeObserver,
+          );
+          observer.callback(
+            [] as unknown as ResizeObserverEntry[],
+            observer as unknown as ResizeObserver,
+          );
+        });
+
+        // Second call should have cancelled the first RAF
+        expect(globalThis.cancelAnimationFrame).toHaveBeenCalledWith(1);
+        expect(globalThis.requestAnimationFrame).toHaveBeenCalledTimes(2);
+
+        // Execute the final RAF callback
+        storedCallback?.(0);
+        expect(mockInstance.resize).toHaveBeenCalledTimes(1);
+      });
+
+      it("should cancel pending RAF on unmount", () => {
+        const element = document.createElement("div");
+        const ref = { current: element };
+        const mockInstance = createMockInstance(element);
+        (echarts.init as ReturnType<typeof vi.fn>).mockReturnValue(mockInstance);
+
+        globalThis.requestAnimationFrame = vi.fn(() => 42);
+        globalThis.cancelAnimationFrame = vi.fn();
+
+        const { unmount } = renderHook(() => useEcharts(ref, { option: baseOption }));
+
+        const observer = resizeObserverInstances[0] as unknown as MockResizeObserver;
+        act(() => {
+          observer.callback(
+            [] as unknown as ResizeObserverEntry[],
+            observer as unknown as ResizeObserver,
+          );
+        });
+
+        unmount();
+
+        expect(globalThis.cancelAnimationFrame).toHaveBeenCalledWith(42);
+      });
     });
 
     it("should not create resize observer when autoResize is false", () => {

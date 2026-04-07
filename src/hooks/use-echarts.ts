@@ -88,6 +88,22 @@ function unbindEvents(instance: ECharts, events: EChartsEvents | undefined): voi
   }
 }
 
+/**
+ * Route error to onError callback or console.error.
+ * Used inside effects where throwing is not safe.
+ */
+function logError(
+  error: unknown,
+  message: string,
+  onError: ((e: unknown) => void) | undefined,
+): void {
+  if (onError) {
+    onError(error);
+  } else {
+    console.error(message, error);
+  }
+}
+
 // ---------- Hook ----------
 
 /**
@@ -225,11 +241,7 @@ function useEcharts(
           ...initOptsRef.current,
         });
       } catch (error) {
-        if (onErrorRef.current) {
-          onErrorRef.current(error);
-        } else {
-          console.error("ECharts init failed:", error);
-        }
+        logError(error, "ECharts init failed:", onErrorRef.current);
         return;
       }
       setCachedInstance(element, instance);
@@ -243,11 +255,7 @@ function useEcharts(
         opts: setOptionOptsRef.current,
       };
     } catch (error) {
-      if (onErrorRef.current) {
-        onErrorRef.current(error);
-      } else {
-        console.error("ECharts setOption failed:", error);
-      }
+      logError(error, "ECharts setOption failed:", onErrorRef.current);
     }
 
     // Apply loading state
@@ -267,6 +275,9 @@ function useEcharts(
 
     // Cleanup (handles StrictMode double mount via reference counting)
     return () => {
+      // Reset so Effect 2 re-applies option after re-init
+      lastAppliedRef.current = null;
+
       const inst = getCachedInstance(element);
       if (!inst) return;
 
@@ -304,11 +315,7 @@ function useEcharts(
       instance.setOption(option, setOptionOpts);
       lastAppliedRef.current = { option, opts: setOptionOpts };
     } catch (error) {
-      if (onErrorRef.current) {
-        onErrorRef.current(error);
-      } else {
-        throw error;
-      }
+      logError(error, "ECharts setOption failed:", onErrorRef.current);
     }
   }, [getInstance, option, setOptionOpts]);
 
@@ -366,10 +373,16 @@ function useEcharts(
     if (!element) return;
 
     let resizeObserver: ResizeObserver | undefined;
+    let rafId: number | undefined;
 
     try {
       resizeObserver = new ResizeObserver(() => {
-        getCachedInstance(element)?.resize();
+        if (rafId !== undefined) {
+          cancelAnimationFrame(rafId);
+        }
+        rafId = requestAnimationFrame(() => {
+          getCachedInstance(element)?.resize();
+        });
       });
       resizeObserver.observe(element);
     } catch (error) {
@@ -377,6 +390,9 @@ function useEcharts(
     }
 
     return () => {
+      if (rafId !== undefined) {
+        cancelAnimationFrame(rafId);
+      }
       resizeObserver?.disconnect();
     };
   }, [ref, autoResize]);

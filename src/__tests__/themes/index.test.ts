@@ -81,19 +81,22 @@ describe("themes utilities", () => {
       expect(echarts.registerTheme).toHaveBeenCalledTimes(2);
     });
 
-    it("should still work correctly after contentHashCache exceeds max size", () => {
-      // Register 55 unique themes to exceed the 50-entry cap
-      for (let i = 0; i < 55; i++) {
+    it("should deduplicate content even after many unique registrations", () => {
+      // Register 100 unique themes
+      for (let i = 0; i < 100; i++) {
         getOrRegisterCustomTheme({ color: [`#${String(i).padStart(6, "0")}`] });
       }
 
-      // Should still work correctly after cache clear
-      const theme = { color: ["#unique-after-clear"] };
-      const name = getOrRegisterCustomTheme(theme);
-      expect(name).toMatch(/__custom_theme_\d+/);
+      const callsBefore = (echarts.registerTheme as ReturnType<typeof vi.fn>).mock.calls.length;
 
-      // Same reference should still return the same name (WeakMap fast path)
-      const name2 = getOrRegisterCustomTheme(theme);
+      // A new reference with same content as theme #0 should NOT re-register
+      const duplicate = { color: [`#${String(0).padStart(6, "0")}`] };
+      const name = getOrRegisterCustomTheme(duplicate);
+      expect(name).toMatch(/__custom_theme_\d+/);
+      expect(echarts.registerTheme).toHaveBeenCalledTimes(callsBefore);
+
+      // WeakMap fast path still works for the new reference
+      const name2 = getOrRegisterCustomTheme(duplicate);
       expect(name2).toBe(name);
     });
   });

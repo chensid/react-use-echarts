@@ -10,6 +10,7 @@ export function createMockInstance(element?: HTMLElement) {
     off: vi.fn(),
     getDom: vi.fn(() => element),
     resize: vi.fn(),
+    isDisposed: vi.fn(() => false),
   };
 }
 
