@@ -73,19 +73,29 @@ export function getOrRegisterCustomTheme(themeConfig: object): string {
   }
 
   // Content-based dedup: different reference, same content
-  const contentHash = JSON.stringify(themeConfig);
-  const existingName = contentHashCache.get(contentHash);
-  if (existingName) {
-    // Cache the reference for fast lookup next time
-    customThemeCache.set(themeConfig, existingName);
-    return existingName;
+  let contentHash: string | undefined;
+  try {
+    contentHash = JSON.stringify(themeConfig);
+  } catch {
+    // Circular reference or non-serializable value: skip content dedup
+  }
+
+  if (contentHash) {
+    const existingName = contentHashCache.get(contentHash);
+    if (existingName) {
+      // Cache the reference for fast lookup next time
+      customThemeCache.set(themeConfig, existingName);
+      return existingName;
+    }
   }
 
   // Register new theme
   const themeName = `__custom_theme_${customThemeCounter++}`;
   echarts.registerTheme(themeName, themeConfig);
   customThemeCache.set(themeConfig, themeName);
-  contentHashCache.set(contentHash, themeName);
+  if (contentHash) {
+    contentHashCache.set(contentHash, themeName);
+  }
 
   return themeName;
 }

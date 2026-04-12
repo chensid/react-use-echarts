@@ -20,7 +20,7 @@ const EChart = forwardRef<UseEchartsReturn, EChartProps>(
     return (
       <div
         ref={containerRef}
-        style={{ width: "100%", height: "400px", ...style }}
+        style={{ width: "100%", height: "100%", minHeight: "400px", ...style }}
         className={className}
       />
     );
