@@ -23,6 +23,21 @@ function pruneDisposed(group: Set<ECharts>): void {
 }
 
 /**
+ * Synchronize ECharts connect/disconnect state after removing an instance.
+ * 移除实例后根据组大小同步 ECharts 的 connect/disconnect 状态。
+ */
+function syncGroupConnectivity(groupId: string, group: Set<ECharts>): void {
+  if (group.size === 0) {
+    groupRegistry.delete(groupId);
+    echarts.disconnect(groupId);
+  } else if (group.size === 1) {
+    echarts.disconnect(groupId);
+  } else {
+    echarts.connect(groupId);
+  }
+}
+
+/**
  * Add chart instance to group
  * 将图表实例添加到组
  * @param instance ECharts instance
@@ -39,7 +54,6 @@ export function addToGroup(instance: ECharts, groupId: string): void {
   (instance as EChartsWithGroup).group = groupId;
   group.add(instance);
 
-  // Connect all instances in the group
   if (group.size > 1) {
     echarts.connect(groupId);
   }
@@ -62,20 +76,7 @@ export function removeFromGroup(instance: ECharts, groupId: string): void {
   if ((instance as EChartsWithGroup).group === groupId) {
     (instance as EChartsWithGroup).group = undefined;
   }
-
-  // If group becomes empty, clean up
-  if (group.size === 0) {
-    groupRegistry.delete(groupId);
-    echarts.disconnect(groupId);
-  }
-  // If group has only one instance left, disconnect
-  else if (group.size === 1) {
-    echarts.disconnect(groupId);
-  }
-  // If group still has multiple instances, reconnect
-  else {
-    echarts.connect(groupId);
-  }
+  syncGroupConnectivity(groupId, group);
 }
 
 /**

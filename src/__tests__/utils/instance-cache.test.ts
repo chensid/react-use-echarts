@@ -94,6 +94,25 @@ describe("instance-cache utilities", () => {
     });
   });
 
+  describe("clearInstanceCache", () => {
+    it("should dispose all tracked instances", () => {
+      const el1 = document.createElement("div");
+      const el2 = document.createElement("div");
+      const instance1 = createMockInstance();
+      const instance2 = createMockInstance();
+
+      setCachedInstance(el1, instance1);
+      setCachedInstance(el2, instance2);
+
+      clearInstanceCache();
+
+      expect(instance1.dispose).toHaveBeenCalled();
+      expect(instance2.dispose).toHaveBeenCalled();
+      expect(getCachedInstance(el1)).toBeUndefined();
+      expect(getCachedInstance(el2)).toBeUndefined();
+    });
+  });
+
   describe("getReferenceCount", () => {
     it("should return 0 for uncached element", () => {
       const element = document.createElement("div");

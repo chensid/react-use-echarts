@@ -19,6 +19,15 @@ interface CacheEntry {
 let instanceCache = new WeakMap<HTMLElement, CacheEntry>();
 
 /**
+ * Parallel set to track cached elements for safe iteration on clear.
+ * WeakMap cannot be enumerated, so this Set allows clearInstanceCache
+ * to dispose all live instances before resetting the cache.
+ * 平行集合，用于在清除时安全遍历。WeakMap 无法枚举，
+ * 此 Set 使 clearInstanceCache 能在重置缓存前 dispose 所有存活实例。
+ */
+const trackedElements = new Set<HTMLElement>();
+
+/**
  * Get cached instance for element
  * 获取元素的缓存实例
  * @param element DOM element
@@ -48,6 +57,7 @@ export function setCachedInstance(element: HTMLElement, instance: ECharts): ECha
       instance,
       refCount: 1,
     });
+    trackedElements.add(element);
     return instance;
   }
 }
@@ -70,6 +80,7 @@ export function releaseCachedInstance(element: HTMLElement): void {
     // Dispose instance and remove from cache
     entry.instance.dispose();
     instanceCache.delete(element);
+    trackedElements.delete(element);
   }
 }
 
@@ -84,9 +95,16 @@ export function getReferenceCount(element: HTMLElement): number {
 }
 
 /**
- * Clear all cached instances (for testing/cleanup)
- * 清除所有缓存实例（用于测试/清理）
+ * Clear all cached instances, disposing any that are still alive.
+ * 清除所有缓存实例，dispose 所有仍存活的实例。
  */
 export function clearInstanceCache(): void {
+  for (const element of trackedElements) {
+    const entry = instanceCache.get(element);
+    if (entry) {
+      entry.instance.dispose();
+    }
+  }
+  trackedElements.clear();
   instanceCache = new WeakMap<HTMLElement, CacheEntry>();
 }

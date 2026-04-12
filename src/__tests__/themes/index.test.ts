@@ -81,6 +81,21 @@ describe("themes utilities", () => {
       expect(echarts.registerTheme).toHaveBeenCalledTimes(2);
     });
 
+    it("should handle circular reference theme objects without throwing", () => {
+      const circularTheme: Record<string, unknown> = { color: ["#ccc"] };
+      circularTheme.self = circularTheme;
+
+      const name1 = getOrRegisterCustomTheme(circularTheme);
+      expect(name1).toMatch(/__custom_theme_\d+/);
+      expect(echarts.registerTheme).toHaveBeenCalled();
+
+      // Same reference should return cached name
+      vi.clearAllMocks();
+      const name2 = getOrRegisterCustomTheme(circularTheme);
+      expect(name2).toBe(name1);
+      expect(echarts.registerTheme).not.toHaveBeenCalled();
+    });
+
     it("should deduplicate content even after many unique registrations", () => {
       // Register 100 unique themes
       for (let i = 0; i < 100; i++) {

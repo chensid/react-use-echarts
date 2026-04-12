@@ -41,7 +41,7 @@ describe("EChart component", () => {
     expect(echarts.init).toHaveBeenCalled();
   });
 
-  it("should apply default style (width 100%, height 400px)", () => {
+  it("should apply default style (width 100%, height 100%, minHeight 400px)", () => {
     (echarts.init as ReturnType<typeof vi.fn>).mockImplementation((el: HTMLElement) =>
       createMockInstance(el),
     );
@@ -52,7 +52,8 @@ describe("EChart component", () => {
 
     const div = container.firstChild as HTMLDivElement;
     expect(div.style.width).toBe("100%");
-    expect(div.style.height).toBe("400px");
+    expect(div.style.height).toBe("100%");
+    expect(div.style.minHeight).toBe("400px");
   });
 
   it("should merge custom style with defaults", () => {

@@ -1,20 +1,19 @@
-import { useEffect, useRef, useCallback, useLayoutEffect, useMemo } from "react";
-import * as echarts from "echarts";
+import { useRef, useCallback, useLayoutEffect, useMemo } from "react";
 import type { ECharts, SetOptionOpts, EChartsOption } from "echarts";
-import type {
-  UseEchartsOptions,
-  UseEchartsReturn,
-  EChartsEvents,
-  EChartsEventConfig,
-} from "../types";
+import type { UseEchartsOptions, UseEchartsReturn, EChartsEvents } from "../types";
 import { useLazyInit } from "./use-lazy-init";
-import {
-  getCachedInstance,
-  setCachedInstance,
-  releaseCachedInstance,
-} from "../utils/instance-cache";
-import { updateGroup, getInstanceGroup } from "../utils/connect";
-import { getOrRegisterCustomTheme } from "../themes";
+import { getCachedInstance } from "../utils/instance-cache";
+import { useInstanceLifecycle } from "./internal/use-instance-lifecycle";
+import { useOptionSync } from "./internal/use-option-sync";
+import type { LastApplied } from "./internal/types";
+import { useLoading } from "./internal/use-loading";
+import { useEvents } from "./internal/use-events";
+import { useGroup } from "./internal/use-group";
+import { useResizeObserver } from "./internal/use-resize-observer";
+
+// Stable IDs for theme objects that cannot be JSON-serialized (e.g. circular references)
+const circularThemeIds = new WeakMap<object, string>();
+let circularIdCounter = 0;
 
 /**
  * Pure computation of a stable identity key for theme (no side effects).
@@ -28,80 +27,20 @@ import { getOrRegisterCustomTheme } from "../themes";
 function computeThemeKey(theme: string | object | null | undefined): string | null {
   if (theme == null) return null;
   if (typeof theme === "string") return theme;
-  if (typeof theme === "object") return JSON.stringify(theme);
-  return null;
-}
-
-/**
- * Resolve theme to a registered ECharts theme name (has side effects).
- * Must only be called inside effects, not during render.
- * 将主题解析为已注册的 ECharts 主题名称（有副作用）。
- * 仅可在 effect 内部调用，不可在渲染阶段调用。
- */
-function resolveThemeName(theme: string | object | null | undefined): string | null {
-  if (theme == null) return null;
-  if (typeof theme === "string") return theme;
-  if (typeof theme === "object") return getOrRegisterCustomTheme(theme);
-  return null;
-}
-
-/**
- * Normalize event config to full object form
- * 将事件配置标准化为完整对象形式
- */
-function normalizeEventConfig(config: EChartsEventConfig): {
-  handler: (params: unknown) => void;
-  query?: string | object;
-  context?: object;
-} {
-  if (typeof config === "function") {
-    return { handler: config };
-  }
-  return config;
-}
-
-/**
- * Bind events to ECharts instance
- * 绑定事件到 ECharts 实例
- */
-function bindEvents(instance: ECharts, events: EChartsEvents | undefined): void {
-  if (!events) return;
-  for (const [eventName, config] of Object.entries(events)) {
-    const { handler, query, context } = normalizeEventConfig(config);
-    if (query) {
-      instance.on(eventName, query, handler, context);
-    } else {
-      instance.on(eventName, handler, context);
+  if (typeof theme === "object") {
+    try {
+      return JSON.stringify(theme);
+    } catch {
+      // Circular reference: assign a stable ID via WeakMap
+      let id = circularThemeIds.get(theme);
+      if (!id) {
+        id = `__circular_${circularIdCounter++}`;
+        circularThemeIds.set(theme, id);
+      }
+      return id;
     }
   }
-}
-
-/**
- * Unbind events from ECharts instance
- * 从 ECharts 实例解绑事件
- */
-function unbindEvents(instance: ECharts, events: EChartsEvents | undefined): void {
-  if (!events) return;
-  for (const [eventName, config] of Object.entries(events)) {
-    const { handler } = normalizeEventConfig(config);
-    instance.off(eventName, handler);
-  }
-}
-
-/**
- * Route error to onError callback or console.error.
- * Used inside effects where throwing is not safe.
- */
-function logError(
-  error: unknown,
-  message: string,
-  onError: ((e: unknown) => void) | undefined,
-): void {
-  if (onError) {
-    onError(error);
-  } else {
-    console.error(message, error);
-  }
+  return null;
 }
 
 // ---------- Hook ----------
@@ -162,9 +101,7 @@ function useEcharts(
 
   // Track what option/opts was last applied by init effect,
   // used to prevent duplicate setOption call from the option update effect
-  const lastAppliedRef = useRef<{ option: EChartsOption; opts: SetOptionOpts | undefined } | null>(
-    null,
-  );
+  const lastAppliedRef = useRef<LastApplied | null>(null);
 
   // Lazy initialization
   const shouldInit = useLazyInit(ref, lazyInit);
@@ -176,8 +113,6 @@ function useEcharts(
 
   // Stable identity key for initOpts (same pattern as themeKey).
   // Prevents infinite re-init when users pass inline objects.
-  // 稳定的 initOpts 标识键（与 themeKey 同模式），
-  // 避免用户传入内联对象时 effect 无限重跑。
   const initOptsKey = useMemo(() => (initOpts ? JSON.stringify(initOpts) : null), [initOpts]);
 
   // --- Public API ---
@@ -209,193 +144,36 @@ function useEcharts(
     getInstance()?.resize();
   }, [getInstance]);
 
-  // =====================================================================
-  // Effect 1: INSTANCE LIFECYCLE (init / recreate / cleanup)
-  //
-  // Depends on: shouldInit, ref, themeKey, renderer, initOpts
-  // When theme or renderer changes, cleanup disposes the old instance
-  // and the effect re-runs to create a new one with the new config.
-  // All instance state (option, events, loading, group) is re-applied.
-  // =====================================================================
-  useLayoutEffect(() => {
-    if (!shouldInit) return;
+  // --- Internal effects (one hook per responsibility) ---
 
-    const element = ref.current;
-    if (!element) return;
+  useInstanceLifecycle(
+    ref,
+    shouldInit,
+    themeKey,
+    renderer,
+    initOptsKey,
+    optionRef,
+    setOptionOptsRef,
+    showLoadingRef,
+    loadingOptionRef,
+    onEventsRef,
+    groupRef,
+    onErrorRef,
+    themeRef,
+    initOptsRef,
+    lastAppliedRef,
+    boundEventsRef,
+  );
 
-    // Resolve theme: strings pass through; custom objects get registered
-    // (side effect safe inside effects). Read from ref to avoid closure capture.
-    const resolvedTheme = resolveThemeName(themeRef.current);
+  useOptionSync(getInstance, option, setOptionOpts, lastAppliedRef, onErrorRef);
 
-    // Re-use existing instance if another hook (or StrictMode re-mount)
-    // already owns this element, avoiding a redundant init + dispose cycle.
-    const existing = getCachedInstance(element);
-    let instance: ECharts;
-    if (existing) {
-      instance = existing;
-      setCachedInstance(element, existing); // bump ref count
-    } else {
-      try {
-        instance = echarts.init(element, resolvedTheme, {
-          renderer,
-          ...initOptsRef.current,
-        });
-      } catch (error) {
-        logError(error, "ECharts init failed:", onErrorRef.current);
-        return;
-      }
-      setCachedInstance(element, instance);
-    }
+  useLoading(getInstance, showLoading, loadingOption);
 
-    // Apply initial option
-    try {
-      instance.setOption(optionRef.current, setOptionOptsRef.current);
-      lastAppliedRef.current = {
-        option: optionRef.current,
-        opts: setOptionOptsRef.current,
-      };
-    } catch (error) {
-      logError(error, "ECharts setOption failed:", onErrorRef.current);
-    }
+  useEvents(getInstance, onEvents, boundEventsRef);
 
-    // Apply loading state
-    if (showLoadingRef.current) {
-      instance.showLoading(loadingOptionRef.current);
-    }
+  useGroup(getInstance, group);
 
-    // Bind events
-    bindEvents(instance, onEventsRef.current);
-    boundEventsRef.current = onEventsRef.current;
-
-    // Join group
-    const currentGroup = groupRef.current;
-    if (currentGroup) {
-      updateGroup(instance, undefined, currentGroup);
-    }
-
-    // Cleanup (handles StrictMode double mount via reference counting)
-    return () => {
-      // Reset so Effect 2 re-applies option after re-init
-      lastAppliedRef.current = null;
-
-      const inst = getCachedInstance(element);
-      if (!inst) return;
-
-      // Leave group
-      const instGroup = getInstanceGroup(inst);
-      if (instGroup) {
-        updateGroup(inst, instGroup, undefined);
-      }
-
-      // Unbind events
-      unbindEvents(inst, boundEventsRef.current);
-      boundEventsRef.current = undefined;
-
-      // Release (dispose when ref count reaches 0)
-      releaseCachedInstance(element);
-    };
-  }, [shouldInit, ref, themeKey, renderer, initOptsKey]);
-
-  // =====================================================================
-  // Effect 2: OPTION UPDATES
-  //
-  // Runs when option or setOptionOpts changes after initialization.
-  // Uses lastAppliedRef to skip the first run after init effect
-  // (which already applied the same option).
-  // =====================================================================
-  useEffect(() => {
-    const instance = getInstance();
-    if (!instance) return;
-
-    // Skip if init effect already applied this exact option
-    const last = lastAppliedRef.current;
-    if (last && last.option === option && last.opts === setOptionOpts) return;
-
-    try {
-      instance.setOption(option, setOptionOpts);
-      lastAppliedRef.current = { option, opts: setOptionOpts };
-    } catch (error) {
-      logError(error, "ECharts setOption failed:", onErrorRef.current);
-    }
-  }, [getInstance, option, setOptionOpts]);
-
-  // =====================================================================
-  // Effect 3: LOADING STATE
-  // =====================================================================
-  useEffect(() => {
-    const instance = getInstance();
-    if (!instance) return;
-
-    if (showLoading) {
-      instance.showLoading(loadingOption);
-    } else {
-      instance.hideLoading();
-    }
-  }, [getInstance, showLoading, loadingOption]);
-
-  // =====================================================================
-  // Effect 4: EVENT REBINDING
-  //
-  // When onEvents reference changes, unbind old and bind new handlers.
-  // =====================================================================
-  useEffect(() => {
-    const instance = getInstance();
-    if (!instance) return;
-
-    // Same reference — already bound
-    if (boundEventsRef.current === onEvents) return;
-
-    unbindEvents(instance, boundEventsRef.current);
-    bindEvents(instance, onEvents);
-    boundEventsRef.current = onEvents;
-  }, [getInstance, onEvents]);
-
-  // =====================================================================
-  // Effect 5: GROUP CHANGES
-  // =====================================================================
-  useEffect(() => {
-    const instance = getInstance();
-    if (!instance) return;
-
-    const currentGroup = getInstanceGroup(instance);
-    if (currentGroup === group) return;
-
-    updateGroup(instance, currentGroup, group);
-  }, [getInstance, group]);
-
-  // =====================================================================
-  // Effect 6: RESIZE OBSERVER
-  // =====================================================================
-  useEffect(() => {
-    if (!autoResize) return;
-
-    const element = ref.current;
-    if (!element) return;
-
-    let resizeObserver: ResizeObserver | undefined;
-    let rafId: number | undefined;
-
-    try {
-      resizeObserver = new ResizeObserver(() => {
-        if (rafId !== undefined) {
-          cancelAnimationFrame(rafId);
-        }
-        rafId = requestAnimationFrame(() => {
-          getCachedInstance(element)?.resize();
-        });
-      });
-      resizeObserver.observe(element);
-    } catch (error) {
-      console.warn("ResizeObserver not available:", error);
-    }
-
-    return () => {
-      if (rafId !== undefined) {
-        cancelAnimationFrame(rafId);
-      }
-      resizeObserver?.disconnect();
-    };
-  }, [ref, autoResize]);
+  useResizeObserver(ref, autoResize);
 
   return useMemo(() => ({ setOption, getInstance, resize }), [setOption, getInstance, resize]);
 }
