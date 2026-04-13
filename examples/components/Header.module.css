@@ -1,0 +1,50 @@
+.bar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 30;
+  height: var(--header-height);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 20px;
+  background: var(--c-bg);
+  border-bottom: 1px solid var(--c-border);
+}
+
+.left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.logo {
+  flex-shrink: 0;
+}
+
+.name {
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.burger {
+  display: none;
+  padding: 6px;
+  border: 0;
+  background: none;
+  color: var(--c-text);
+}
+
+@media (max-width: 860px) {
+  .burger {
+    display: flex;
+  }
+}

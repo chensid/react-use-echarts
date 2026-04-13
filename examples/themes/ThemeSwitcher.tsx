@@ -34,21 +34,19 @@ const ThemeSwitcher: React.FC = () => {
 
   return (
     <div>
-      <div style={{ marginBottom: "8px" }}>
+      <div className="controls">
         {THEMES.map((t, i) => (
           <button
             key={t}
             onClick={() => setThemeIndex(i)}
-            style={{
-              marginRight: "8px",
-              fontWeight: i === themeIndex ? "bold" : "normal",
-            }}
+            className="btn"
+            style={{ fontWeight: i === themeIndex ? 700 : 400 }}
           >
             {t}
           </button>
         ))}
       </div>
-      <div ref={chartRef} style={{ width: "100%", height: "400px" }} />
+      <div ref={chartRef} className="chart-container" />
     </div>
   );
 };

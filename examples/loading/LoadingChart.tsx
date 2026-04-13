@@ -22,10 +22,10 @@ const LoadingChart: React.FC = () => {
 
   return (
     <div>
-      <button onClick={() => setLoading((prev) => !prev)} style={{ marginBottom: "8px" }}>
+      <button type="button" className="btn" onClick={() => setLoading((prev) => !prev)}>
         {loading ? "Hide Loading" : "Show Loading"}
       </button>
-      <div ref={chartRef} style={{ width: "100%", height: "400px" }} />
+      <div ref={chartRef} className="chart-container" style={{ marginTop: 10 }} />
     </div>
   );
 };

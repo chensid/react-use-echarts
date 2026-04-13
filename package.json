@@ -55,6 +55,7 @@
   "scripts": {
     "dev": "vp dev",
     "build": "vp build",
+    "build:pages": "vp build",
     "pack": "vp pack",
     "test": "vp test",
     "coverage": "vp test run --coverage",
@@ -67,6 +68,8 @@
   "devDependencies": {
     "@babel/core": "^7.29.0",
     "@rolldown/plugin-babel": "^0.2.2",
+    "@shikijs/langs": "^4.0.2",
+    "@shikijs/themes": "^4.0.2",
     "@testing-library/react": "^16.3.2",
     "@types/node": "^25.6.0",
     "@types/react": "^19.2.14",
@@ -78,6 +81,7 @@
     "jsdom": "^29.0.2",
     "react": "^19.2.5",
     "react-dom": "^19.2.5",
+    "shiki": "^4.0.2",
     "typescript": "~6.0.2",
     "vite": "npm:@voidzero-dev/vite-plus-core@^0.1.16",
     "vite-plus": "^0.1.16",

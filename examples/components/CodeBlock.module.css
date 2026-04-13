@@ -1,0 +1,45 @@
+.wrapper {
+  border: 1px solid var(--c-border);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+.toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 10px;
+  background: var(--c-surface-dim);
+  border-bottom: 1px solid var(--c-border);
+}
+
+.lang {
+  font-size: 11px;
+  font-family: var(--mono);
+  font-weight: 600;
+  text-transform: uppercase;
+  color: var(--c-text-2);
+}
+
+.block {
+  overflow: auto;
+}
+
+.fallback {
+  margin: 0;
+  padding: 12px;
+  font-size: 13px;
+  white-space: pre;
+}
+
+.block :global(.shiki) {
+  margin: 0 !important;
+  padding: 12px !important;
+  border-radius: 0 !important;
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.block :global(.shiki code) {
+  font-family: var(--mono);
+}
