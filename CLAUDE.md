@@ -31,36 +31,54 @@ src/
 ├── index.ts                    # Package entry, re-exports everything
 ├── components/EChart.tsx       # Declarative component wrapping useEcharts
 ├── hooks/
-│   ├── use-echarts.ts          # Core hook (6 internal effects)
-│   └── use-lazy-init.ts        # IntersectionObserver hook
+│   ├── use-echarts.ts          # Orchestrator hook (loading, group effects + delegates to internal hooks)
+│   ├── use-lazy-init.ts        # IntersectionObserver hook
+│   └── internal/
+│       ├── use-chart-core.ts   # Core: instance lifecycle + option sync + event rebinding (3 effects)
+│       ├── use-resize-observer.ts # ResizeObserver auto-resize (1 effect)
+│       └── event-utils.ts      # Pure functions: bindEvents / unbindEvents
 ├── themes/
 │   ├── index.ts                # Lightweight theme utilities (no JSON)
 │   ├── registry.ts             # Built-in theme registration (imports JSON)
 │   └── presets/                # Built-in theme JSON (light/dark/macarons)
 ├── utils/
 │   ├── instance-cache.ts       # WeakMap instance cache + reference counting
-│   └── connect.ts              # Chart group linkage logic
+│   ├── connect.ts              # Chart group linkage logic
+│   └── shallow-equal.ts        # Shallow equality for option deduplication
 ├── types/index.ts              # All type definitions
 └── __tests__/                  # Mirror structure: components/, hooks/, themes/, utils/
 ```
 
 ## Architecture
 
-### useEcharts — 6 Effects by Responsibility
+### Hook Decomposition — 6 Effects Across 3 Modules
 
-1. **Instance Lifecycle** (`useLayoutEffect`) — reuse cached or create instance, initial setOption, events, loading, group
-2. **Option Updates** (`useEffect`) — call `setOption` when option changes
-3. **Loading State** (`useEffect`) — toggle loading
-4. **Event Rebinding** (`useEffect`) — unbind old, bind new when `onEvents` changes
+Effects are split by **coupling boundaries**, not mechanically by count:
+
+**`useChartCore`** (3 tightly-coupled effects sharing internal state):
+
+1. **Instance Lifecycle** (`useLayoutEffect`) — create/dispose instance, apply initial option, events, loading, group
+2. **Option Updates** (`useEffect`) — call `setOption` when option changes (dedup via `shallowEqual` + `lastAppliedRef`)
+3. **Event Rebinding** (`useEffect`) — unbind old, bind new when `onEvents` changes (via `boundEventsRef`)
+
+**`useEcharts` orchestrator** (2 trivial independent effects):
+
+4. **Loading State** (`useEffect`) — toggle `showLoading` / `hideLoading`
 5. **Group Changes** (`useEffect`) — switch chart group dynamically
-6. **Resize Observer** (`useEffect`) — create/destroy ResizeObserver
+
+**`useResizeObserver`** (1 fully independent effect):
+
+6. **Resize Observer** (`useEffect`) — create/destroy ResizeObserver with RAF throttle
 
 ### Key Design Patterns
 
 - Ref passed in by caller — hook does not create refs internally
+- `useChartCore` owns all shared state internally — `lastAppliedRef`, `boundEventsRef`, and 9 synced refs never leak to callers
+- `useChartCore(ref, shouldInit, config)` — 3-parameter API via config object
 - WeakMap instance cache + reference counting — supports StrictMode double mount/unmount
-- initOpts serialized to stable key — prevents instance recreation from inline objects
-- Two-level theme cache — custom theme objects auto-deduplicated
+- initOpts / theme serialized to stable keys — prevents instance recreation from inline objects
+- Two-level theme cache — custom theme objects auto-deduplicated (with circular reference protection)
+- `shallowEqual` on option updates — avoids unnecessary `setOption` when top-level keys are identical
 - Memoized return value — `useMemo` ensures referential stability
 - React Compiler enabled via `@vitejs/plugin-react` + `@rolldown/plugin-babel`
 
