@@ -1,6 +1,12 @@
 import * as echarts from "echarts";
 import type { ECharts } from "echarts";
 
+/**
+ * ECharts documents `instance.group = 'xxx'` as the standard pattern for
+ * group assignment (see echarts.apache.org/en/api.html#bindGroup).
+ * The TypeScript declaration has a @readonly JSDoc tag, but the property is
+ * intentionally writable at runtime. This cast is the official usage pattern.
+ */
 type EChartsWithGroup = Omit<ECharts, "group"> & { group?: string };
 
 /**

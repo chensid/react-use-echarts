@@ -10,6 +10,7 @@ import {
 import { clearGroups, getGroupInstances } from "../../utils/connect";
 import type { EChartsOption } from "echarts";
 import type { BuiltinTheme } from "../../types";
+import { clearThemeCache } from "../../themes";
 import { createMockInstance, MockResizeObserver, MockIntersectionObserver } from "../helpers";
 
 // Mock ECharts
@@ -37,6 +38,7 @@ describe("useEcharts", () => {
   beforeEach(() => {
     clearInstanceCache();
     clearGroups();
+    clearThemeCache();
     resizeObserverInstances = [];
     vi.clearAllMocks();
   });
@@ -1149,6 +1151,24 @@ describe("useEcharts", () => {
       expect(echarts.init).not.toHaveBeenCalled();
       // The existing instance should still be used (setOption called on it)
       expect(existingInstance.setOption).toHaveBeenCalledWith(baseOption, undefined);
+    });
+
+    it("should warn in development when reusing cached instance from another consumer", () => {
+      const element = document.createElement("div");
+      const ref = { current: element };
+      const existingInstance = createMockInstance(element);
+
+      setCachedInstance(element, existingInstance as never);
+
+      const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+
+      renderHook(() => useEcharts(ref, { option: baseOption }));
+
+      expect(warnSpy).toHaveBeenCalledWith(
+        expect.stringContaining("multiple hooks share the same DOM element"),
+      );
+
+      warnSpy.mockRestore();
     });
   });
 

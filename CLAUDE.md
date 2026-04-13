@@ -2,7 +2,7 @@
 
 React hooks library for Apache ECharts. Hook + declarative component, TypeScript, zero runtime deps.
 
-- **Peer deps:** React 19.2+, ECharts 6.x | **CSR only** | **Package manager:** pnpm
+- **Peer deps:** React 19+, ECharts 6.x | **CSR only** | **Package manager:** pnpm
 
 ## Vite+ Toolchain
 
@@ -72,10 +72,11 @@ All instance-related state lives in `useChartCore`; the orchestrator has zero ef
 - Ref passed in by caller — hook does not create refs internally
 - `useChartCore` owns all shared state internally — `lastAppliedRef`, `boundEventsRef`, and 9 synced refs never leak to callers
 - `useChartCore(ref, shouldInit, config)` — 3-parameter API via config object
-- WeakMap instance cache + reference counting — supports StrictMode double mount/unmount
+- WeakMap instance cache + reference counting — safe under StrictMode (instance recreated cleanly; refCount prevents premature disposal when multiple consumers share an element)
 - initOpts / theme serialized to stable keys — prevents instance recreation from inline objects
-- Two-level theme cache — custom theme objects auto-deduplicated (with circular reference protection)
+- Two-level theme cache — custom theme objects auto-deduplicated (with circular reference protection); `contentHash` param avoids double JSON.stringify
 - `shallowEqual` on option updates — avoids unnecessary `setOption` when top-level keys are identical
+- `eventsEqual` on event rebinding — avoids unnecessary unbind/rebind when inline event objects have identical handlers
 - Memoized return value — `useMemo` ensures referential stability
 - React Compiler enabled via `@vitejs/plugin-react` + `@rolldown/plugin-babel`
 

@@ -45,7 +45,7 @@ export default defineConfig({
       format: ["esm", "umd"],
       dts: { build: true },
       platform: "browser",
-      globalName: "react-use-echarts",
+      globalName: "ReactUseEcharts",
       outputOptions: {
         globals: {
           react: "React",

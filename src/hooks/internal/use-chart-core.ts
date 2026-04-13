@@ -1,7 +1,7 @@
 import { useEffect, useRef, useCallback, useLayoutEffect, useMemo } from "react";
 import * as echarts from "echarts";
 import type { ECharts, SetOptionOpts, EChartsOption } from "echarts";
-import type { EChartsEvents, EChartsInitOpts, UseEchartsOptions } from "../../types";
+import type { EChartsEvents, EChartsInitOpts, UseEchartsOptions, LoadingOption } from "../../types";
 import {
   getCachedInstance,
   setCachedInstance,
@@ -10,7 +10,7 @@ import {
 import { updateGroup, getInstanceGroup } from "../../utils/connect";
 import { getOrRegisterCustomTheme } from "../../themes";
 import { shallowEqual } from "../../utils/shallow-equal";
-import { bindEvents, unbindEvents } from "./event-utils";
+import { bindEvents, unbindEvents, eventsEqual } from "./event-utils";
 
 // --- Module-level helpers ---
 
@@ -44,11 +44,22 @@ function computeThemeKey(theme: string | object | null | undefined): string | nu
  * Resolve theme to a registered ECharts theme name (has side effects).
  * Must only be called inside effects, not during render.
  * 将主题解析为已注册的 ECharts 主题名称（有副作用，仅可在 effect 内调用）。
+ *
+ * @param themeKey Pre-computed key from computeThemeKey — passed as contentHash
+ *   to avoid redundant JSON.stringify inside getOrRegisterCustomTheme.
  */
-function resolveThemeName(theme: string | object | null | undefined): string | null {
+function resolveThemeName(
+  theme: string | object | null | undefined,
+  themeKey: string | null,
+): string | null {
   if (theme == null) return null;
   if (typeof theme === "string") return theme;
-  if (typeof theme === "object") return getOrRegisterCustomTheme(theme);
+  if (typeof theme === "object") {
+    // Only forward themeKey as contentHash when it's a real JSON serialization,
+    // not a circular-reference fallback ID (e.g. "__circular_0").
+    const contentHash = themeKey && !themeKey.startsWith("__circular_") ? themeKey : undefined;
+    return getOrRegisterCustomTheme(theme, contentHash);
+  }
   return null;
 }
 
@@ -78,7 +89,7 @@ export interface ChartCoreConfig {
   initOpts?: EChartsInitOpts;
   setOptionOpts?: SetOptionOpts;
   showLoading?: boolean;
-  loadingOption?: Record<string, unknown>;
+  loadingOption?: LoadingOption;
   onEvents?: EChartsEvents;
   group?: string;
   onError?: (e: unknown) => void;
@@ -185,11 +196,18 @@ export function useChartCore(
     const element = ref.current;
     if (!element) return;
 
-    const resolvedTheme = resolveThemeName(themeRef.current);
+    const resolvedTheme = resolveThemeName(themeRef.current, themeKey);
 
     const existing = getCachedInstance(element);
     let instance: ECharts;
     if (existing) {
+      /* v8 ignore next 4 -- dev-only warning, production branch untestable */
+      if (process.env.NODE_ENV !== "production") {
+        console.warn(
+          "react-use-echarts: multiple hooks share the same DOM element. " +
+            "Theme/renderer/initOpts changes will not take effect on the shared instance.",
+        );
+      }
       instance = existing;
       setCachedInstance(element, existing);
     } else {
@@ -278,7 +296,7 @@ export function useChartCore(
     const instance = getInstance();
     if (!instance) return;
 
-    if (boundEventsRef.current === onEvents) return;
+    if (eventsEqual(boundEventsRef.current, onEvents)) return;
 
     unbindEvents(instance, boundEventsRef.current);
     bindEvents(instance, onEvents);

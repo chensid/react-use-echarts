@@ -1,6 +1,11 @@
 import { describe, it, expect, vi, beforeEach } from "vite-plus/test";
 import * as echarts from "echarts";
-import { isBuiltinTheme, registerCustomTheme, getOrRegisterCustomTheme } from "../../themes";
+import {
+  isBuiltinTheme,
+  registerCustomTheme,
+  getOrRegisterCustomTheme,
+  clearThemeCache,
+} from "../../themes";
 
 // Mock ECharts
 vi.mock("echarts", () => ({
@@ -9,6 +14,7 @@ vi.mock("echarts", () => ({
 
 describe("themes utilities", () => {
   beforeEach(() => {
+    clearThemeCache();
     vi.clearAllMocks();
   });
 
@@ -127,6 +133,40 @@ describe("themes utilities", () => {
       const callsBefore = (echarts.registerTheme as ReturnType<typeof vi.fn>).mock.calls.length;
       getOrRegisterCustomTheme(evicted);
       expect(echarts.registerTheme).toHaveBeenCalledTimes(callsBefore + 1);
+    });
+
+    it("should use pre-computed contentHash and skip internal JSON.stringify", () => {
+      const theme = { color: ["#precomputed"] };
+      const hash = JSON.stringify(theme);
+
+      const name = getOrRegisterCustomTheme(theme, hash);
+      expect(name).toMatch(/__custom_theme_\d+/);
+      expect(echarts.registerTheme).toHaveBeenCalledTimes(1);
+
+      // Different reference, same content, passing the same hash
+      vi.clearAllMocks();
+      const theme2 = { color: ["#precomputed"] };
+      const name2 = getOrRegisterCustomTheme(theme2, hash);
+      expect(name2).toBe(name);
+      expect(echarts.registerTheme).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("clearThemeCache", () => {
+    it("should reset counter so next theme gets __custom_theme_0", () => {
+      getOrRegisterCustomTheme({ reset: ["#000"] });
+      clearThemeCache();
+      const name = getOrRegisterCustomTheme({ fresh: ["#111"] });
+      expect(name).toBe("__custom_theme_0");
+    });
+
+    it("should clear content hash cache so identical content re-registers", () => {
+      getOrRegisterCustomTheme({ dup: ["#aaa"] });
+      clearThemeCache();
+      vi.clearAllMocks();
+      // New object with same content should register again after cache clear
+      getOrRegisterCustomTheme({ dup: ["#aaa"] });
+      expect(echarts.registerTheme).toHaveBeenCalledTimes(1);
     });
   });
 });
