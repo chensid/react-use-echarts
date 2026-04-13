@@ -12,6 +12,7 @@ import type { UseEchartsReturn } from "../types";
  * <EChart option={{ series: [{ type: 'line', data: [1,2,3] }] }} />
  * ```
  */
+/* v8 ignore next 2 -- forwardRef wrapper generates false uncovered branches in v8 */
 const EChart = forwardRef<UseEchartsReturn, EChartProps>(
   ({ style, className, ...options }, ref) => {
     const containerRef = useRef<HTMLDivElement>(null);
