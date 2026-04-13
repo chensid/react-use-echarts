@@ -162,6 +162,7 @@ describe("useEcharts", () => {
       renderHook(() => useEcharts(ref, { option: baseOption, showLoading: true }));
 
       expect(mockInstance.showLoading).toHaveBeenCalled();
+      expect(mockInstance.showLoading).toHaveBeenCalledTimes(1);
     });
 
     it("should pass loading options", () => {
@@ -247,6 +248,22 @@ describe("useEcharts", () => {
       renderHook(() => useEcharts(ref, { option: baseOption, onEvents }));
 
       expect(mockInstance.on).toHaveBeenCalledWith("click", "series", clickHandler, undefined);
+    });
+
+    it("should bind events with empty string query", () => {
+      const element = document.createElement("div");
+      const ref = { current: element };
+      const mockInstance = createMockInstance(element);
+      (echarts.init as ReturnType<typeof vi.fn>).mockReturnValue(mockInstance);
+
+      const clickHandler = vi.fn();
+      const onEvents = {
+        click: { handler: clickHandler, query: "" },
+      };
+
+      renderHook(() => useEcharts(ref, { option: baseOption, onEvents }));
+
+      expect(mockInstance.on).toHaveBeenCalledWith("click", "", clickHandler, undefined);
     });
 
     it("should bind events with context", () => {
