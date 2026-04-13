@@ -21,10 +21,14 @@ const groupRegistry = new Map<string, Set<ECharts>>();
  * 从组集合中移除已销毁的实例
  */
 function pruneDisposed(group: Set<ECharts>): void {
+  const disposedInstances: ECharts[] = [];
   for (const inst of group) {
     if (inst.isDisposed()) {
-      group.delete(inst);
+      disposedInstances.push(inst);
     }
+  }
+  for (const inst of disposedInstances) {
+    group.delete(inst);
   }
 }
 

@@ -7,15 +7,18 @@ describe("useLazyInit", () => {
   let mockDisconnect: ReturnType<typeof vi.fn>;
   let mockUnobserve: ReturnType<typeof vi.fn>;
   let intersectionCallback: (entries: { isIntersecting: boolean }[]) => void;
+  let lastConstructorOptions: IntersectionObserverInit | undefined;
 
   beforeEach(() => {
     mockObserve = vi.fn();
     mockDisconnect = vi.fn();
     mockUnobserve = vi.fn();
+    lastConstructorOptions = undefined;
 
     class MockIntersectionObserver {
-      constructor(callback: IntersectionObserverCallback) {
+      constructor(callback: IntersectionObserverCallback, options?: IntersectionObserverInit) {
         intersectionCallback = callback as (entries: { isIntersecting: boolean }[]) => void;
+        lastConstructorOptions = options;
       }
       observe = mockObserve;
       disconnect = mockDisconnect;
@@ -93,23 +96,26 @@ describe("useLazyInit", () => {
 
     renderHook(() => useLazyInit(ref, true));
 
-    // Verify observe was called
     expect(mockObserve).toHaveBeenCalledWith(element);
+    expect(lastConstructorOptions).toEqual({
+      root: null,
+      rootMargin: "50px",
+      threshold: 0.1,
+    });
   });
 
   it("should merge custom IntersectionObserver options", () => {
     const element = document.createElement("div");
     const ref = { current: element };
 
-    const customOptions = {
+    renderHook(() => useLazyInit(ref, { rootMargin: "100px", threshold: 0.5 }));
+
+    expect(mockObserve).toHaveBeenCalledWith(element);
+    expect(lastConstructorOptions).toEqual({
+      root: null,
       rootMargin: "100px",
       threshold: 0.5,
-    };
-
-    renderHook(() => useLazyInit(ref, customOptions));
-
-    // Verify observe was called
-    expect(mockObserve).toHaveBeenCalledWith(element);
+    });
   });
 
   it("should handle null ref", () => {

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useCallback, useLayoutEffect, useMemo } from "react";
+import { useEffect, useRef, useCallback, useLayoutEffect, useMemo, type RefObject } from "react";
 import * as echarts from "echarts";
 import type { ECharts, SetOptionOpts, EChartsOption } from "echarts";
 import type { EChartsEvents, EChartsInitOpts, UseEchartsOptions, LoadingOption } from "../../types";
@@ -14,30 +14,34 @@ import { bindEvents, unbindEvents, eventsEqual } from "./event-utils";
 
 // --- Module-level helpers ---
 
-// Stable IDs for theme objects that cannot be JSON-serialized (e.g. circular references)
-const circularThemeIds = new WeakMap<object, string>();
+// Stable IDs for objects that cannot be JSON-serialized (e.g. circular references)
+const CIRCULAR_PREFIX = "__circular_";
+const circularObjectIds = new WeakMap<object, string>();
 let circularIdCounter = 0;
 
+function getCircularObjectId(obj: object): string {
+  let id = circularObjectIds.get(obj);
+  if (!id) {
+    id = `${CIRCULAR_PREFIX}${circularIdCounter++}`;
+    circularObjectIds.set(obj, id);
+  }
+  return id;
+}
+
 /**
- * Pure computation of a stable identity key for theme (no side effects).
- * 纯粹计算主题的稳定标识键（无副作用）。
+ * Compute a stable identity key for theme.
+ * Falls back to a WeakMap-based ID for circular-reference objects.
+ * 计算主题的稳定标识键。对循环引用对象回退到 WeakMap 分配的 ID。
  */
 function computeThemeKey(theme: string | object | null | undefined): string | null {
   if (theme == null) return null;
   if (typeof theme === "string") return theme;
-  if (typeof theme === "object") {
-    try {
-      return JSON.stringify(theme);
-    } catch {
-      let id = circularThemeIds.get(theme);
-      if (!id) {
-        id = `__circular_${circularIdCounter++}`;
-        circularThemeIds.set(theme, id);
-      }
-      return id;
-    }
+  if (typeof theme !== "object") return null;
+  try {
+    return JSON.stringify(theme);
+  } catch {
+    return getCircularObjectId(theme);
   }
-  return null;
 }
 
 /**
@@ -54,13 +58,9 @@ function resolveThemeName(
 ): string | null {
   if (theme == null) return null;
   if (typeof theme === "string") return theme;
-  if (typeof theme === "object") {
-    // Only forward themeKey as contentHash when it's a real JSON serialization,
-    // not a circular-reference fallback ID (e.g. "__circular_0").
-    const contentHash = themeKey && !themeKey.startsWith("__circular_") ? themeKey : undefined;
-    return getOrRegisterCustomTheme(theme, contentHash);
-  }
-  return null;
+  if (typeof theme !== "object") return null;
+  const contentHash = themeKey && !themeKey.startsWith(CIRCULAR_PREFIX) ? themeKey : undefined;
+  return getOrRegisterCustomTheme(theme, contentHash);
 }
 
 function logError(
@@ -82,7 +82,7 @@ interface LastApplied {
   opts: SetOptionOpts | undefined;
 }
 
-export interface ChartCoreConfig {
+interface ChartCoreConfig {
   option: EChartsOption;
   theme?: UseEchartsOptions["theme"];
   renderer?: "canvas" | "svg";
@@ -95,7 +95,7 @@ export interface ChartCoreConfig {
   onError?: (e: unknown) => void;
 }
 
-export interface ChartCoreReturn {
+interface ChartCoreReturn {
   getInstance: () => ECharts | undefined;
   setOption: (option: EChartsOption, opts?: SetOptionOpts) => void;
 }
@@ -110,7 +110,7 @@ export interface ChartCoreReturn {
  * 内部管理所有 ref 和共享可变状态——调用方仅传入原始值。
  */
 export function useChartCore(
-  ref: React.RefObject<HTMLDivElement | null>,
+  ref: RefObject<HTMLDivElement | null>,
   shouldInit: boolean,
   config: ChartCoreConfig,
 ): ChartCoreReturn {
@@ -156,7 +156,14 @@ export function useChartCore(
 
   // --- Stable dependency keys ---
   const themeKey = useMemo(() => computeThemeKey(theme), [theme]);
-  const initOptsKey = useMemo(() => (initOpts ? JSON.stringify(initOpts) : null), [initOpts]);
+  const initOptsKey = useMemo(() => {
+    if (!initOpts) return null;
+    try {
+      return JSON.stringify(initOpts);
+    } catch {
+      return getCircularObjectId(initOpts);
+    }
+  }, [initOpts]);
 
   // --- Public API ---
 
@@ -201,11 +208,12 @@ export function useChartCore(
     const existing = getCachedInstance(element);
     let instance: ECharts;
     if (existing) {
-      /* v8 ignore next 4 -- dev-only warning, production branch untestable */
+      /* v8 ignore next 4 -- NODE_ENV is always "test" in vitest; production branch never taken */
       if (process.env.NODE_ENV !== "production") {
         console.warn(
           "react-use-echarts: multiple hooks share the same DOM element. " +
-            "Theme/renderer/initOpts changes will not take effect on the shared instance.",
+            "The shared instance will be reused - theme/renderer/initOpts changes will not recreate it, " +
+            "and option/events/loading/group updates from different hooks may overwrite each other.",
         );
       }
       instance = existing;

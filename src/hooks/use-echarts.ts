@@ -1,4 +1,4 @@
-import { useCallback, useMemo } from "react";
+import { useCallback, useMemo, type RefObject } from "react";
 import type { UseEchartsOptions, UseEchartsReturn } from "../types";
 import { useLazyInit } from "./use-lazy-init";
 import { useChartCore } from "./internal/use-chart-core";
@@ -13,7 +13,7 @@ import { useResizeObserver } from "./internal/use-resize-observer";
  * @returns Chart control methods
  */
 function useEcharts(
-  ref: React.RefObject<HTMLDivElement | null>,
+  ref: RefObject<HTMLDivElement | null>,
   options: UseEchartsOptions,
 ): UseEchartsReturn {
   const {
@@ -33,7 +33,7 @@ function useEcharts(
 
   const shouldInit = useLazyInit(ref, lazyInit);
 
-  // Core: instance lifecycle + option sync + events + loading + group (5 effects)
+  // Core: instance lifecycle + option sync + events + loading + group (1 useLayoutEffect + 4 useEffect)
   const { getInstance, setOption } = useChartCore(ref, shouldInit, {
     option,
     theme,

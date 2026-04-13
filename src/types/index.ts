@@ -4,6 +4,7 @@ import type {
   SetOptionOpts,
   EChartsInitOpts as RawEChartsInitOpts,
 } from "echarts";
+import type { CSSProperties } from "react";
 
 /**
  * Built-in theme names
@@ -219,7 +220,7 @@ export interface EChartProps extends UseEchartsOptions {
    * Inline style for the container div
    * 容器 div 的内联样式
    */
-  style?: React.CSSProperties;
+  style?: CSSProperties;
 
   /**
    * CSS class name for the container div

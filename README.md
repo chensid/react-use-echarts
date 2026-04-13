@@ -26,7 +26,7 @@ React hooks & component for Apache ECharts — TypeScript, auto-resize, themes, 
 
 ## Requirements
 
-- React 19.2+ (`react` + `react-dom`)
+- React 19+ (`react` + `react-dom`)
 - ECharts 6.x
 
 > **Note**: CSR only. ECharts requires DOM access, so SSR is not supported.
@@ -177,20 +177,20 @@ Declarative component wrapping `useEcharts`. Accepts all hook options as props p
 
 #### Options
 
-| Option          | Type                                  | Default    | Description                                                        |
-| --------------- | ------------------------------------- | ---------- | ------------------------------------------------------------------ |
-| `option`        | `EChartsOption`                       | (required) | ECharts configuration                                              |
-| `theme`         | `string \| object \| null`            | `null`     | Any registered theme name, or custom theme object                  |
-| `renderer`      | `'canvas' \| 'svg'`                   | `'canvas'` | Renderer type                                                      |
-| `lazyInit`      | `boolean \| IntersectionObserverInit` | `false`    | Lazy initialization via IntersectionObserver                       |
-| `group`         | `string`                              | —          | Chart linkage group ID                                             |
-| `setOptionOpts` | `SetOptionOpts`                       | —          | Default options for `setOption` calls                              |
-| `showLoading`   | `boolean`                             | `false`    | Show loading indicator                                             |
-| `loadingOption` | `object`                              | —          | Loading indicator configuration                                    |
-| `onEvents`      | `EChartsEvents`                       | —          | Event handlers (`fn` or `{ handler, query?, context? }`)           |
-| `autoResize`    | `boolean`                             | `true`     | Auto-resize via ResizeObserver                                     |
-| `initOpts`      | `EChartsInitOpts`                     | —          | Passed to `echarts.init()` (devicePixelRatio, locale, width, etc.) |
-| `onError`       | `(error: unknown) => void`            | —          | Error handler for init/setOption operations                        |
+| Option          | Type                                  | Default    | Description                                                                                                     |
+| --------------- | ------------------------------------- | ---------- | --------------------------------------------------------------------------------------------------------------- |
+| `option`        | `EChartsOption`                       | (required) | ECharts configuration                                                                                           |
+| `theme`         | `string \| object \| null`            | `null`     | Any registered theme name, or custom theme object                                                               |
+| `renderer`      | `'canvas' \| 'svg'`                   | `'canvas'` | Renderer type                                                                                                   |
+| `lazyInit`      | `boolean \| IntersectionObserverInit` | `false`    | Lazy initialization via IntersectionObserver                                                                    |
+| `group`         | `string`                              | —          | Chart linkage group ID                                                                                          |
+| `setOptionOpts` | `SetOptionOpts`                       | —          | Default options for `setOption` calls                                                                           |
+| `showLoading`   | `boolean`                             | `false`    | Show loading indicator                                                                                          |
+| `loadingOption` | `object`                              | —          | Loading indicator configuration                                                                                 |
+| `onEvents`      | `EChartsEvents`                       | —          | Event handlers (`fn` or `{ handler, query?, context? }`)                                                        |
+| `autoResize`    | `boolean`                             | `true`     | Auto-resize via ResizeObserver                                                                                  |
+| `initOpts`      | `EChartsInitOpts`                     | —          | Passed to `echarts.init()` (devicePixelRatio, locale, width, etc.)                                              |
+| `onError`       | `(error: unknown) => void`            | —          | Error handler — effect failures logged via `console.error` without it; imperative `setOption` throws without it |
 
 #### Returns
 
@@ -210,14 +210,14 @@ const isInView = useLazyInit(elementRef, true);
 // Theme utilities (lightweight, from main entry)
 import { isBuiltinTheme, registerCustomTheme } from "react-use-echarts";
 
-// Theme registry (separate entry, includes ~18KB theme JSON)
+// Theme registry (separate entry, includes ~20KB theme JSON)
 import {
   registerBuiltinThemes, // () => void — register built-in themes
   getBuiltinTheme, // (name) => object | null
   getAvailableThemes, // () => ['light', 'dark', 'macarons']
 } from "react-use-echarts/themes/registry";
 
-// Types
+// Types (from this library)
 import type {
   UseEchartsOptions,
   UseEchartsReturn,
@@ -226,7 +226,11 @@ import type {
   EChartsEventConfig,
   EChartsInitOpts,
   BuiltinTheme,
+  LoadingOption,
 } from "react-use-echarts";
+
+// Types used in API signatures (from echarts directly)
+import type { EChartsOption, SetOptionOpts } from "echarts";
 ```
 
 ## Contributing

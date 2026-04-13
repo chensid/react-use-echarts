@@ -2,7 +2,7 @@
 
 React hooks & component for Apache ECharts. CSR only — ECharts requires DOM access, no SSR/SSG.
 
-Peer deps: `react` 19.2+, `react-dom` 19.2+, `echarts` 6.x
+Peer deps: `react` 19+, `react-dom` 19+, `echarts` 6.x
 
 ## API Quick Reference
 
@@ -16,12 +16,12 @@ Options: `option` (required), `theme`, `renderer` (`'canvas'`|`'svg'`), `lazyIni
 
 ### `<EChart />` Component
 
-All `useEcharts` options as props + `style` (default `{ width: '100%', height: '400px' }`), `className`, `ref` (exposes `{ setOption, getInstance, resize }`)
+All `useEcharts` options as props + `style` (default `{ width: '100%', height: '100%', minHeight: '400px' }`), `className`, `ref` (exposes `{ setOption, getInstance, resize }`)
 
 ### Other Exports
 
 - `isBuiltinTheme(name)`, `registerCustomTheme(name, config)` — from `'react-use-echarts'`
-- `registerBuiltinThemes()`, `getBuiltinTheme(name)`, `getAvailableThemes()` — from `'react-use-echarts/themes/registry'` (separate entry, ~18KB theme JSON)
+- `registerBuiltinThemes()`, `getBuiltinTheme(name)`, `getAvailableThemes()` — from `'react-use-echarts/themes/registry'` (separate entry, ~20KB theme JSON)
 - `useLazyInit(ref, options)` — standalone lazy init hook
 
 ## Gotchas

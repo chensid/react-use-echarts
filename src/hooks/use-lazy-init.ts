@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, type RefObject } from "react";
 
 /**
  * Hook for lazy initialization using IntersectionObserver
@@ -8,7 +8,7 @@ import { useEffect, useState, useMemo } from "react";
  * @returns Whether the element is in viewport (or true if lazy init is disabled)
  */
 export function useLazyInit(
-  elementRef: React.RefObject<Element | null>,
+  elementRef: RefObject<Element | null>,
   options: boolean | IntersectionObserverInit = false,
 ): boolean {
   // If lazyInit is false, initialize as already in view

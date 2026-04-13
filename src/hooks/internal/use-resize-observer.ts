@@ -1,14 +1,11 @@
-import { useEffect } from "react";
+import { useEffect, type RefObject } from "react";
 import { getCachedInstance } from "../../utils/instance-cache";
 
 /**
  * Internal hook: ResizeObserver-based auto-resize with RAF throttle.
  * 内部 hook：基于 ResizeObserver 的自动 resize，使用 RAF 节流。
  */
-export function useResizeObserver(
-  ref: React.RefObject<HTMLElement | null>,
-  autoResize: boolean,
-): void {
+export function useResizeObserver(ref: RefObject<HTMLElement | null>, autoResize: boolean): void {
   useEffect(() => {
     if (!autoResize) return;
 
