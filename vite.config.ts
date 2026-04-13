@@ -85,7 +85,6 @@ export default defineConfig({
         "src/__tests__/**",
         "src/vite-env.d.ts",
         "src/types/**",
-        "src/hooks/internal/types.ts",
         "src/index.ts",
       ],
     },

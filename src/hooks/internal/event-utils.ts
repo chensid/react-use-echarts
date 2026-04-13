@@ -1,4 +1,3 @@
-import { useEffect } from "react";
 import type { ECharts } from "echarts";
 import type { EChartsEvents, EChartsEventConfig } from "../../types";
 
@@ -43,27 +42,4 @@ export function unbindEvents(instance: ECharts, events: EChartsEvents | undefine
     const { handler } = normalizeEventConfig(config);
     instance.off(eventName, handler);
   }
-}
-
-/**
- * Internal hook: Rebind event handlers when onEvents changes.
- * 内部 hook：当 onEvents 变化时重新绑定事件处理器。
- */
-export function useEvents(
-  getInstance: () => ECharts | undefined,
-  onEvents: EChartsEvents | undefined,
-  boundEventsRef: React.MutableRefObject<EChartsEvents | undefined>,
-): void {
-  useEffect(() => {
-    const instance = getInstance();
-    if (!instance) return;
-
-    // Same reference — already bound
-    if (boundEventsRef.current === onEvents) return;
-
-    unbindEvents(instance, boundEventsRef.current);
-    bindEvents(instance, onEvents);
-    boundEventsRef.current = onEvents;
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- boundEventsRef is a stable container
-  }, [getInstance, onEvents]);
 }
