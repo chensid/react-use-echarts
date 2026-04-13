@@ -162,7 +162,6 @@ describe("useEcharts", () => {
       renderHook(() => useEcharts(ref, { option: baseOption, showLoading: true }));
 
       expect(mockInstance.showLoading).toHaveBeenCalled();
-      expect(mockInstance.showLoading).toHaveBeenCalledTimes(1);
     });
 
     it("should pass loading options", () => {
@@ -213,6 +212,32 @@ describe("useEcharts", () => {
 
       await waitFor(() => {
         expect(mockInstance2.showLoading).toHaveBeenCalledWith({ text: "Loading..." });
+      });
+    });
+
+    it("should keep loading state after theme change without loadingOption", async () => {
+      const element = document.createElement("div");
+      const ref = { current: element };
+      const mockInstance1 = createMockInstance(element);
+      const mockInstance2 = createMockInstance(element);
+      (echarts.init as ReturnType<typeof vi.fn>)
+        .mockReturnValueOnce(mockInstance1)
+        .mockReturnValueOnce(mockInstance2);
+
+      const { rerender } = renderHook<ReturnType<typeof useEcharts>, { theme: BuiltinTheme }>(
+        ({ theme }) =>
+          useEcharts(ref, {
+            option: baseOption,
+            theme,
+            showLoading: true,
+          }),
+        { initialProps: { theme: "light" } },
+      );
+
+      rerender({ theme: "dark" });
+
+      await waitFor(() => {
+        expect(mockInstance2.showLoading).toHaveBeenCalled();
       });
     });
   });

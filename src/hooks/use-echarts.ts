@@ -1,7 +1,6 @@
-import { useEffect, useCallback, useMemo } from "react";
+import { useCallback, useMemo } from "react";
 import type { UseEchartsOptions, UseEchartsReturn } from "../types";
 import { useLazyInit } from "./use-lazy-init";
-import { updateGroup, getInstanceGroup } from "../utils/connect";
 import { useChartCore } from "./internal/use-chart-core";
 import { useResizeObserver } from "./internal/use-resize-observer";
 
@@ -34,7 +33,7 @@ function useEcharts(
 
   const shouldInit = useLazyInit(ref, lazyInit);
 
-  // Core: instance lifecycle + option sync + event rebinding
+  // Core: instance lifecycle + option sync + events + loading + group (5 effects)
   const { getInstance, setOption } = useChartCore(ref, shouldInit, {
     option,
     theme,
@@ -47,29 +46,6 @@ function useEcharts(
     group,
     onError,
   });
-
-  // Loading state
-  useEffect(() => {
-    const instance = getInstance();
-    if (!instance) return;
-
-    if (showLoading) {
-      instance.showLoading(loadingOption);
-    } else {
-      instance.hideLoading();
-    }
-  }, [getInstance, showLoading, loadingOption]);
-
-  // Group membership
-  useEffect(() => {
-    const instance = getInstance();
-    if (!instance) return;
-
-    const currentGroup = getInstanceGroup(instance);
-    if (currentGroup === group) return;
-
-    updateGroup(instance, currentGroup, group);
-  }, [getInstance, group]);
 
   useResizeObserver(ref, autoResize);
 

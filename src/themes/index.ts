@@ -18,8 +18,10 @@ const customThemeCache = new WeakMap<object, string>();
  * Content-based cache for custom theme deduplication
  * 基于内容的缓存，用于自定义主题去重
  * Prevents ECharts global registry from growing when different
- * object references carry identical theme content
+ * object references carry identical theme content.
+ * Capped at MAX_CONTENT_CACHE_SIZE — oldest entries evicted on overflow.
  */
+const MAX_CONTENT_CACHE_SIZE = 100;
 const contentHashCache = new Map<string, string>();
 
 /**
@@ -94,6 +96,11 @@ export function getOrRegisterCustomTheme(themeConfig: object): string {
   echarts.registerTheme(themeName, themeConfig);
   customThemeCache.set(themeConfig, themeName);
   if (contentHash) {
+    if (contentHashCache.size >= MAX_CONTENT_CACHE_SIZE) {
+      // Evict oldest entry (first inserted key in Map iteration order)
+      const oldest = contentHashCache.keys().next().value!;
+      contentHashCache.delete(oldest);
+    }
     contentHashCache.set(contentHash, themeName);
   }
 

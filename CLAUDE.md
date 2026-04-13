@@ -51,19 +51,16 @@ src/
 
 ## Architecture
 
-### Hook Decomposition — 6 Effects Across 3 Modules
+### Hook Decomposition — 6 Effects Across 2 Modules
 
-Effects are split by **coupling boundaries**, not mechanically by count:
+All instance-related state lives in `useChartCore`; the orchestrator has zero effects of its own.
 
-**`useChartCore`** (3 tightly-coupled effects sharing internal state):
+**`useChartCore`** (5 effects — init applies all state for instance recreation, separate effects handle dynamic changes):
 
 1. **Instance Lifecycle** (`useLayoutEffect`) — create/dispose instance, apply initial option, events, loading, group
 2. **Option Updates** (`useEffect`) — call `setOption` when option changes (dedup via `shallowEqual` + `lastAppliedRef`)
 3. **Event Rebinding** (`useEffect`) — unbind old, bind new when `onEvents` changes (via `boundEventsRef`)
-
-**`useEcharts` orchestrator** (2 trivial independent effects):
-
-4. **Loading State** (`useEffect`) — toggle `showLoading` / `hideLoading`
+4. **Loading State** (`useEffect`) — toggle `showLoading` / `hideLoading` on dynamic changes
 5. **Group Changes** (`useEffect`) — switch chart group dynamically
 
 **`useResizeObserver`** (1 fully independent effect):

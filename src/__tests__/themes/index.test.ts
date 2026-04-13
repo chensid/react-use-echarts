@@ -114,5 +114,19 @@ describe("themes utilities", () => {
       const name2 = getOrRegisterCustomTheme(duplicate);
       expect(name2).toBe(name);
     });
+
+    it("should evict oldest content cache entry when exceeding max size", () => {
+      // Register 101 unique themes to trigger eviction (max is 100)
+      for (let i = 0; i < 101; i++) {
+        getOrRegisterCustomTheme({ palette: [`#evict_${String(i).padStart(6, "0")}`] });
+      }
+
+      // Theme #0's content hash should have been evicted, so a new reference
+      // with that content should re-register (new theme name)
+      const evicted = { palette: [`#evict_${String(0).padStart(6, "0")}`] };
+      const callsBefore = (echarts.registerTheme as ReturnType<typeof vi.fn>).mock.calls.length;
+      getOrRegisterCustomTheme(evicted);
+      expect(echarts.registerTheme).toHaveBeenCalledTimes(callsBefore + 1);
+    });
   });
 });
