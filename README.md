@@ -75,15 +75,9 @@ import { useEcharts } from "react-use-echarts";
 
 function MyChart() {
   const chartRef = useRef<HTMLDivElement>(null);
-
   const { setOption, getInstance, resize } = useEcharts(chartRef, {
-    option: {
-      xAxis: { type: "category", data: ["Mon", "Tue", "Wed", "Thu", "Fri"] },
-      yAxis: { type: "value" },
-      series: [{ data: [150, 230, 224, 218, 135], type: "line" }],
-    },
+    option: { series: [{ type: "line", data: [150, 230, 224, 218, 135] }] },
   });
-
   return <div ref={chartRef} style={{ width: "100%", height: "400px" }} />;
 }
 ```
@@ -203,34 +197,13 @@ Declarative component wrapping `useEcharts`. Accepts all hook options as props p
 ### Other Exports
 
 ```tsx
-// Standalone lazy init hook
-import { useLazyInit } from "react-use-echarts";
-const isInView = useLazyInit(elementRef, true);
+import { useLazyInit } from "react-use-echarts"; // standalone lazy init hook
+import { isBuiltinTheme, registerCustomTheme } from "react-use-echarts"; // theme utils (no JSON)
+import { registerBuiltinThemes } from "react-use-echarts/themes/registry"; // ~20KB theme JSON
 
-// Theme utilities (lightweight, from main entry)
-import { isBuiltinTheme, registerCustomTheme } from "react-use-echarts";
-
-// Theme registry (separate entry, includes ~20KB theme JSON)
-import {
-  registerBuiltinThemes, // () => void — register built-in themes
-  getBuiltinTheme, // (name) => object | null
-  getAvailableThemes, // () => ['light', 'dark', 'macarons']
-} from "react-use-echarts/themes/registry";
-
-// Types (from this library)
-import type {
-  UseEchartsOptions,
-  UseEchartsReturn,
-  EChartProps,
-  EChartsEvents,
-  EChartsEventConfig,
-  EChartsInitOpts,
-  BuiltinTheme,
-  LoadingOption,
-} from "react-use-echarts";
-
-// Types used in API signatures (from echarts directly)
-import type { EChartsOption, SetOptionOpts } from "echarts";
+// All exported types: UseEchartsOptions, UseEchartsReturn, EChartProps,
+// EChartsEvents, EChartsEventConfig, EChartsInitOpts, BuiltinTheme, LoadingOption
+// EChartsOption and SetOptionOpts come from the "echarts" package directly.
 ```
 
 ## Contributing

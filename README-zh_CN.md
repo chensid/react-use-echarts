@@ -75,15 +75,9 @@ import { useEcharts } from "react-use-echarts";
 
 function MyChart() {
   const chartRef = useRef<HTMLDivElement>(null);
-
   const { setOption, getInstance, resize } = useEcharts(chartRef, {
-    option: {
-      xAxis: { type: "category", data: ["Mon", "Tue", "Wed", "Thu", "Fri"] },
-      yAxis: { type: "value" },
-      series: [{ data: [150, 230, 224, 218, 135], type: "line" }],
-    },
+    option: { series: [{ type: "line", data: [150, 230, 224, 218, 135] }] },
   });
-
   return <div ref={chartRef} style={{ width: "100%", height: "400px" }} />;
 }
 ```
@@ -203,34 +197,13 @@ useEcharts(chartRef, {
 ### 其他导出
 
 ```tsx
-// 独立的懒加载 Hook
-import { useLazyInit } from "react-use-echarts";
-const isInView = useLazyInit(elementRef, true);
+import { useLazyInit } from "react-use-echarts"; // 独立的懒加载 Hook
+import { isBuiltinTheme, registerCustomTheme } from "react-use-echarts"; // 主题工具（不含 JSON）
+import { registerBuiltinThemes } from "react-use-echarts/themes/registry"; // 内置主题 JSON（~20KB）
 
-// 主题工具（主入口，轻量，不含 JSON）
-import { isBuiltinTheme, registerCustomTheme } from "react-use-echarts";
-
-// 主题注册表（独立子路径，包含内置主题 JSON）
-import {
-  registerBuiltinThemes, // () => void — 注册内置主题
-  getBuiltinTheme, // (name) => object | null
-  getAvailableThemes, // () => ['light', 'dark', 'macarons']
-} from "react-use-echarts/themes/registry";
-
-// 类型（来自本库）
-import type {
-  UseEchartsOptions,
-  UseEchartsReturn,
-  EChartProps,
-  EChartsEvents,
-  EChartsEventConfig,
-  EChartsInitOpts,
-  BuiltinTheme,
-  LoadingOption,
-} from "react-use-echarts";
-
-// API 签名中使用的类型（来自 echarts 包）
-import type { EChartsOption, SetOptionOpts } from "echarts";
+// 所有导出类型：UseEchartsOptions, UseEchartsReturn, EChartProps,
+// EChartsEvents, EChartsEventConfig, EChartsInitOpts, BuiltinTheme, LoadingOption
+// EChartsOption 和 SetOptionOpts 来自 "echarts" 包。
 ```
 
 ## 贡献
