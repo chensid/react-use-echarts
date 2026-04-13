@@ -7,6 +7,10 @@ import type { UseEchartsReturn } from "../types";
  * Declarative EChart component — thin wrapper around useEcharts
  * 声明式 EChart 组件 — useEcharts 的薄封装
  *
+ * Default container style: `{ width: '100%', height: '100%', minHeight: '400px' }`.
+ * `height: 100%` requires the parent to have an explicit height; `minHeight: 400px`
+ * acts as a fallback so the chart is always visible. Override via the `style` prop.
+ *
  * @example
  * ```tsx
  * <EChart option={{ series: [{ type: 'line', data: [1,2,3] }] }} />

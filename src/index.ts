@@ -36,6 +36,7 @@ export type {
   EChartsInitOpts,
   EChartProps,
   BuiltinTheme,
+  LoadingOption,
 } from "./types";
 
 /**

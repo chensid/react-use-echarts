@@ -65,6 +65,40 @@ export interface EChartsEvents {
 export type EChartsInitOpts = Omit<RawEChartsInitOpts, "renderer" | "ssr">;
 
 /**
+ * Loading animation options for ECharts
+ * ECharts 加载动画选项
+ * @see https://echarts.apache.org/en/api.html#echartsInstance.showLoading
+ */
+export interface LoadingOption {
+  /** Loading text. Default: 'loading' */
+  text?: string;
+  /** Loading animation color. Default: '#c23531' */
+  color?: string;
+  /** Text color. Default: '#000' */
+  textColor?: string;
+  /** Mask background color. Default: 'rgba(255, 255, 255, 0.8)' */
+  maskColor?: string;
+  /** Z-level of the loading component */
+  zlevel?: number;
+  /** Font size. Default: 12 */
+  fontSize?: number;
+  /** Whether to show spinner. Default: true */
+  showSpinner?: boolean;
+  /** Spinner radius. Default: 10 */
+  spinnerRadius?: number;
+  /** Spinner line width. Default: 5 */
+  lineWidth?: number;
+  /** Font weight */
+  fontWeight?: string | number;
+  /** Font style */
+  fontStyle?: string;
+  /** Font family */
+  fontFamily?: string;
+  /** Extensibility for custom loading types */
+  [key: string]: unknown;
+}
+
+/**
  * Configuration options for useEcharts hook
  * useEcharts hook 的配置选项
  */
@@ -118,7 +152,7 @@ export interface UseEchartsOptions {
    * 加载配置项
    * @see https://echarts.apache.org/en/api.html#echartsInstance.showLoading
    */
-  loadingOption?: Record<string, unknown>;
+  loadingOption?: LoadingOption;
 
   /**
    * Event configurations

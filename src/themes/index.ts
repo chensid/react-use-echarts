@@ -67,7 +67,7 @@ export function registerCustomTheme(themeName: string, themeConfig: object): voi
  * @param themeConfig Custom theme configuration object
  * @returns Cached or newly generated theme name
  */
-export function getOrRegisterCustomTheme(themeConfig: object): string {
+export function getOrRegisterCustomTheme(themeConfig: object, precomputedHash?: string): string {
   // Fast path: same object reference
   const cachedName = customThemeCache.get(themeConfig);
   if (cachedName) {
@@ -75,11 +75,14 @@ export function getOrRegisterCustomTheme(themeConfig: object): string {
   }
 
   // Content-based dedup: different reference, same content
-  let contentHash: string | undefined;
-  try {
-    contentHash = JSON.stringify(themeConfig);
-  } catch {
-    // Circular reference or non-serializable value: skip content dedup
+  // Use pre-computed hash if provided to avoid redundant JSON.stringify
+  let contentHash: string | undefined = precomputedHash;
+  if (contentHash === undefined) {
+    try {
+      contentHash = JSON.stringify(themeConfig);
+    } catch {
+      // Circular reference or non-serializable value: skip content dedup
+    }
   }
 
   if (contentHash) {
@@ -105,4 +108,16 @@ export function getOrRegisterCustomTheme(themeConfig: object): string {
   }
 
   return themeName;
+}
+
+/**
+ * Reset theme caches and counter (for testing/cleanup).
+ * 重置主题缓存和计数器（用于测试/清理）。
+ *
+ * WeakMap (customThemeCache) is not cleared — object-keyed entries
+ * are garbage collected naturally when test objects go out of scope.
+ */
+export function clearThemeCache(): void {
+  contentHashCache.clear();
+  customThemeCounter = 0;
 }
