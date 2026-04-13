@@ -24,7 +24,7 @@ export function bindEvents(instance: ECharts, events: EChartsEvents | undefined)
   if (!events) return;
   for (const [eventName, config] of Object.entries(events)) {
     const { handler, query, context } = normalizeEventConfig(config);
-    if (query) {
+    if (query !== undefined) {
       instance.on(eventName, query, handler, context);
     } else {
       instance.on(eventName, handler, context);

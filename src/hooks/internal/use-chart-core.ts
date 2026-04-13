@@ -215,10 +215,6 @@ export function useChartCore(
       logError(error, "ECharts setOption failed:", onErrorRef.current);
     }
 
-    if (showLoadingRef.current) {
-      instance.showLoading(loadingOptionRef.current);
-    }
-
     bindEvents(instance, onEventsRef.current);
     boundEventsRef.current = onEventsRef.current;
 
