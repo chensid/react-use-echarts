@@ -15,6 +15,7 @@ import { bindEvents, unbindEvents, eventsEqual } from "./event-utils";
 // --- Module-level helpers ---
 
 // Stable IDs for theme objects that cannot be JSON-serialized (e.g. circular references)
+const CIRCULAR_PREFIX = "__circular_";
 const circularThemeIds = new WeakMap<object, string>();
 let circularIdCounter = 0;
 
@@ -31,7 +32,7 @@ function computeThemeKey(theme: string | object | null | undefined): string | nu
     } catch {
       let id = circularThemeIds.get(theme);
       if (!id) {
-        id = `__circular_${circularIdCounter++}`;
+        id = `${CIRCULAR_PREFIX}${circularIdCounter++}`;
         circularThemeIds.set(theme, id);
       }
       return id;
@@ -55,9 +56,7 @@ function resolveThemeName(
   if (theme == null) return null;
   if (typeof theme === "string") return theme;
   if (typeof theme === "object") {
-    // Only forward themeKey as contentHash when it's a real JSON serialization,
-    // not a circular-reference fallback ID (e.g. "__circular_0").
-    const contentHash = themeKey && !themeKey.startsWith("__circular_") ? themeKey : undefined;
+    const contentHash = themeKey && !themeKey.startsWith(CIRCULAR_PREFIX) ? themeKey : undefined;
     return getOrRegisterCustomTheme(theme, contentHash);
   }
   return null;
@@ -201,7 +200,7 @@ export function useChartCore(
     const existing = getCachedInstance(element);
     let instance: ECharts;
     if (existing) {
-      /* v8 ignore next 4 -- dev-only warning, production branch untestable */
+      /* v8 ignore next 4 -- NODE_ENV is always "test" in vitest; production branch never taken */
       if (process.env.NODE_ENV !== "production") {
         console.warn(
           "react-use-echarts: multiple hooks share the same DOM element. " +
