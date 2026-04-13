@@ -215,6 +215,10 @@ export function useChartCore(
       logError(error, "ECharts setOption failed:", onErrorRef.current);
     }
 
+    if (showLoadingRef.current) {
+      instance.showLoading(loadingOptionRef.current);
+    }
+
     bindEvents(instance, onEventsRef.current);
     boundEventsRef.current = onEventsRef.current;
 
@@ -280,6 +284,39 @@ export function useChartCore(
     bindEvents(instance, onEvents);
     boundEventsRef.current = onEvents;
   }, [getInstance, onEvents]);
+
+  // =====================================================================
+  // Effect 4: LOADING STATE
+  //
+  // Toggles showLoading / hideLoading on dynamic changes.
+  // Init effect handles initial application on instance creation.
+  // =====================================================================
+  useEffect(() => {
+    const instance = getInstance();
+    if (!instance) return;
+
+    if (showLoading) {
+      instance.showLoading(loadingOption);
+    } else {
+      instance.hideLoading();
+    }
+  }, [getInstance, showLoading, loadingOption]);
+
+  // =====================================================================
+  // Effect 5: GROUP CHANGES
+  //
+  // Switches chart group membership on dynamic changes.
+  // Init effect handles initial group assignment on instance creation.
+  // =====================================================================
+  useEffect(() => {
+    const instance = getInstance();
+    if (!instance) return;
+
+    const currentGroup = getInstanceGroup(instance);
+    if (currentGroup === group) return;
+
+    updateGroup(instance, currentGroup, group);
+  }, [getInstance, group]);
 
   return useMemo(() => ({ getInstance, setOption }), [getInstance, setOption]);
 }

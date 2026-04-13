@@ -167,11 +167,11 @@ useEcharts(chartRef, {
 
 Declarative component wrapping `useEcharts`. Accepts all hook options as props plus:
 
-| Prop        | Type                    | Default                              | Description                                  |
-| ----------- | ----------------------- | ------------------------------------ | -------------------------------------------- |
-| `style`     | `React.CSSProperties`   | `{ width: '100%', height: '400px' }` | Container style (merged with defaults)       |
-| `className` | `string`                | —                                    | Container CSS class                          |
-| `ref`       | `Ref<UseEchartsReturn>` | —                                    | Exposes `{ setOption, getInstance, resize }` |
+| Prop        | Type                    | Default                                                 | Description                                  |
+| ----------- | ----------------------- | ------------------------------------------------------- | -------------------------------------------- |
+| `style`     | `React.CSSProperties`   | `{ width: '100%', height: '100%', minHeight: '400px' }` | Container style (merged with defaults)       |
+| `className` | `string`                | —                                                       | Container CSS class                          |
+| `ref`       | `Ref<UseEchartsReturn>` | —                                                       | Exposes `{ setOption, getInstance, resize }` |
 
 ### `useEcharts(ref, options)`
 
