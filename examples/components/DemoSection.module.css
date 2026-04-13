@@ -1,0 +1,29 @@
+.section {
+  margin-bottom: 40px;
+}
+
+.section:last-child {
+  margin-bottom: 0;
+}
+
+.head {
+  margin-bottom: 14px;
+}
+
+.title {
+  font-size: 20px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.desc {
+  margin-top: 4px;
+  font-size: 13px;
+  color: var(--c-text-2);
+}
+
+.demos {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}

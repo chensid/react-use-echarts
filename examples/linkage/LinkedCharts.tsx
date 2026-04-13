@@ -26,9 +26,9 @@ const LinkedCharts: React.FC = () => {
   useEcharts(chartRef2, { option: option2, group: "dashboard" });
 
   return (
-    <div style={{ display: "flex", gap: "16px" }}>
-      <div ref={chartRef1} style={{ flex: 1, height: "400px" }} />
-      <div ref={chartRef2} style={{ flex: 1, height: "400px" }} />
+    <div className="grid-2">
+      <div ref={chartRef1} className="chart-container" />
+      <div ref={chartRef2} className="chart-container" />
     </div>
   );
 };

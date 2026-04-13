@@ -20,15 +20,17 @@ function LazyChart({ index }: { index: number }) {
 
   useEcharts(chartRef, { option, lazyInit: true });
 
-  return <div ref={chartRef} style={{ width: "100%", height: "300px" }} />;
+  return <div ref={chartRef} className="chart-container-sm" />;
 }
 
 const LazyCharts: React.FC = () => {
   return (
-    <div style={{ height: "400px", overflow: "auto", border: "1px solid #ddd" }}>
-      <p style={{ padding: "8px" }}>Scroll down to see charts initialize lazily:</p>
+    <div className="scroll-area">
+      <p className="note-box" style={{ marginBottom: 10 }}>
+        Scroll down to see charts initialize lazily:
+      </p>
       {Array.from({ length: 10 }, (_, i) => (
-        <div key={i} style={{ marginBottom: "16px" }}>
+        <div key={i} style={{ marginBottom: 12 }}>
           <LazyChart index={i} />
         </div>
       ))}

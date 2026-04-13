@@ -33,18 +33,10 @@ const EventChart: React.FC = () => {
 
   return (
     <div>
-      <div
-        style={{
-          padding: "8px",
-          marginBottom: "8px",
-          background: "#f5f5f5",
-          borderRadius: "4px",
-          fontFamily: "monospace",
-        }}
-      >
+      <div className="note-box" style={{ marginBottom: 10 }}>
         Last event: {lastEvent}
       </div>
-      <div ref={chartRef} style={{ width: "100%", height: "400px" }} />
+      <div ref={chartRef} className="chart-container" />
     </div>
   );
 };

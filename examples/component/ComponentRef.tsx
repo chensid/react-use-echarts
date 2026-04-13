@@ -30,13 +30,15 @@ const ComponentRef: React.FC = () => {
 
   return (
     <div>
-      <div style={{ marginBottom: "8px" }}>
-        <button onClick={handleUpdate} style={{ marginRight: "8px" }}>
+      <div className="controls">
+        <button type="button" className="btn" onClick={handleUpdate}>
           Randomize Data
         </button>
-        <button onClick={handleResize}>Manual Resize</button>
+        <button type="button" className="btn" onClick={handleResize}>
+          Manual Resize
+        </button>
       </div>
-      <EChart ref={chartRef} option={option} style={{ height: "400px" }} />
+      <EChart ref={chartRef} option={option} style={{ height: "340px", width: "100%" }} />
     </div>
   );
 };

@@ -1,0 +1,127 @@
+:root {
+  --header-height: 56px;
+  --sidebar-width: 220px;
+  --mono: ui-monospace, "SFMono-Regular", Menlo, Monaco, "Courier New", monospace;
+  --sans: system-ui, -apple-system, "Segoe UI", Helvetica, Arial, sans-serif;
+  --radius: 6px;
+
+  --c-bg: #fafafa;
+  --c-surface: #fff;
+  --c-surface-dim: #f4f4f5;
+  --c-border: #e4e4e7;
+  --c-text: #18181b;
+  --c-text-2: #71717a;
+  --c-accent: #18181b;
+  --c-accent-soft: #f4f4f5;
+  --c-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+}
+
+html[data-theme="dark"] {
+  --c-bg: #09090b;
+  --c-surface: #18181b;
+  --c-surface-dim: #27272a;
+  --c-border: #3f3f46;
+  --c-text: #fafafa;
+  --c-text-2: #a1a1aa;
+  --c-accent: #fafafa;
+  --c-accent-soft: #27272a;
+  --c-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+}
+
+html {
+  scroll-behavior: smooth;
+  scroll-padding-top: calc(var(--header-height) + 20px);
+}
+
+body {
+  font-family: var(--sans);
+  font-size: 14px;
+  line-height: 1.5;
+  background: var(--c-bg);
+  color: var(--c-text);
+  -webkit-font-smoothing: antialiased;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+button {
+  font: inherit;
+  cursor: pointer;
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  font-size: 13px;
+  font-weight: 500;
+  border: 1px solid var(--c-border);
+  border-radius: var(--radius);
+  background: var(--c-surface);
+  color: var(--c-text);
+  transition:
+    border-color 0.15s,
+    background-color 0.15s;
+}
+
+.btn:hover {
+  border-color: var(--c-text-2);
+  background: var(--c-surface-dim);
+}
+
+.chart-container {
+  width: 100%;
+  height: 340px;
+}
+
+.chart-container-sm {
+  width: 100%;
+  height: 280px;
+}
+
+.controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+
+.note-box {
+  padding: 8px 12px;
+  font-size: 13px;
+  font-family: var(--mono);
+  color: var(--c-text-2);
+  background: var(--c-surface-dim);
+  border-radius: var(--radius);
+}
+
+.grid-2 {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: 1fr 1fr;
+}
+
+.scroll-area {
+  height: 380px;
+  overflow: auto;
+  border: 1px solid var(--c-border);
+  border-radius: var(--radius);
+  padding: 10px;
+}
+
+@media (max-width: 860px) {
+  .grid-2 {
+    grid-template-columns: 1fr;
+  }
+}

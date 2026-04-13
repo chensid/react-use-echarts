@@ -2,8 +2,12 @@ import { defineConfig } from "vite-plus";
 import babel from "@rolldown/plugin-babel";
 import react, { reactCompilerPreset } from "@vitejs/plugin-react";
 
+const repositoryName = process.env.GITHUB_REPOSITORY?.split("/")[1];
+const base = process.env.GITHUB_ACTIONS === "true" && repositoryName ? `/${repositoryName}/` : "/";
+
 // https://viteplus.dev/config/
 export default defineConfig({
+  base,
   lint: {
     plugins: ["oxc", "typescript", "unicorn", "react"],
     categories: {
