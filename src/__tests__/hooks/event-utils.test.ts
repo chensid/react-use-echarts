@@ -1,7 +1,13 @@
 import { describe, it, expect, vi } from "vite-plus/test";
-import { eventsEqual } from "../../hooks/internal/event-utils";
+import type { ECharts } from "echarts";
+import { bindEvents, unbindEvents, eventsEqual } from "../../hooks/internal/event-utils";
 
 const handler = () => vi.fn<(params: unknown) => void>();
+const createEventInstance = () =>
+  ({
+    on: vi.fn(),
+    off: vi.fn(),
+  }) as unknown as ECharts;
 
 describe("eventsEqual", () => {
   it("should return true for same reference", () => {
@@ -77,5 +83,87 @@ describe("eventsEqual", () => {
         { click: { handler: h, context: { b: 2 } } },
       ),
     ).toBe(false);
+  });
+});
+
+describe("bindEvents", () => {
+  it("should skip when events is undefined", () => {
+    const instance = createEventInstance();
+
+    bindEvents(instance, undefined);
+
+    expect(instance.on).not.toHaveBeenCalled();
+  });
+
+  it("should bind event without query using context signature", () => {
+    const on = vi.fn();
+    const instance = { on, off: vi.fn() } as unknown as ECharts;
+    const clickHandler = handler();
+    const context = { source: "test" };
+
+    bindEvents(instance, {
+      click: {
+        handler: clickHandler,
+        context,
+      },
+    });
+
+    expect(on).toHaveBeenCalledWith("click", clickHandler, context);
+  });
+
+  it("should bind event with string query", () => {
+    const on = vi.fn();
+    const instance = { on, off: vi.fn() } as unknown as ECharts;
+    const clickHandler = handler();
+
+    bindEvents(instance, {
+      click: {
+        handler: clickHandler,
+        query: "series",
+      },
+    });
+
+    expect(on).toHaveBeenCalledWith("click", "series", clickHandler, undefined);
+  });
+
+  it("should bind event with object query", () => {
+    const on = vi.fn();
+    const instance = { on, off: vi.fn() } as unknown as ECharts;
+    const clickHandler = handler();
+    const query = { seriesIndex: 0 };
+
+    bindEvents(instance, {
+      click: {
+        handler: clickHandler,
+        query,
+      },
+    });
+
+    expect(on).toHaveBeenCalledWith("click", query, clickHandler, undefined);
+  });
+});
+
+describe("unbindEvents", () => {
+  it("should skip when events is undefined", () => {
+    const instance = createEventInstance();
+
+    unbindEvents(instance, undefined);
+
+    expect(instance.off).not.toHaveBeenCalled();
+  });
+
+  it("should unbind handlers using event name and handler", () => {
+    const off = vi.fn();
+    const instance = { on: vi.fn(), off } as unknown as ECharts;
+    const clickHandler = handler();
+    const mouseoverHandler = handler();
+
+    unbindEvents(instance, {
+      click: { handler: clickHandler, query: "series" },
+      mouseover: mouseoverHandler,
+    });
+
+    expect(off).toHaveBeenNthCalledWith(1, "click", clickHandler);
+    expect(off).toHaveBeenNthCalledWith(2, "mouseover", mouseoverHandler);
   });
 });

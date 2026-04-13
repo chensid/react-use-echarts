@@ -2,7 +2,7 @@
 
 React hooks library for Apache ECharts. Hook + declarative component, TypeScript, zero runtime deps.
 
-- **Peer deps:** React 19+, ECharts 6.x | **CSR only** | **Package manager:** pnpm
+- **Peer deps:** React 19+ (`react` + `react-dom`), ECharts 6.x | **CSR only** | **Package manager:** pnpm
 
 ## Vite+ Toolchain
 
@@ -34,7 +34,7 @@ src/
 │   ├── use-echarts.ts          # Orchestrator hook (loading, group effects + delegates to internal hooks)
 │   ├── use-lazy-init.ts        # IntersectionObserver hook
 │   └── internal/
-│       ├── use-chart-core.ts   # Core: instance lifecycle + option sync + event rebinding (3 effects)
+│       ├── use-chart-core.ts   # Core: instance lifecycle + option sync + event rebinding + loading + group (5 effects)
 │       ├── use-resize-observer.ts # ResizeObserver auto-resize (1 effect)
 │       └── event-utils.ts      # Pure functions: bindEvents / unbindEvents
 ├── themes/
@@ -51,11 +51,13 @@ src/
 
 ## Architecture
 
-### Hook Decomposition — 6 Effects Across 2 Modules
+### Hook Decomposition — 7 Effects Across 2 Modules
 
 All instance-related state lives in `useChartCore`; the orchestrator has zero effects of its own.
 
-**`useChartCore`** (5 effects — init applies all state for instance recreation, separate effects handle dynamic changes):
+**`useChartCore`** (6 effects — ref sync + init applies all state for instance recreation, separate effects handle dynamic changes):
+
+0. **Ref Sync** (`useLayoutEffect`, no deps) — keep 9 refs in sync with latest props every render
 
 1. **Instance Lifecycle** (`useLayoutEffect`) — create/dispose instance, apply initial option, events, loading, group
 2. **Option Updates** (`useEffect`) — call `setOption` when option changes (dedup via `shallowEqual` + `lastAppliedRef`)

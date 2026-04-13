@@ -1,7 +1,6 @@
 import { forwardRef, useRef, useImperativeHandle } from "react";
 import useEcharts from "../hooks/use-echarts";
-import type { EChartProps } from "../types";
-import type { UseEchartsReturn } from "../types";
+import type { EChartProps, UseEchartsReturn } from "../types";
 
 /**
  * Declarative EChart component — thin wrapper around useEcharts

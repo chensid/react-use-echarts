@@ -242,6 +242,28 @@ describe("useEcharts", () => {
         expect(mockInstance2.showLoading).toHaveBeenCalled();
       });
     });
+
+    it("should update loadingOption when showLoading remains true", async () => {
+      const element = document.createElement("div");
+      const ref = { current: element };
+      const mockInstance = createMockInstance(element);
+      (echarts.init as ReturnType<typeof vi.fn>).mockReturnValue(mockInstance);
+
+      const optionA = { text: "Loading A" };
+      const optionB = { text: "Loading B" };
+
+      const { rerender } = renderHook(
+        ({ loadingOption }) =>
+          useEcharts(ref, { option: baseOption, showLoading: true, loadingOption }),
+        { initialProps: { loadingOption: optionA } },
+      );
+
+      rerender({ loadingOption: optionB });
+
+      await waitFor(() => {
+        expect(mockInstance.showLoading).toHaveBeenLastCalledWith(optionB);
+      });
+    });
   });
 
   describe("event handling", () => {
@@ -275,6 +297,23 @@ describe("useEcharts", () => {
       renderHook(() => useEcharts(ref, { option: baseOption, onEvents }));
 
       expect(mockInstance.on).toHaveBeenCalledWith("click", "series", clickHandler, undefined);
+    });
+
+    it("should bind events with object query", () => {
+      const element = document.createElement("div");
+      const ref = { current: element };
+      const mockInstance = createMockInstance(element);
+      (echarts.init as ReturnType<typeof vi.fn>).mockReturnValue(mockInstance);
+
+      const clickHandler = vi.fn();
+      const query = { seriesIndex: 0 };
+      const onEvents = {
+        click: { handler: clickHandler, query },
+      };
+
+      renderHook(() => useEcharts(ref, { option: baseOption, onEvents }));
+
+      expect(mockInstance.on).toHaveBeenCalledWith("click", query, clickHandler, undefined);
     });
 
     it("should bind events with empty string query", () => {
@@ -516,6 +555,60 @@ describe("useEcharts", () => {
           notMerge: true,
           lazyUpdate: true,
         });
+      });
+    });
+
+    it("should skip setOption when rerender option is shallow-equal", async () => {
+      const element = document.createElement("div");
+      const ref = { current: element };
+      const mockInstance = createMockInstance(element);
+      (echarts.init as ReturnType<typeof vi.fn>).mockReturnValue(mockInstance);
+
+      const sharedSeries = baseOption.series;
+      const option1: EChartsOption = { series: sharedSeries };
+      const option2: EChartsOption = { series: sharedSeries };
+
+      const { rerender } = renderHook(({ option }) => useEcharts(ref, { option }), {
+        initialProps: { option: option1 },
+      });
+
+      await waitFor(() => {
+        expect(mockInstance.setOption).toHaveBeenCalledTimes(1);
+      });
+
+      rerender({ option: option2 });
+
+      await waitFor(() => {
+        expect(mockInstance.setOption).toHaveBeenCalledTimes(1);
+      });
+    });
+
+    it("should skip setOption for shallow-equal option with multiple top-level keys", async () => {
+      const element = document.createElement("div");
+      const ref = { current: element };
+      const mockInstance = createMockInstance(element);
+      (echarts.init as ReturnType<typeof vi.fn>).mockReturnValue(mockInstance);
+
+      const multiKeyOption: EChartsOption = {
+        xAxis: { type: "category", data: ["Mon", "Tue", "Wed"] },
+        yAxis: { type: "value" },
+        series: [{ type: "line", data: [1, 2, 3] }],
+      };
+      const option1: EChartsOption = { ...multiKeyOption };
+      const option2: EChartsOption = { ...multiKeyOption };
+
+      const { rerender } = renderHook(({ option }) => useEcharts(ref, { option }), {
+        initialProps: { option: option1 },
+      });
+
+      await waitFor(() => {
+        expect(mockInstance.setOption).toHaveBeenCalledTimes(1);
+      });
+
+      rerender({ option: option2 });
+
+      await waitFor(() => {
+        expect(mockInstance.setOption).toHaveBeenCalledTimes(1);
       });
     });
   });
@@ -942,6 +1035,29 @@ describe("useEcharts", () => {
         locale: "ZH",
       });
     });
+
+    it("should handle non-serializable initOpts without throwing", () => {
+      const element = document.createElement("div");
+      const ref = { current: element };
+      const mockInstance = createMockInstance(element);
+      (echarts.init as ReturnType<typeof vi.fn>).mockReturnValue(mockInstance);
+
+      const circular: Record<string, unknown> = { locale: "ZH" };
+      circular.self = circular;
+
+      renderHook(() =>
+        useEcharts(ref, {
+          option: baseOption,
+          initOpts: circular as never,
+        }),
+      );
+
+      expect(echarts.init).toHaveBeenCalledWith(
+        element,
+        null,
+        expect.objectContaining({ renderer: "canvas", locale: "ZH" }),
+      );
+    });
   });
 
   describe("non-builtin string theme", () => {
@@ -1008,7 +1124,10 @@ describe("useEcharts", () => {
 
       renderHook(() => useEcharts(ref2, { option: baseOption, theme: circularTheme }));
 
-      expect(echarts.init).toHaveBeenCalled();
+      expect(echarts.registerTheme).toHaveBeenCalledTimes(1);
+      const firstThemeName = (echarts.init as ReturnType<typeof vi.fn>).mock.calls[0][1];
+      const secondThemeName = (echarts.init as ReturnType<typeof vi.fn>).mock.calls[1][1];
+      expect(firstThemeName).toBe(secondThemeName);
     });
   });
 

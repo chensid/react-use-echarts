@@ -162,8 +162,8 @@ describe("connect utilities", () => {
 
     it("should handle both undefined", () => {
       const instance = createMockInstance();
-      // Should not throw
       updateGroup(instance, undefined, undefined);
+      expect(getInstanceGroup(instance)).toBeUndefined();
     });
   });
 

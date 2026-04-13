@@ -3,7 +3,7 @@ import { render } from "@testing-library/react";
 import { createRef } from "react";
 import * as echarts from "echarts";
 import EChart from "../../components/EChart";
-import { clearInstanceCache } from "../../utils/instance-cache";
+import { clearInstanceCache, getCachedInstance } from "../../utils/instance-cache";
 import { clearGroups } from "../../utils/connect";
 import type { UseEchartsReturn } from "../../types";
 import { createMockInstance, MockResizeObserver, MockIntersectionObserver } from "../helpers";
@@ -120,5 +120,29 @@ describe("EChart component", () => {
       "dark",
       expect.objectContaining({ renderer: "svg" }),
     );
+  });
+
+  it("should dispose instance on unmount and clear cache entry", () => {
+    const dispose = vi.fn();
+    let cachedElement: HTMLElement | null = null;
+    const mockInstance = {
+      ...createMockInstance(document.createElement("div")),
+      dispose,
+    };
+    (echarts.init as ReturnType<typeof vi.fn>).mockImplementation((element: HTMLElement) => {
+      cachedElement = element;
+      return mockInstance;
+    });
+
+    const { unmount } = render(<EChart option={{ series: [{ type: "line", data: [1, 2, 3] }] }} />);
+
+    expect(cachedElement).toBeInstanceOf(HTMLDivElement);
+    expect(getCachedInstance(cachedElement!)).toBe(mockInstance);
+    expect(dispose).not.toHaveBeenCalled();
+
+    unmount();
+
+    expect(dispose).toHaveBeenCalledTimes(1);
+    expect(getCachedInstance(cachedElement!)).toBeUndefined();
   });
 });
