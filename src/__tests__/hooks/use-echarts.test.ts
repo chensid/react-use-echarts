@@ -926,6 +926,48 @@ describe("useEcharts", () => {
     });
   });
 
+  describe("circular reference theme", () => {
+    it("should handle circular reference theme object without throwing", () => {
+      const element = document.createElement("div");
+      const ref = { current: element };
+      const mockInstance = createMockInstance(element);
+      (echarts.init as ReturnType<typeof vi.fn>).mockReturnValue(mockInstance);
+
+      const circularTheme: Record<string, unknown> = { color: ["#abc"] };
+      circularTheme.self = circularTheme;
+
+      renderHook(() => useEcharts(ref, { option: baseOption, theme: circularTheme }));
+
+      expect(echarts.init).toHaveBeenCalled();
+    });
+
+    it("should reuse cached key when same circular theme is used in a new hook instance", () => {
+      const circularTheme: Record<string, unknown> = { color: ["#def"] };
+      circularTheme.self = circularTheme;
+
+      // First hook instance — registers the circular theme ID
+      const el1 = document.createElement("div");
+      const ref1 = { current: el1 };
+      const mock1 = createMockInstance(el1);
+      (echarts.init as ReturnType<typeof vi.fn>).mockReturnValue(mock1);
+
+      const { unmount } = renderHook(() =>
+        useEcharts(ref1, { option: baseOption, theme: circularTheme }),
+      );
+      unmount();
+
+      // Second hook instance — should hit WeakMap cache for the same circular theme
+      const el2 = document.createElement("div");
+      const ref2 = { current: el2 };
+      const mock2 = createMockInstance(el2);
+      (echarts.init as ReturnType<typeof vi.fn>).mockReturnValue(mock2);
+
+      renderHook(() => useEcharts(ref2, { option: baseOption, theme: circularTheme }));
+
+      expect(echarts.init).toHaveBeenCalled();
+    });
+  });
+
   describe("init error handling", () => {
     it("should call onError when echarts.init throws", () => {
       const element = document.createElement("div");

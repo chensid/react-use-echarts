@@ -100,10 +100,9 @@ export function getReferenceCount(element: HTMLElement): number {
  */
 export function clearInstanceCache(): void {
   for (const element of trackedElements) {
-    const entry = instanceCache.get(element);
-    if (entry) {
-      entry.instance.dispose();
-    }
+    // trackedElements and instanceCache are always in sync,
+    // so the entry is guaranteed to exist here.
+    instanceCache.get(element)!.instance.dispose();
   }
   trackedElements.clear();
   instanceCache = new WeakMap<HTMLElement, CacheEntry>();
