@@ -7,7 +7,8 @@ const LoadingChart: React.FC = () => {
   const [loading, setLoading] = useState(true);
 
   const option: EChartsOption = {
-    title: { text: "Loading State Demo" },
+    backgroundColor: "transparent",
+    title: { text: "Quarterly Revenue" },
     tooltip: {},
     xAxis: { type: "category", data: ["Q1", "Q2", "Q3", "Q4"] },
     yAxis: { type: "value" },

@@ -11,7 +11,6 @@ const ThemeSwitcher: React.FC = () => {
   const customTheme = useMemo(
     () => ({
       color: ["#fc8452", "#9a60b4", "#ea7ccc", "#73c0de"],
-      backgroundColor: "#fafafa",
     }),
     [],
   );
@@ -20,6 +19,7 @@ const ThemeSwitcher: React.FC = () => {
   const theme = currentTheme === "custom" ? customTheme : currentTheme;
 
   const option: EChartsOption = {
+    backgroundColor: "transparent",
     title: { text: `Theme: ${currentTheme}` },
     tooltip: { trigger: "axis" },
     xAxis: { type: "category", data: ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"] },
@@ -40,7 +40,15 @@ const ThemeSwitcher: React.FC = () => {
             key={t}
             onClick={() => setThemeIndex(i)}
             className="btn"
-            style={{ fontWeight: i === themeIndex ? 700 : 400 }}
+            style={
+              i === themeIndex
+                ? {
+                    fontWeight: 700,
+                    background: "var(--c-accent-soft)",
+                    borderColor: "var(--c-text-2)",
+                  }
+                : undefined
+            }
           >
             {t}
           </button>

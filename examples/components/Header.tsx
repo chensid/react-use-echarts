@@ -13,7 +13,12 @@ const Header: React.FC<HeaderProps> = ({ themeMode, onThemeToggle, onSidebarTogg
   return (
     <header className={styles.bar}>
       <div className={styles.left}>
-        <button type="button" className={styles.burger} onClick={onSidebarToggle}>
+        <button
+          type="button"
+          className={styles.burger}
+          onClick={onSidebarToggle}
+          aria-label="Toggle navigation"
+        >
           <svg
             width="18"
             height="18"
@@ -47,7 +52,12 @@ const Header: React.FC<HeaderProps> = ({ themeMode, onThemeToggle, onSidebarTogg
           </svg>
           GitHub
         </a>
-        <button type="button" className="btn" onClick={onThemeToggle}>
+        <button
+          type="button"
+          className="btn"
+          onClick={onThemeToggle}
+          aria-label={themeMode === "dark" ? "Switch to light mode" : "Switch to dark mode"}
+        >
           {themeMode === "dark" ? (
             <svg
               width="15"

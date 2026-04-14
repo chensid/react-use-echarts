@@ -6,7 +6,8 @@ const BarChart: React.FC = () => {
   const chartRef = useRef<HTMLDivElement>(null);
 
   const options: EChartsOption = {
-    title: { text: "Basic Bar Chart Example" },
+    backgroundColor: "transparent",
+    title: { text: "Weekly Sales" },
     tooltip: {},
     xAxis: { data: ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"] },
     yAxis: {},

@@ -77,7 +77,7 @@ const CodeBlock: React.FC<CodeBlockProps> = ({ code, language, themeMode }) => {
     <div className={styles.wrapper}>
       <div className={styles.toolbar}>
         <span className={styles.lang}>{language}</span>
-        <button type="button" className="demo-button" onClick={handleCopy}>
+        <button type="button" className="btn" onClick={handleCopy}>
           {copyLabel}
         </button>
       </div>

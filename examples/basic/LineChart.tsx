@@ -6,7 +6,8 @@ const LineChart: React.FC = () => {
   const chartRef = useRef<HTMLDivElement>(null);
 
   const options: EChartsOption = {
-    title: { text: "Basic Line Chart Example (v1.0)" },
+    backgroundColor: "transparent",
+    title: { text: "Weekly Trend" },
     xAxis: {
       type: "category",
       data: ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
