@@ -27,6 +27,7 @@
   font-size: 15px;
   font-weight: 600;
   letter-spacing: -0.01em;
+  white-space: nowrap;
 }
 
 .right {
@@ -46,5 +47,10 @@
 @media (max-width: 860px) {
   .burger {
     display: flex;
+    padding: 10px;
+  }
+
+  .name {
+    font-size: 13px;
   }
 }

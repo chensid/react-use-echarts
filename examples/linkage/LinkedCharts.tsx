@@ -7,7 +7,8 @@ const LinkedCharts: React.FC = () => {
   const chartRef2 = useRef<HTMLDivElement>(null);
 
   const option1: EChartsOption = {
-    title: { text: "Chart A (linked)" },
+    backgroundColor: "transparent",
+    title: { text: "Revenue (linked)" },
     tooltip: { trigger: "axis" },
     xAxis: { type: "category", data: ["Jan", "Feb", "Mar", "Apr", "May", "Jun"] },
     yAxis: { type: "value" },
@@ -15,11 +16,14 @@ const LinkedCharts: React.FC = () => {
   };
 
   const option2: EChartsOption = {
-    title: { text: "Chart B (linked)" },
+    backgroundColor: "transparent",
+    title: { text: "Growth Rate (linked)" },
     tooltip: { trigger: "axis" },
     xAxis: { type: "category", data: ["Jan", "Feb", "Mar", "Apr", "May", "Jun"] },
     yAxis: { type: "value" },
-    series: [{ type: "line", data: [30, 60, 40, 80, 50, 70] }],
+    series: [
+      { type: "line", areaStyle: { opacity: 0.3 }, smooth: true, data: [30, 60, 40, 80, 50, 70] },
+    ],
   };
 
   useEcharts(chartRef1, { option: option1, group: "dashboard" });

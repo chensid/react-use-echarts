@@ -40,6 +40,12 @@ html {
   scroll-padding-top: calc(var(--header-height) + 20px);
 }
 
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+}
+
 body {
   font-family: var(--sans);
   font-size: 14px;
@@ -78,6 +84,11 @@ button {
 .btn:hover {
   border-color: var(--c-text-2);
   background: var(--c-surface-dim);
+}
+
+.btn:focus-visible {
+  outline: 2px solid var(--c-accent);
+  outline-offset: 2px;
 }
 
 .chart-container {
@@ -123,5 +134,10 @@ button {
 @media (max-width: 860px) {
   .grid-2 {
     grid-template-columns: 1fr;
+  }
+
+  .btn {
+    padding: 10px 14px;
+    font-size: 14px;
   }
 }

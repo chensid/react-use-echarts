@@ -14,14 +14,26 @@ import type { ThemeMode } from "./components/Header";
 import Sidebar, { type NavSection } from "./components/Sidebar";
 import styles from "./app.module.css";
 
-import BarChartSource from "./basic/BarChart.tsx?raw";
-import LineChartSource from "./basic/LineChart.tsx?raw";
-import ComponentRefSource from "./component/ComponentRef.tsx?raw";
-import EventChartSource from "./events/EventChart.tsx?raw";
-import LazyChartsSource from "./lazy/LazyCharts.tsx?raw";
-import LinkedChartsSource from "./linkage/LinkedCharts.tsx?raw";
-import LoadingChartSource from "./loading/LoadingChart.tsx?raw";
-import ThemeSwitcherSource from "./themes/ThemeSwitcher.tsx?raw";
+import BarChartRaw from "./basic/BarChart.tsx?raw";
+import LineChartRaw from "./basic/LineChart.tsx?raw";
+import ComponentRefRaw from "./component/ComponentRef.tsx?raw";
+import EventChartRaw from "./events/EventChart.tsx?raw";
+import LazyChartsRaw from "./lazy/LazyCharts.tsx?raw";
+import LinkedChartsRaw from "./linkage/LinkedCharts.tsx?raw";
+import LoadingChartRaw from "./loading/LoadingChart.tsx?raw";
+import ThemeSwitcherRaw from "./themes/ThemeSwitcher.tsx?raw";
+
+const fixImports = (src: string) =>
+  src.replace(/from ["']\.\.\/\.\.\/src["']/g, 'from "react-use-echarts"');
+
+const BarChartSource = fixImports(BarChartRaw);
+const LineChartSource = fixImports(LineChartRaw);
+const ComponentRefSource = fixImports(ComponentRefRaw);
+const EventChartSource = fixImports(EventChartRaw);
+const LazyChartsSource = fixImports(LazyChartsRaw);
+const LinkedChartsSource = fixImports(LinkedChartsRaw);
+const LoadingChartSource = fixImports(LoadingChartRaw);
+const ThemeSwitcherSource = fixImports(ThemeSwitcherRaw);
 
 const STORAGE_KEY = "rce-theme";
 

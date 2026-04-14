@@ -2,6 +2,7 @@
   border: 1px solid var(--c-border);
   border-radius: var(--radius);
   background: var(--c-surface);
+  box-shadow: var(--c-shadow);
   overflow: hidden;
 }
 
