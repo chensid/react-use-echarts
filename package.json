@@ -67,7 +67,7 @@
   },
   "devDependencies": {
     "@babel/core": "^7.29.0",
-    "@rolldown/plugin-babel": "^0.2.2",
+    "@rolldown/plugin-babel": "^0.2.3",
     "@shikijs/langs": "^4.0.2",
     "@shikijs/themes": "^4.0.2",
     "@testing-library/react": "^16.3.2",
