@@ -6,12 +6,12 @@
 }
 
 .main {
-  padding: 32px 36px 64px;
+  padding: 24px 36px 48px;
   min-width: 0;
 }
 
 .inner {
-  max-width: 960px;
+  max-width: 1080px;
   margin: 0 auto;
 }
 
