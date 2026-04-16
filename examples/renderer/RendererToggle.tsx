@@ -1,5 +1,6 @@
 import React, { useRef } from "react";
 import { useEcharts } from "../../src";
+import { useTheme } from "../components/theme-context";
 import type { EChartsOption } from "echarts";
 
 const sharedOption: EChartsOption = {
@@ -18,6 +19,7 @@ const sharedOption: EChartsOption = {
 const RendererToggle: React.FC = () => {
   const canvasRef = useRef<HTMLDivElement>(null);
   const svgRef = useRef<HTMLDivElement>(null);
+  const { mode } = useTheme();
 
   const canvasOption: EChartsOption = {
     ...sharedOption,
@@ -29,8 +31,8 @@ const RendererToggle: React.FC = () => {
     title: { text: "SVG Renderer", textStyle: { fontSize: 14 } },
   };
 
-  useEcharts(canvasRef, { option: canvasOption, renderer: "canvas" });
-  useEcharts(svgRef, { option: svgOption, renderer: "svg" });
+  useEcharts(canvasRef, { option: canvasOption, renderer: "canvas", theme: mode });
+  useEcharts(svgRef, { option: svgOption, renderer: "svg", theme: mode });
 
   return (
     <div>

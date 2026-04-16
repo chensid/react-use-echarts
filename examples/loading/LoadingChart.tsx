@@ -1,9 +1,11 @@
 import React, { useRef, useState } from "react";
 import { useEcharts } from "../../src";
+import { useTheme } from "../components/theme-context";
 import type { EChartsOption } from "echarts";
 
 const LoadingChart: React.FC = () => {
   const chartRef = useRef<HTMLDivElement>(null);
+  const { mode } = useTheme();
   const [loading, setLoading] = useState(true);
 
   const option: EChartsOption = {
@@ -17,6 +19,7 @@ const LoadingChart: React.FC = () => {
 
   useEcharts(chartRef, {
     option,
+    theme: mode,
     showLoading: loading,
     loadingOption: { text: "Loading data..." },
   });

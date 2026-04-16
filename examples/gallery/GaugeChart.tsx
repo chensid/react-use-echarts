@@ -1,9 +1,11 @@
 import React, { useRef } from "react";
 import { useEcharts } from "../../src";
+import { useTheme } from "../components/theme-context";
 import type { EChartsOption } from "echarts";
 
 const GaugeChart: React.FC = () => {
   const chartRef = useRef<HTMLDivElement>(null);
+  const { mode } = useTheme();
 
   const option: EChartsOption = {
     backgroundColor: "transparent",
@@ -32,7 +34,7 @@ const GaugeChart: React.FC = () => {
     ],
   };
 
-  useEcharts(chartRef, { option });
+  useEcharts(chartRef, { option, theme: mode });
 
   return <div ref={chartRef} className="chart-container-sm" />;
 };

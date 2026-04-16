@@ -1,10 +1,12 @@
 import React, { useRef } from "react";
 import { EChart } from "../../src";
 import type { UseEchartsReturn } from "../../src";
+import { useTheme } from "../components/theme-context";
 import type { EChartsOption } from "echarts";
 
 const ComponentRef: React.FC = () => {
   const chartRef = useRef<UseEchartsReturn>(null);
+  const { mode } = useTheme();
 
   const option: EChartsOption = {
     backgroundColor: "transparent",
@@ -57,7 +59,12 @@ const ComponentRef: React.FC = () => {
           Manual Resize
         </button>
       </div>
-      <EChart ref={chartRef} option={option} style={{ height: "340px", width: "100%" }} />
+      <EChart
+        ref={chartRef}
+        option={option}
+        theme={mode}
+        style={{ height: "340px", width: "100%" }}
+      />
     </div>
   );
 };

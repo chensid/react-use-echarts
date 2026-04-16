@@ -1,0 +1,82 @@
+.sectionTitle {
+  font-size: 14px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--c-text-2);
+  margin: 32px 0 14px;
+}
+
+.entries {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+
+.entryCard {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 22px;
+  border: 1px solid var(--c-border);
+  border-radius: var(--radius);
+  background: var(--c-surface);
+  color: inherit;
+  transition:
+    border-color 0.15s,
+    transform 0.15s,
+    box-shadow 0.15s;
+}
+
+.entryCard:hover {
+  border-color: var(--c-text-2);
+  transform: translateY(-2px);
+  box-shadow: var(--c-shadow);
+}
+
+.entryIcon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+  background: var(--c-accent-soft);
+  color: var(--c-text);
+}
+
+.entryTitle {
+  font-size: 18px;
+  font-weight: 600;
+  margin: 0;
+}
+
+.entryDesc {
+  font-size: 13px;
+  color: var(--c-text-2);
+  line-height: 1.5;
+  margin: 0;
+  flex: 1;
+}
+
+.entryFooter {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.entryFooter :global(svg) {
+  transition: transform 0.15s;
+}
+
+.entryCard:hover .entryFooter :global(svg) {
+  transform: translateX(2px);
+}
+
+@media (max-width: 860px) {
+  .entries {
+    grid-template-columns: 1fr;
+  }
+}

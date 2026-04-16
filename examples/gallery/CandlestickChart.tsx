@@ -1,9 +1,11 @@
 import React, { useRef } from "react";
 import { useEcharts } from "../../src";
+import { useTheme } from "../components/theme-context";
 import type { EChartsOption } from "echarts";
 
 const CandlestickChart: React.FC = () => {
   const chartRef = useRef<HTMLDivElement>(null);
+  const { mode } = useTheme();
 
   const dates = ["Apr 1", "Apr 2", "Apr 3", "Apr 4", "Apr 7", "Apr 8", "Apr 9", "Apr 10"];
   // [open, close, low, high]
@@ -28,7 +30,7 @@ const CandlestickChart: React.FC = () => {
     grid: { top: 50, bottom: 30, left: 50, right: 20 },
   };
 
-  useEcharts(chartRef, { option });
+  useEcharts(chartRef, { option, theme: mode });
 
   return <div ref={chartRef} className="chart-container-sm" />;
 };

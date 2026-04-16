@@ -1,13 +1,12 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { createHighlighterCore } from "shiki/core";
 import { createJavaScriptRegexEngine } from "shiki/engine/javascript";
-import type { ThemeMode } from "./Header";
+import { useTheme } from "./theme-context";
 import styles from "./CodeBlock.module.css";
 
 interface CodeBlockProps {
   readonly code: string;
   readonly language: "tsx";
-  readonly themeMode: ThemeMode;
 }
 
 type MinimalHighlighter = {
@@ -34,11 +33,12 @@ const getHighlighter = async (): Promise<MinimalHighlighter> => {
   return highlighterPromise;
 };
 
-const CodeBlock: React.FC<CodeBlockProps> = ({ code, language, themeMode }) => {
+const CodeBlock: React.FC<CodeBlockProps> = ({ code, language }) => {
+  const { mode } = useTheme();
   const [highlightedHtml, setHighlightedHtml] = useState("");
   const [copyLabel, setCopyLabel] = useState<"Copy" | "Copied">("Copy");
 
-  const theme = useMemo(() => (themeMode === "dark" ? "github-dark" : "github-light"), [themeMode]);
+  const theme = useMemo(() => (mode === "dark" ? "github-dark" : "github-light"), [mode]);
 
   useEffect(() => {
     let disposed = false;

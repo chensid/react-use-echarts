@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { useEcharts } from "../../src";
+import { useTheme } from "../components/theme-context";
 import type { EChartsOption } from "echarts";
 
 function formatTime(date: Date) {
@@ -25,6 +26,7 @@ function generateInitialData() {
 
 const DynamicChart: React.FC = () => {
   const chartRef = useRef<HTMLDivElement>(null);
+  const { mode } = useTheme();
   const [running, setRunning] = useState(true);
   const [count, setCount] = useState(INITIAL_COUNT);
   const dataRef = useRef(generateInitialData());
@@ -48,7 +50,7 @@ const DynamicChart: React.FC = () => {
     animation: false,
   });
 
-  const { setOption } = useEcharts(chartRef, { option: optionRef.current });
+  const { setOption } = useEcharts(chartRef, { option: optionRef.current, theme: mode });
 
   useEffect(() => {
     if (!running) return;

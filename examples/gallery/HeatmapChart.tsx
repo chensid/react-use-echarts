@@ -1,5 +1,6 @@
 import React, { useMemo, useRef } from "react";
 import { useEcharts } from "../../src";
+import { useTheme } from "../components/theme-context";
 import type { EChartsOption } from "echarts";
 
 const HOURS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
@@ -17,6 +18,7 @@ function generateData() {
 
 const HeatmapChart: React.FC = () => {
   const chartRef = useRef<HTMLDivElement>(null);
+  const { mode } = useTheme();
   const heatmapData = useMemo(() => generateData(), []);
 
   const option: EChartsOption = {
@@ -52,7 +54,7 @@ const HeatmapChart: React.FC = () => {
     ],
   };
 
-  useEcharts(chartRef, { option });
+  useEcharts(chartRef, { option, theme: mode });
 
   return <div ref={chartRef} className="chart-container-sm" />;
 };
