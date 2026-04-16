@@ -1,6 +1,6 @@
 :root {
   --header-height: 56px;
-  --sidebar-width: 220px;
+  --sidebar-width: 240px;
   --mono: ui-monospace, "SFMono-Regular", Menlo, Monaco, "Courier New", monospace;
   --sans: system-ui, -apple-system, "Segoe UI", Helvetica, Arial, sans-serif;
   --radius: 6px;

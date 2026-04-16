@@ -1,52 +1,21 @@
 .hero {
   text-align: center;
-  padding: 32px 0 28px;
-  margin-bottom: 28px;
-  border-bottom: 1px solid var(--c-border);
-}
-
-.badges {
-  display: flex;
-  justify-content: center;
-  gap: 8px;
-  margin-bottom: 20px;
-  flex-wrap: wrap;
+  padding: 48px 0 32px;
 }
 
 .title {
-  font-size: 32px;
+  font-size: 40px;
   font-weight: 700;
-  letter-spacing: -0.02em;
-  margin: 0 0 8px;
+  letter-spacing: -0.025em;
+  margin: 0 0 10px;
 }
 
 .tagline {
-  font-size: 15px;
+  font-size: 16px;
   color: var(--c-text-2);
-  margin: 0 0 16px;
-  max-width: 480px;
-  margin-left: auto;
-  margin-right: auto;
-  line-height: 1.5;
-}
-
-.features {
-  display: flex;
-  justify-content: center;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-bottom: 18px;
-}
-
-.tag {
-  display: inline-block;
-  padding: 4px 10px;
-  font-size: 12px;
-  font-weight: 500;
-  border: 1px solid var(--c-border);
-  border-radius: 100px;
-  color: var(--c-text-2);
-  background: var(--c-surface);
+  margin: 0 auto 24px;
+  max-width: 560px;
+  line-height: 1.55;
 }
 
 .install {
@@ -57,7 +26,7 @@
   background: var(--c-surface-dim);
   border: 1px solid var(--c-border);
   border-radius: var(--radius);
-  margin-bottom: 18px;
+  margin-bottom: 20px;
 }
 
 .cmd {
@@ -67,11 +36,19 @@
   user-select: all;
 }
 
-.cta {
+.ctaRow {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  margin-bottom: 28px;
+  flex-wrap: wrap;
+}
+
+.ctaPrimary {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 8px 18px;
+  padding: 9px 20px;
   font-size: 14px;
   font-weight: 600;
   color: var(--c-bg);
@@ -82,19 +59,46 @@
     transform 0.15s;
 }
 
-.cta:hover {
-  opacity: 0.85;
+.ctaPrimary:hover {
+  opacity: 0.88;
   transform: translateY(-1px);
+}
+
+.ctaSecondary {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 9px 18px;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--c-text);
+  background: var(--c-surface);
+  border: 1px solid var(--c-border);
+  border-radius: var(--radius);
+  transition:
+    border-color 0.15s,
+    background-color 0.15s;
+}
+
+.ctaSecondary:hover {
+  border-color: var(--c-text-2);
+  background: var(--c-surface-dim);
+}
+
+.badges {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  flex-wrap: wrap;
 }
 
 @media (max-width: 860px) {
   .hero {
-    padding: 24px 0 20px;
-    margin-bottom: 20px;
+    padding: 32px 0 24px;
   }
 
   .title {
-    font-size: 24px;
+    font-size: 30px;
   }
 
   .tagline {

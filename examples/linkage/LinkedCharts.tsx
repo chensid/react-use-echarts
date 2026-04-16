@@ -1,10 +1,12 @@
 import React, { useRef } from "react";
 import { useEcharts } from "../../src";
+import { useTheme } from "../components/theme-context";
 import type { EChartsOption } from "echarts";
 
 const LinkedCharts: React.FC = () => {
   const chartRef1 = useRef<HTMLDivElement>(null);
   const chartRef2 = useRef<HTMLDivElement>(null);
+  const { mode } = useTheme();
 
   const option1: EChartsOption = {
     backgroundColor: "transparent",
@@ -26,8 +28,8 @@ const LinkedCharts: React.FC = () => {
     ],
   };
 
-  useEcharts(chartRef1, { option: option1, group: "dashboard" });
-  useEcharts(chartRef2, { option: option2, group: "dashboard" });
+  useEcharts(chartRef1, { option: option1, group: "dashboard", theme: mode });
+  useEcharts(chartRef2, { option: option2, group: "dashboard", theme: mode });
 
   return (
     <div className="grid-2">

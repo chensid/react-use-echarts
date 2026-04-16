@@ -1,62 +1,74 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React from "react";
+import { NavLink } from "react-router-dom";
+import { galleryItems } from "../data/gallery";
+import { featureItems } from "../data/features";
+import type { DemoItem } from "../data/types";
 import styles from "./Sidebar.module.css";
 
-export interface NavSection {
-  readonly id: string;
-  readonly title: string;
-}
-
 interface SidebarProps {
-  readonly sections: readonly NavSection[];
   readonly isOpen: boolean;
   readonly onClose: () => void;
 }
 
-const Sidebar: React.FC<SidebarProps> = ({ sections, isOpen, onClose }) => {
-  const [activeId, setActiveId] = useState(sections[0]?.id ?? "");
-  const sectionIds = useMemo(() => sections.map((s) => s.id), [sections]);
+const itemClass = ({ isActive }: { isActive: boolean }) =>
+  `${styles.link} ${isActive ? styles.active : ""}`;
 
-  useEffect(() => {
-    if (sectionIds.length === 0) return;
+const headingClass = ({ isActive }: { isActive: boolean }) =>
+  `${styles.heading} ${isActive ? styles.headingActive : ""}`;
 
-    const elements = sectionIds
-      .map((id) => document.getElementById(id))
-      .filter((el): el is HTMLElement => el !== null);
+interface SectionProps {
+  readonly title: string;
+  readonly to: string;
+  readonly items: readonly DemoItem[];
+  readonly basePath: string;
+  readonly onClose: () => void;
+}
 
-    if (elements.length === 0) return;
+const Section: React.FC<SectionProps> = ({ title, to, items, basePath, onClose }) => (
+  <>
+    <NavLink to={to} end className={headingClass} onClick={onClose}>
+      {title}
+    </NavLink>
+    {items.map((item) => (
+      <NavLink key={item.id} to={`${basePath}/${item.id}`} className={itemClass} onClick={onClose}>
+        {item.title}
+      </NavLink>
+    ))}
+  </>
+);
 
-    const observer = new IntersectionObserver(
-      (entries) => {
-        for (const entry of entries) {
-          if (entry.isIntersecting) {
-            setActiveId(entry.target.id);
-            break;
-          }
-        }
-      },
-      { rootMargin: "-20% 0px -60% 0px", threshold: 0 },
-    );
-
-    for (const el of elements) observer.observe(el);
-    return () => observer.disconnect();
-  }, [sectionIds]);
-
+const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
   return (
     <>
       {isOpen ? <div className={styles.backdrop} onClick={onClose} role="presentation" /> : null}
       <aside className={`${styles.sidebar} ${isOpen ? styles.open : ""}`}>
         <nav className={styles.nav}>
-          <p className={styles.heading}>Examples</p>
-          {sections.map((s) => (
-            <a
-              key={s.id}
-              href={`#${s.id}`}
-              className={`${styles.link} ${activeId === s.id ? styles.active : ""}`}
-              onClick={onClose}
-            >
-              {s.title}
-            </a>
-          ))}
+          <NavLink
+            to="/"
+            end
+            className={({ isActive }) =>
+              `${styles.link} ${styles.topLink} ${isActive ? styles.active : ""}`
+            }
+            onClick={onClose}
+          >
+            Home
+          </NavLink>
+
+          <Section
+            title="Gallery"
+            to="/gallery"
+            items={galleryItems}
+            basePath="/gallery"
+            onClose={onClose}
+          />
+
+          <Section
+            title="Features"
+            to="/features"
+            items={featureItems}
+            basePath="/features"
+            onClose={onClose}
+          />
         </nav>
       </aside>
     </>

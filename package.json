@@ -65,6 +65,9 @@
     "typecheck": "tsc -b",
     "prepare": "vp config"
   },
+  "dependencies": {
+    "react-router-dom": "^7.14.1"
+  },
   "devDependencies": {
     "@babel/core": "^7.29.0",
     "@rolldown/plugin-babel": "^0.2.3",

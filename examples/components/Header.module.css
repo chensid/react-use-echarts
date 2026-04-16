@@ -19,6 +19,13 @@
   gap: 10px;
 }
 
+.brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: inherit;
+}
+
 .logo {
   flex-shrink: 0;
 }

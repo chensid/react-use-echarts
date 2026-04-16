@@ -1,0 +1,62 @@
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 18px;
+  border: 1px solid var(--c-border);
+  border-radius: var(--radius);
+  background: var(--c-surface);
+  color: inherit;
+  transition:
+    border-color 0.15s,
+    transform 0.15s,
+    box-shadow 0.15s;
+}
+
+.card:hover {
+  border-color: var(--c-text-2);
+  transform: translateY(-2px);
+  box-shadow: var(--c-shadow);
+}
+
+.iconWrap {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: calc(var(--radius) + 2px);
+  background: var(--c-accent-soft);
+  color: var(--c-text);
+}
+
+.title {
+  font-size: 15px;
+  font-weight: 600;
+  margin: 0;
+}
+
+.desc {
+  font-size: 13px;
+  color: var(--c-text-2);
+  line-height: 1.5;
+  margin: 0;
+  flex: 1;
+}
+
+.footer {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--c-text);
+}
+
+.footer :global(svg) {
+  transition: transform 0.15s;
+}
+
+.card:hover .footer :global(svg) {
+  transform: translateX(2px);
+}

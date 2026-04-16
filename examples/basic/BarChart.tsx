@@ -1,9 +1,11 @@
 import React, { useRef } from "react";
 import { useEcharts } from "../../src";
+import { useTheme } from "../components/theme-context";
 import type { EChartsOption } from "echarts";
 
 const BarChart: React.FC = () => {
   const chartRef = useRef<HTMLDivElement>(null);
+  const { mode } = useTheme();
 
   const options: EChartsOption = {
     backgroundColor: "transparent",
@@ -14,7 +16,7 @@ const BarChart: React.FC = () => {
     series: [{ name: "Sales", type: "bar", data: [23, 24, 18, 25, 27, 28, 25] }],
   };
 
-  useEcharts(chartRef, { option: options });
+  useEcharts(chartRef, { option: options, theme: mode });
 
   return <div ref={chartRef} className="chart-container" />;
 };

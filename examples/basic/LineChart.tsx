@@ -1,9 +1,11 @@
 import React, { useRef } from "react";
 import { useEcharts } from "../../src";
+import { useTheme } from "../components/theme-context";
 import type { EChartsOption } from "echarts";
 
 const LineChart: React.FC = () => {
   const chartRef = useRef<HTMLDivElement>(null);
+  const { mode } = useTheme();
 
   const options: EChartsOption = {
     backgroundColor: "transparent",
@@ -22,10 +24,7 @@ const LineChart: React.FC = () => {
     ],
   };
 
-  useEcharts(chartRef, {
-    option: options,
-    theme: "light",
-  });
+  useEcharts(chartRef, { option: options, theme: mode });
 
   return <div ref={chartRef} className="chart-container" />;
 };

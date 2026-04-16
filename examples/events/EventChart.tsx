@@ -1,9 +1,11 @@
 import React, { useRef, useState } from "react";
 import { useEcharts } from "../../src";
+import { useTheme } from "../components/theme-context";
 import type { EChartsOption } from "echarts";
 
 const EventChart: React.FC = () => {
   const chartRef = useRef<HTMLDivElement>(null);
+  const { mode } = useTheme();
   const [lastEvent, setLastEvent] = useState<string>("(click on chart)");
 
   const option: EChartsOption = {
@@ -34,6 +36,7 @@ const EventChart: React.FC = () => {
 
   useEcharts(chartRef, {
     option,
+    theme: mode,
     onEvents: {
       click: (params: unknown) => {
         const p = params as { value: number[] };
