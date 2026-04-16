@@ -83,9 +83,9 @@
     "react-dom": "^19.2.5",
     "shiki": "^4.0.2",
     "typescript": "~6.0.2",
-    "vite": "npm:@voidzero-dev/vite-plus-core@^0.1.16",
-    "vite-plus": "^0.1.16",
-    "vitest": "npm:@voidzero-dev/vite-plus-test@^0.1.16"
+    "vite": "npm:@voidzero-dev/vite-plus-core@^0.1.18",
+    "vite-plus": "^0.1.18",
+    "vitest": "npm:@voidzero-dev/vite-plus-test@^0.1.18"
   },
   "peerDependencies": {
     "echarts": "^6.0.0",
