@@ -1,0 +1,109 @@
+.hero {
+  text-align: center;
+  padding: 32px 0 28px;
+  margin-bottom: 28px;
+  border-bottom: 1px solid var(--c-border);
+}
+
+.badges {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+
+.title {
+  font-size: 32px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  margin: 0 0 8px;
+}
+
+.tagline {
+  font-size: 15px;
+  color: var(--c-text-2);
+  margin: 0 0 16px;
+  max-width: 480px;
+  margin-left: auto;
+  margin-right: auto;
+  line-height: 1.5;
+}
+
+.features {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 18px;
+}
+
+.tag {
+  display: inline-block;
+  padding: 4px 10px;
+  font-size: 12px;
+  font-weight: 500;
+  border: 1px solid var(--c-border);
+  border-radius: 100px;
+  color: var(--c-text-2);
+  background: var(--c-surface);
+}
+
+.install {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 6px 6px 14px;
+  background: var(--c-surface-dim);
+  border: 1px solid var(--c-border);
+  border-radius: var(--radius);
+  margin-bottom: 18px;
+}
+
+.cmd {
+  font-family: var(--mono);
+  font-size: 13px;
+  color: var(--c-text);
+  user-select: all;
+}
+
+.cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 18px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--c-bg);
+  background: var(--c-accent);
+  border-radius: var(--radius);
+  transition:
+    opacity 0.15s,
+    transform 0.15s;
+}
+
+.cta:hover {
+  opacity: 0.85;
+  transform: translateY(-1px);
+}
+
+@media (max-width: 860px) {
+  .hero {
+    padding: 24px 0 20px;
+    margin-bottom: 20px;
+  }
+
+  .title {
+    font-size: 24px;
+  }
+
+  .tagline {
+    font-size: 14px;
+  }
+
+  .install {
+    flex-direction: column;
+    gap: 6px;
+    padding: 10px;
+  }
+}
