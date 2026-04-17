@@ -179,7 +179,7 @@ describe("useEcharts", () => {
       expect(mockInstance.showLoading).toHaveBeenCalledWith(loadingOption);
     });
 
-    it("should hide loading when showLoading is false", () => {
+    it("should not call hideLoading on initial mount when showLoading is false", () => {
       const element = document.createElement("div");
       const ref = { current: element };
       const mockInstance = createMockInstance(element);
@@ -187,7 +187,46 @@ describe("useEcharts", () => {
 
       renderHook(() => useEcharts(ref, { option: baseOption, showLoading: false }));
 
-      expect(mockInstance.hideLoading).toHaveBeenCalled();
+      expect(mockInstance.hideLoading).not.toHaveBeenCalled();
+      expect(mockInstance.showLoading).not.toHaveBeenCalled();
+    });
+
+    it("should hide loading when showLoading transitions from true to false", () => {
+      const element = document.createElement("div");
+      const ref = { current: element };
+      const mockInstance = createMockInstance(element);
+      (echarts.init as ReturnType<typeof vi.fn>).mockReturnValue(mockInstance);
+
+      const { rerender } = renderHook<ReturnType<typeof useEcharts>, { showLoading: boolean }>(
+        ({ showLoading }) => useEcharts(ref, { option: baseOption, showLoading }),
+        { initialProps: { showLoading: true } },
+      );
+
+      expect(mockInstance.showLoading).toHaveBeenCalledTimes(1);
+      expect(mockInstance.hideLoading).not.toHaveBeenCalled();
+
+      rerender({ showLoading: false });
+      expect(mockInstance.hideLoading).toHaveBeenCalledTimes(1);
+    });
+
+    it("should not re-call showLoading for inline loadingOption with identical content", () => {
+      const element = document.createElement("div");
+      const ref = { current: element };
+      const mockInstance = createMockInstance(element);
+      (echarts.init as ReturnType<typeof vi.fn>).mockReturnValue(mockInstance);
+
+      const { rerender } = renderHook(() =>
+        useEcharts(ref, {
+          option: baseOption,
+          showLoading: true,
+          loadingOption: { text: "Loading..." },
+        }),
+      );
+
+      expect(mockInstance.showLoading).toHaveBeenCalledTimes(1);
+      rerender();
+      rerender();
+      expect(mockInstance.showLoading).toHaveBeenCalledTimes(1);
     });
 
     it("should keep loading state after theme change", async () => {

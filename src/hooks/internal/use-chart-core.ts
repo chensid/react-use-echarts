@@ -82,6 +82,11 @@ interface LastApplied {
   opts: SetOptionOpts | undefined;
 }
 
+interface LastLoading {
+  showLoading: boolean;
+  loadingOption: LoadingOption | undefined;
+}
+
 interface ChartCoreConfig {
   option: EChartsOption;
   theme?: UseEchartsOptions["theme"];
@@ -153,6 +158,7 @@ export function useChartCore(
   // --- Internal shared state ---
   const boundEventsRef = useRef<EChartsEvents | undefined>(undefined);
   const lastAppliedRef = useRef<LastApplied | null>(null);
+  const lastLoadingRef = useRef<LastLoading | null>(null);
 
   // --- Stable dependency keys ---
   const themeKey = useMemo(() => computeThemeKey(theme), [theme]);
@@ -244,6 +250,10 @@ export function useChartCore(
     if (showLoadingRef.current) {
       instance.showLoading(loadingOptionRef.current);
     }
+    lastLoadingRef.current = {
+      showLoading: showLoadingRef.current,
+      loadingOption: loadingOptionRef.current,
+    };
 
     bindEvents(instance, onEventsRef.current);
     boundEventsRef.current = onEventsRef.current;
@@ -255,6 +265,7 @@ export function useChartCore(
 
     return () => {
       lastAppliedRef.current = null;
+      lastLoadingRef.current = null;
 
       const inst = getCachedInstance(element);
       if (!inst) return;
@@ -315,17 +326,24 @@ export function useChartCore(
   // Effect 4: LOADING STATE
   //
   // Toggles showLoading / hideLoading on dynamic changes.
-  // Init effect handles initial application on instance creation.
+  // Init effect handles initial application on instance creation;
+  // lastLoadingRef + shallowEqual skips redundant calls for inline
+  // loadingOption objects with identical content.
   // =====================================================================
   useEffect(() => {
     const instance = getInstance();
     if (!instance) return;
+
+    const last = lastLoadingRef.current;
+    if (last && last.showLoading === showLoading && shallowEqual(last.loadingOption, loadingOption))
+      return;
 
     if (showLoading) {
       instance.showLoading(loadingOption);
     } else {
       instance.hideLoading();
     }
+    lastLoadingRef.current = { showLoading, loadingOption };
   }, [getInstance, showLoading, loadingOption]);
 
   // =====================================================================
