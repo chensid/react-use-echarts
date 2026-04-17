@@ -21,7 +21,7 @@ All `useEcharts` options as props + `style` (default `{ width: '100%', height: '
 ### Other Exports
 
 - `isBuiltinTheme(name)`, `registerCustomTheme(name, config)` — from `'react-use-echarts'`
-- `registerBuiltinThemes()`, `getBuiltinTheme(name)`, `getAvailableThemes()` — from `'react-use-echarts/themes/registry'` (separate entry, ~20KB theme JSON)
+- `registerBuiltinThemes()` — from `'react-use-echarts/themes/registry'` (separate entry, ~20KB theme JSON)
 - `useLazyInit(ref, options)` — standalone lazy init hook
 
 ## Gotchas

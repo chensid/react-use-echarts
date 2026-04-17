@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vite-plus/test";
 import * as echarts from "echarts";
-import { registerBuiltinThemes, getBuiltinTheme, getAvailableThemes } from "../../themes/registry";
+import { registerBuiltinThemes } from "../../themes/registry";
 
 // Mock ECharts
 vi.mock("echarts", () => ({
@@ -10,42 +10,6 @@ vi.mock("echarts", () => ({
 describe("themes registry", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-  });
-
-  describe("getBuiltinTheme", () => {
-    it("should return light theme config", () => {
-      const theme = getBuiltinTheme("light");
-      expect(theme).toBeDefined();
-      expect(theme).toHaveProperty("color");
-    });
-
-    it("should return dark theme config", () => {
-      const theme = getBuiltinTheme("dark");
-      expect(theme).toBeDefined();
-      expect(theme).toHaveProperty("color");
-    });
-
-    it("should return macarons theme config", () => {
-      const theme = getBuiltinTheme("macarons");
-      expect(theme).toBeDefined();
-      expect(theme).toHaveProperty("color");
-    });
-
-    it("should return null for unknown theme", () => {
-      // @ts-expect-error - testing invalid input
-      const theme = getBuiltinTheme("unknown");
-      expect(theme).toBeNull();
-    });
-  });
-
-  describe("getAvailableThemes", () => {
-    it("should return all builtin theme names", () => {
-      const themes = getAvailableThemes();
-      expect(themes).toContain("light");
-      expect(themes).toContain("dark");
-      expect(themes).toContain("macarons");
-      expect(themes).toHaveLength(3);
-    });
   });
 
   describe("registerBuiltinThemes", () => {
