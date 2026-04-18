@@ -13,20 +13,30 @@ import type { CSSProperties } from "react";
 export type BuiltinTheme = "light" | "dark" | "macarons";
 
 /**
+ * Event handler signature. Params defaults to `any` so consumers can annotate
+ * concrete ECharts event types (e.g. `ECElementEvent`) without casting.
+ * 事件处理函数签名。参数默认为 `any`，便于使用方直接标注具体的 ECharts 事件类型。
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- see docstring
+export type EChartsEventHandler<TParams = any> = (params: TParams) => void;
+
+/**
  * Event configuration: shorthand function or full config object
  * 事件配置：简写函数或完整配置对象
  * @example
  * ```typescript
  * // Shorthand 简写
  * onEvents={{ click: (params) => console.log(params) }}
+ * // Typed params 明确参数类型
+ * onEvents={{ click: (params: ECElementEvent) => console.log(params.data) }}
  * // Full config 完整写法
  * onEvents={{ click: { handler: fn, query: 'series' } }}
  * ```
  */
 export type EChartsEventConfig =
-  | ((params: unknown) => void)
+  | EChartsEventHandler
   | {
-      handler: (params: unknown) => void;
+      handler: EChartsEventHandler;
       query?: string | object;
       context?: object;
     };
@@ -111,8 +121,19 @@ export interface UseEchartsOptions {
   option: EChartsOption;
 
   /**
-   * Theme: any registered theme name | custom object | null
-   * 主题：任意已注册主题名 | 自定义对象 | null
+   * Theme. Accepts one of:
+   * - a built-in name: `"light" | "dark" | "macarons"`
+   * - any theme name already registered via `registerCustomTheme()` or `echarts.registerTheme()`
+   *   — unknown strings silently fall back to the default theme (typos are NOT detected at runtime)
+   * - a custom theme config object (auto-deduplicated by content hash)
+   * - `null` / `undefined` for the default theme
+   *
+   * 主题。可为：
+   * - 内置主题名：`"light" | "dark" | "macarons"`
+   * - 已通过 `registerCustomTheme()` 或 `echarts.registerTheme()` 注册过的任意主题名
+   *   —— 未知字符串会静默回退到默认主题（运行时不会检测拼写错误）
+   * - 自定义主题配置对象（按内容哈希自动去重）
+   * - `null` / `undefined` 表示默认主题
    */
   theme?: BuiltinTheme | (string & {}) | object | null;
 

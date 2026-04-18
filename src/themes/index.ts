@@ -8,6 +8,15 @@ import type { BuiltinTheme } from "../types";
 const BUILTIN_THEME_NAMES: ReadonlySet<string> = new Set<string>(["light", "dark", "macarons"]);
 
 /**
+ * Names known to be registered via this library's API. Used by `isKnownTheme`
+ * for dev-time validation. External `echarts.registerTheme(...)` calls are
+ * invisible here — route through `registerCustomTheme` to suppress warnings.
+ * 通过本库 API 注册过的主题名。外部直接调用 `echarts.registerTheme` 的名字不会被记录，
+ * 若要消除 dev 警告请改用 `registerCustomTheme`。
+ */
+const knownThemeNames: Set<string> = new Set<string>();
+
+/**
  * Cache for custom theme names (theme object -> registered theme name)
  * 自定义主题名称缓存（主题对象 -> 已注册的主题名称）
  * Uses WeakMap to allow garbage collection of theme objects
@@ -41,6 +50,17 @@ export function isBuiltinTheme(themeName: string): themeName is BuiltinTheme {
 }
 
 /**
+ * Whether a theme name is either built-in or has been registered through this
+ * library's API (`registerCustomTheme` / `getOrRegisterCustomTheme`).
+ * Names registered directly via `echarts.registerTheme` will return `false`.
+ * 判断主题名是否为内置主题或通过本库 API 注册过。外部直接通过
+ * `echarts.registerTheme` 注册的名称会返回 `false`。
+ */
+export function isKnownTheme(themeName: string): boolean {
+  return BUILTIN_THEME_NAMES.has(themeName) || knownThemeNames.has(themeName);
+}
+
+/**
  * Register a custom theme
  * 注册自定义主题
  * @param themeName Theme name
@@ -48,6 +68,7 @@ export function isBuiltinTheme(themeName: string): themeName is BuiltinTheme {
  */
 export function registerCustomTheme(themeName: string, themeConfig: object): void {
   echarts.registerTheme(themeName, themeConfig);
+  knownThemeNames.add(themeName);
 }
 
 /**
@@ -97,6 +118,7 @@ export function getOrRegisterCustomTheme(themeConfig: object, precomputedHash?: 
   // Register new theme
   const themeName = `__custom_theme_${customThemeCounter++}`;
   echarts.registerTheme(themeName, themeConfig);
+  knownThemeNames.add(themeName);
   customThemeCache.set(themeConfig, themeName);
   if (contentHash) {
     if (contentHashCache.size >= MAX_CONTENT_CACHE_SIZE) {
@@ -119,5 +141,6 @@ export function getOrRegisterCustomTheme(themeConfig: object, precomputedHash?: 
  */
 export function clearThemeCache(): void {
   contentHashCache.clear();
+  knownThemeNames.clear();
   customThemeCounter = 0;
 }

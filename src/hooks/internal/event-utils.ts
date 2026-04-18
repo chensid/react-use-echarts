@@ -1,12 +1,12 @@
 import type { ECharts } from "echarts";
-import type { EChartsEvents, EChartsEventConfig } from "../../types";
+import type { EChartsEvents, EChartsEventConfig, EChartsEventHandler } from "../../types";
 
 /**
  * Normalize event config to full object form
  * 将事件配置标准化为完整对象形式
  */
 function normalizeEventConfig(config: EChartsEventConfig): {
-  handler: (params: unknown) => void;
+  handler: EChartsEventHandler;
   query?: string | object;
   context?: object;
 } {
