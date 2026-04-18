@@ -161,11 +161,11 @@ useEcharts(chartRef, {
 
 封装了 `useEcharts` 的声明式组件。接受所有 Hook 选项作为 props，另外支持：
 
-| Prop        | 类型                    | 默认值                                                  | 说明                                      |
-| ----------- | ----------------------- | ------------------------------------------------------- | ----------------------------------------- |
-| `style`     | `React.CSSProperties`   | `{ width: '100%', height: '100%', minHeight: '400px' }` | 容器样式（与默认样式合并）                |
-| `className` | `string`                | —                                                       | 容器 CSS 类名                             |
-| `ref`       | `Ref<UseEchartsReturn>` | —                                                       | 暴露 `{ setOption, getInstance, resize }` |
+| Prop        | 类型                    | 默认值                              | 说明                                      |
+| ----------- | ----------------------- | ----------------------------------- | ----------------------------------------- |
+| `style`     | `React.CSSProperties`   | `{ width: '100%', height: '100%' }` | 容器样式（与默认样式合并）                |
+| `className` | `string`                | —                                   | 容器 CSS 类名                             |
+| `ref`       | `Ref<UseEchartsReturn>` | —                                   | 暴露 `{ setOption, getInstance, resize }` |
 
 ### `useEcharts(ref, options)`
 

@@ -8,7 +8,7 @@ import {
   releaseCachedInstance,
 } from "../../utils/instance-cache";
 import { updateGroup, getInstanceGroup } from "../../utils/connect";
-import { getOrRegisterCustomTheme } from "../../themes";
+import { getOrRegisterCustomTheme, isKnownTheme } from "../../themes";
 import { shallowEqual } from "../../utils/shallow-equal";
 import { bindEvents, unbindEvents, eventsEqual } from "./event-utils";
 
@@ -45,6 +45,12 @@ function computeThemeKey(theme: string | object | null | undefined): string | nu
 }
 
 /**
+ * Names already warned about in dev to prevent log spam.
+ * dev 模式下已警告过的名称，避免重复输出。
+ */
+const warnedThemeNames: Set<string> = new Set();
+
+/**
  * Resolve theme to a registered ECharts theme name (has side effects).
  * Must only be called inside effects, not during render.
  * 将主题解析为已注册的 ECharts 主题名称（有副作用，仅可在 effect 内调用）。
@@ -57,7 +63,21 @@ function resolveThemeName(
   themeKey: string | null,
 ): string | null {
   if (theme == null) return null;
-  if (typeof theme === "string") return theme;
+  if (typeof theme === "string") {
+    if (
+      process.env.NODE_ENV !== "production" &&
+      !isKnownTheme(theme) &&
+      !warnedThemeNames.has(theme)
+    ) {
+      warnedThemeNames.add(theme);
+      console.warn(
+        `react-use-echarts: theme "${theme}" is not built-in and was not registered via registerCustomTheme(). ` +
+          `If you registered it directly with echarts.registerTheme(), switch to registerCustomTheme() to silence this warning. ` +
+          `Unknown names silently fall back to the default theme.`,
+      );
+    }
+    return theme;
+  }
   if (typeof theme !== "object") return null;
   const contentHash = themeKey && !themeKey.startsWith(CIRCULAR_PREFIX) ? themeKey : undefined;
   return getOrRegisterCustomTheme(theme, contentHash);
@@ -295,7 +315,7 @@ export function useChartCore(
     if (!instance) return;
 
     const last = lastAppliedRef.current;
-    if (last && shallowEqual(last.option, option) && last.opts === setOptionOpts) return;
+    if (last && shallowEqual(last.option, option) && shallowEqual(last.opts, setOptionOpts)) return;
 
     try {
       instance.setOption(option, setOptionOpts);

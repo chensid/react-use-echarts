@@ -33,6 +33,7 @@ export type {
   UseEchartsReturn,
   EChartsEvents,
   EChartsEventConfig,
+  EChartsEventHandler,
   EChartsInitOpts,
   EChartProps,
   BuiltinTheme,
@@ -43,4 +44,4 @@ export type {
  * Theme utilities (lightweight, no JSON bundled)
  * 主题工具函数（轻量，不含 JSON）
  */
-export { isBuiltinTheme, registerCustomTheme } from "./themes";
+export { isBuiltinTheme, isKnownTheme, registerCustomTheme } from "./themes";

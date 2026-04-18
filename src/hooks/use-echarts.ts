@@ -47,7 +47,7 @@ function useEcharts(
     onError,
   });
 
-  useResizeObserver(ref, autoResize);
+  useResizeObserver(ref, autoResize, onError);
 
   const resize = useCallback(() => {
     getInstance()?.resize();
