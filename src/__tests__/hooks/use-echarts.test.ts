@@ -931,6 +931,32 @@ describe("useEcharts", () => {
       globalThis.ResizeObserver = originalResizeObserver;
     });
 
+    it("should route ResizeObserver constructor failure to onError when provided", () => {
+      const originalResizeObserver = globalThis.ResizeObserver;
+      const thrown = new Error("ResizeObserver not supported");
+      globalThis.ResizeObserver = class {
+        constructor() {
+          throw thrown;
+        }
+      } as unknown as typeof ResizeObserver;
+
+      const onError = vi.fn();
+      const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+
+      const element = document.createElement("div");
+      const ref = { current: element };
+      const mockInstance = createMockInstance(element);
+      (echarts.init as ReturnType<typeof vi.fn>).mockReturnValue(mockInstance);
+
+      renderHook(() => useEcharts(ref, { option: baseOption, onError }));
+
+      expect(onError).toHaveBeenCalledWith(thrown);
+      expect(warnSpy).not.toHaveBeenCalled();
+
+      warnSpy.mockRestore();
+      globalThis.ResizeObserver = originalResizeObserver;
+    });
+
     it("should disconnect resize observer on unmount", () => {
       const element = document.createElement("div");
       const ref = { current: element };
