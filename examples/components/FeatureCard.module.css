@@ -1,62 +1,84 @@
 .card {
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  padding: 18px;
-  border: 1px solid var(--c-border);
-  border-radius: var(--radius);
+  padding: 20px 20px 16px;
   background: var(--c-surface);
-  color: inherit;
+  border: 1px solid var(--c-border);
+  border-radius: var(--radius-lg);
   transition:
     border-color 0.15s,
-    transform 0.15s,
-    box-shadow 0.15s;
+    background-color 0.15s,
+    transform 0.15s;
+  position: relative;
+  min-height: 180px;
 }
-
 .card:hover {
-  border-color: var(--c-text-2);
-  transform: translateY(-2px);
-  box-shadow: var(--c-shadow);
+  border-color: var(--c-border-strong);
+  background: var(--c-surface);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-sm);
 }
 
-.iconWrap {
-  display: inline-flex;
+.top {
+  display: flex;
   align-items: center;
-  justify-content: center;
-  width: 36px;
-  height: 36px;
-  border-radius: calc(var(--radius) + 2px);
-  background: var(--c-accent-soft);
-  color: var(--c-text);
+  justify-content: space-between;
+  margin-bottom: 18px;
+}
+.idx {
+  font-family: var(--mono);
+  font-size: 10.5px;
+  color: var(--c-text-3);
+  letter-spacing: 0.05em;
+}
+.icon {
+  color: var(--c-text-2);
 }
 
 .title {
   font-size: 15px;
   font-weight: 600;
-  margin: 0;
+  letter-spacing: -0.01em;
+  color: var(--c-text);
+  margin-bottom: 6px;
 }
-
 .desc {
-  font-size: 13px;
-  color: var(--c-text-2);
+  font-size: 12.5px;
   line-height: 1.5;
-  margin: 0;
+  color: var(--c-text-2);
   flex: 1;
+  text-wrap: pretty;
 }
-
-.footer {
+.foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid var(--c-border);
+}
+.id {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--c-text-3);
+}
+.cta {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
-  font-size: 13px;
-  font-weight: 500;
-  color: var(--c-text);
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  color: var(--c-text-3);
+  border: 1px solid var(--c-border);
+  border-radius: 50%;
+  transition:
+    color 0.15s,
+    background 0.15s,
+    transform 0.15s;
 }
-
-.footer :global(svg) {
-  transition: transform 0.15s;
-}
-
-.card:hover .footer :global(svg) {
+.card:hover .cta {
+  color: var(--c-accent-inv);
+  background: var(--c-accent);
+  border-color: var(--c-accent);
   transform: translateX(2px);
 }

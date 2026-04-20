@@ -1,103 +1,72 @@
 .wrapper {
   border: 1px solid var(--c-border);
-  border-radius: var(--radius);
-  background: var(--c-surface);
-  box-shadow: var(--c-shadow);
+  border-radius: var(--radius-lg);
   overflow: hidden;
+  background: var(--c-surface);
 }
-
 .toolbar {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
-  padding: 6px 6px 6px 10px;
+  background: var(--c-surface-2);
   border-bottom: 1px solid var(--c-border);
-  background: var(--c-surface-dim);
+  padding: 0 8px 0 4px;
 }
-
 .tabs {
-  display: inline-flex;
-  gap: 2px;
-  background: var(--c-surface);
-  border: 1px solid var(--c-border);
-  border-radius: var(--radius);
-  padding: 2px;
+  display: flex;
+  align-items: center;
 }
-
 .tab {
-  padding: 4px 12px;
+  padding: 10px 14px;
+  font-family: var(--mono);
   font-size: 12px;
-  font-weight: 500;
-  border: 0;
-  border-radius: calc(var(--radius) - 2px);
-  background: none;
-  color: var(--c-text-2);
-  cursor: pointer;
+  color: var(--c-text-3);
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
   transition:
     color 0.12s,
-    background-color 0.12s;
+    border-color 0.12s;
 }
-
 .tab:hover {
-  color: var(--c-text);
+  color: var(--c-text-2);
 }
-
 .tabActive {
-  background: var(--c-accent-soft);
   color: var(--c-text);
+  border-bottom-color: var(--c-accent);
+  background: var(--c-surface);
 }
-
 .actions {
   display: flex;
-  gap: 6px;
+  gap: 4px;
 }
-
 .iconLink {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 30px;
-  height: 30px;
-  border: 1px solid var(--c-border);
-  border-radius: var(--radius);
-  background: var(--c-surface);
+  width: 28px;
+  height: 28px;
   color: var(--c-text-2);
+  border-radius: 4px;
   transition:
     color 0.12s,
-    border-color 0.12s,
-    background-color 0.12s;
+    background 0.12s;
 }
-
 .iconLink:hover {
   color: var(--c-text);
-  border-color: var(--c-text-2);
-  background: var(--c-surface-dim);
+  background: var(--c-surface-3);
 }
 
 .body {
-  padding: 16px;
+  padding: 18px 18px 20px;
 }
-
 .bodyCode {
   padding: 0;
+  background: var(--c-surface);
 }
-
 .placeholder {
   margin: 0;
-  padding: 14px;
-  font-size: 13px;
-  color: var(--c-text-2);
-}
-
-@media (max-width: 860px) {
-  .toolbar {
-    flex-direction: column;
-    align-items: stretch;
-    gap: 6px;
-  }
-
-  .actions {
-    justify-content: flex-end;
-  }
+  padding: 16px;
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--c-text-3);
 }
