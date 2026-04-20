@@ -44,7 +44,7 @@ const ThemeSwitcher: React.FC = () => {
               i === themeIndex
                 ? {
                     fontWeight: 700,
-                    background: "var(--c-accent-soft)",
+                    background: "var(--c-surface-2)",
                     borderColor: "var(--c-text-2)",
                   }
                 : undefined

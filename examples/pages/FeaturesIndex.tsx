@@ -8,12 +8,18 @@ const FeaturesIndex: React.FC = () => {
   return (
     <>
       <PageHeader
-        title="Features"
-        description="Library capabilities: reactivity, themes, renderer, linkage, events, loading, ref API, and lazy init."
+        eyebrow="Features"
+        title="Library capabilities"
+        description="Reactivity, themes, renderer choice, chart linkage, events, loading, ref API, and lazy init — eight things people commonly hand-roll."
+        meta={
+          <>
+            <span>{featureItems.length}</span> features
+          </>
+        }
       />
       <div className={styles.grid}>
-        {featureItems.map((item) => (
-          <FeatureCard key={item.id} item={item} />
+        {featureItems.map((item, i) => (
+          <FeatureCard key={item.id} item={item} index={i} />
         ))}
       </div>
     </>

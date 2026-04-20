@@ -1,31 +1,67 @@
 :root {
-  --header-height: 56px;
-  --sidebar-width: 240px;
-  --mono: ui-monospace, "SFMono-Regular", Menlo, Monaco, "Courier New", monospace;
-  --sans: system-ui, -apple-system, "Segoe UI", Helvetica, Arial, sans-serif;
-  --radius: 6px;
-
+  /* neutrals (zinc) */
   --c-bg: #fafafa;
-  --c-surface: #fff;
-  --c-surface-dim: #f4f4f5;
+  --c-surface: #ffffff;
+  --c-surface-2: #f4f4f5;
+  --c-surface-3: #e4e4e7;
   --c-border: #e4e4e7;
-  --c-text: #18181b;
-  --c-text-2: #71717a;
-  --c-accent: #18181b;
-  --c-accent-soft: #f4f4f5;
-  --c-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+  --c-border-strong: #d4d4d8;
+  --c-text: #09090b;
+  --c-text-2: #52525b;
+  --c-text-3: #a1a1aa;
+  --c-accent: #09090b;
+  --c-accent-inv: #fafafa;
+
+  /* chart palette */
+  --chart-1: #18181b;
+  --chart-2: #52525b;
+  --chart-3: #a1a1aa;
+  --chart-4: #d4d4d8;
+  --chart-highlight: #d97706;
+  --chart-success: #059669;
+
+  /* metrics */
+  --header-height: 52px;
+  --sidebar-width: 240px;
+  --max-w: 1360px;
+  --radius: 4px;
+  --radius-lg: 6px;
+
+  --sans: "Geist", -apple-system, "Segoe UI", system-ui, sans-serif;
+  --mono: "Geist Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.04);
+  --shadow-md: 0 2px 8px -1px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04);
+  --shadow-lg: 0 8px 24px -6px rgba(0, 0, 0, 0.1), 0 2px 6px -2px rgba(0, 0, 0, 0.05);
+
+  --grid-stroke: rgba(9, 9, 11, 0.05);
 }
 
 html[data-theme="dark"] {
   --c-bg: #09090b;
-  --c-surface: #18181b;
-  --c-surface-dim: #27272a;
-  --c-border: #3f3f46;
+  --c-surface: #0f0f11;
+  --c-surface-2: #18181b;
+  --c-surface-3: #27272a;
+  --c-border: #27272a;
+  --c-border-strong: #3f3f46;
   --c-text: #fafafa;
   --c-text-2: #a1a1aa;
+  --c-text-3: #71717a;
   --c-accent: #fafafa;
-  --c-accent-soft: #27272a;
-  --c-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+  --c-accent-inv: #09090b;
+
+  --chart-1: #fafafa;
+  --chart-2: #a1a1aa;
+  --chart-3: #71717a;
+  --chart-4: #3f3f46;
+  --chart-highlight: #fbbf24;
+  --chart-success: #10b981;
+
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 2px 8px -1px rgba(0, 0, 0, 0.4);
+  --shadow-lg: 0 8px 24px -6px rgba(0, 0, 0, 0.5);
+
+  --grid-stroke: rgba(255, 255, 255, 0.05);
 }
 
 *,
@@ -39,53 +75,119 @@ html {
   scroll-behavior: smooth;
   scroll-padding-top: calc(var(--header-height) + 20px);
 }
-
 @media (prefers-reduced-motion: reduce) {
   html {
     scroll-behavior: auto;
+  }
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
   }
 }
 
 body {
   font-family: var(--sans);
   font-size: 14px;
-  line-height: 1.5;
+  line-height: 1.55;
   background: var(--c-bg);
   color: var(--c-text);
   -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  font-feature-settings: "ss01", "cv11";
+  font-variant-numeric: tabular-nums;
+  position: relative;
+}
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  background-image:
+    linear-gradient(to right, var(--grid-stroke) 1px, transparent 1px),
+    linear-gradient(to bottom, var(--grid-stroke) 1px, transparent 1px);
+  background-size: 32px 32px;
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0.6;
 }
 
 a {
   color: inherit;
   text-decoration: none;
 }
-
 button {
   font: inherit;
   cursor: pointer;
+  color: inherit;
+  background: none;
+  border: 0;
+}
+code,
+pre {
+  font-family: var(--mono);
 }
 
+/* shared CTA buttons used by Hero + Home */
+.cta-primary {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--c-accent-inv);
+  background: var(--c-accent);
+  border-radius: var(--radius-lg);
+  transition: opacity 0.12s;
+}
+.cta-primary:hover {
+  opacity: 0.86;
+}
+.cta-secondary {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 14px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--c-text);
+  background: var(--c-surface);
+  border: 1px solid var(--c-border);
+  border-radius: var(--radius-lg);
+  transition:
+    background 0.12s,
+    border-color 0.12s;
+}
+.cta-secondary:hover {
+  background: var(--c-surface-2);
+  border-color: var(--c-border-strong);
+}
+
+/* legacy utility classes still used by chart examples */
 .btn {
   display: inline-flex;
   align-items: center;
   gap: 6px;
   padding: 6px 12px;
-  font-size: 13px;
+  font-size: 12.5px;
   font-weight: 500;
+  font-family: var(--mono);
+  color: var(--c-text-2);
   border: 1px solid var(--c-border);
   border-radius: var(--radius);
   background: var(--c-surface);
-  color: var(--c-text);
   transition:
-    border-color 0.15s,
-    background-color 0.15s;
+    border-color 0.12s,
+    background-color 0.12s,
+    color 0.12s;
 }
-
 .btn:hover {
-  border-color: var(--c-text-2);
-  background: var(--c-surface-dim);
+  color: var(--c-text);
+  border-color: var(--c-border-strong);
+  background: var(--c-surface-2);
 }
-
 .btn:focus-visible {
   outline: 2px solid var(--c-accent);
   outline-offset: 2px;
@@ -95,34 +197,30 @@ button {
   width: 100%;
   height: 340px;
 }
-
 .chart-container-sm {
   width: 100%;
   height: 280px;
 }
-
 .controls {
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
   margin-bottom: 10px;
 }
-
 .note-box {
-  padding: 8px 12px;
-  font-size: 13px;
+  padding: 6px 10px;
+  font-size: 12px;
   font-family: var(--mono);
   color: var(--c-text-2);
-  background: var(--c-surface-dim);
+  background: var(--c-surface-2);
+  border: 1px solid var(--c-border);
   border-radius: var(--radius);
 }
-
 .grid-2 {
   display: grid;
   gap: 12px;
   grid-template-columns: 1fr 1fr;
 }
-
 .scroll-area {
   height: 380px;
   overflow: auto;
@@ -130,14 +228,12 @@ button {
   border-radius: var(--radius);
   padding: 10px;
 }
-
 @media (max-width: 860px) {
   .grid-2 {
     grid-template-columns: 1fr;
   }
-
   .btn {
     padding: 10px 14px;
-    font-size: 14px;
+    font-size: 13px;
   }
 }

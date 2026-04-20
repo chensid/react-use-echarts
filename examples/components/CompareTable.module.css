@@ -1,0 +1,118 @@
+.tableWrap {
+  border: 1px solid var(--c-border);
+  background: var(--c-surface);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+}
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+.table thead {
+  background: var(--c-surface-2);
+}
+.th,
+.thLabel {
+  text-align: left;
+  padding: 14px 18px;
+  font-family: var(--mono);
+  font-size: 11.5px;
+  font-weight: 500;
+  color: var(--c-text);
+  border-bottom: 1px solid var(--c-border);
+  text-transform: none;
+  vertical-align: top;
+}
+.th {
+  text-align: center;
+}
+.thHook {
+  background: color-mix(in srgb, var(--c-accent) 6%, transparent);
+  color: var(--c-text);
+}
+
+.tag {
+  display: inline-block;
+  font-family: var(--mono);
+  font-size: 9.5px;
+  color: var(--c-text-3);
+  background: var(--c-surface);
+  border: 1px solid var(--c-border);
+  border-radius: 3px;
+  padding: 1px 5px;
+  margin-bottom: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+.thHook .tag {
+  color: var(--c-accent-inv);
+  background: var(--c-accent);
+  border-color: var(--c-accent);
+}
+
+.thLabel {
+  width: 38%;
+}
+.th {
+  width: 20.66%;
+}
+
+.tdLabel,
+.td {
+  padding: 12px 18px;
+  border-bottom: 1px solid var(--c-border);
+}
+.td {
+  text-align: center;
+  vertical-align: middle;
+}
+.tdLabel {
+  color: var(--c-text);
+  font-weight: 500;
+}
+.tdHook {
+  background: color-mix(in srgb, var(--c-accent) 4%, transparent);
+}
+
+.table tbody tr:last-child .tdLabel,
+.table tbody tr:last-child .td {
+  border-bottom: 0;
+}
+
+.yes {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  color: var(--c-accent-inv);
+  background: var(--c-accent);
+  border-radius: 50%;
+}
+.no {
+  color: var(--c-text-3);
+  font-family: var(--mono);
+}
+.txt {
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--c-text);
+  padding: 2px 8px;
+  background: var(--c-surface-2);
+  border: 1px solid var(--c-border);
+  border-radius: 3px;
+}
+
+@media (max-width: 720px) {
+  .th,
+  .thLabel,
+  .td,
+  .tdLabel {
+    padding: 10px 10px;
+    font-size: 12px;
+  }
+  .thLabel {
+    width: 50%;
+  }
+}

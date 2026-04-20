@@ -17,13 +17,15 @@ const Layout: React.FC = () => {
     <>
       <Header onSidebarToggle={() => setSidebarOpen((p) => !p)} />
       <div className={styles.layout}>
-        <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
-        <main className={styles.main}>
-          <div className={styles.inner}>
-            <Outlet />
-            <Footer />
-          </div>
-        </main>
+        <div className={styles.wrap}>
+          <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+          <main className={styles.main}>
+            <div className={styles.inner}>
+              <Outlet />
+              <Footer />
+            </div>
+          </main>
+        </div>
       </div>
     </>
   );

@@ -9,7 +9,7 @@
   align-items: center;
   justify-content: space-between;
   padding: 6px 10px;
-  background: var(--c-surface-dim);
+  background: var(--c-surface-2);
   border-bottom: 1px solid var(--c-border);
 }
 

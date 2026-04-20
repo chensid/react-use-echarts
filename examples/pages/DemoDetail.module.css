@@ -1,0 +1,13 @@
+.metaTag {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--c-text-2);
+  padding: 3px 8px;
+  background: var(--c-surface);
+  border: 1px solid var(--c-border);
+  border-radius: 3px;
+}
+.fallback {
+  min-height: 320px;
+  background: repeating-linear-gradient(45deg, var(--c-surface) 0 8px, var(--c-surface-2) 8px 9px);
+}
