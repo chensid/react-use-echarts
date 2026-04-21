@@ -155,6 +155,14 @@ useEcharts(chartRef, {
 });
 ```
 
+## Gotchas
+
+- **Container needs explicit size** — the chart won't render in a zero-height div; give the container `height` (and `width` if not 100%).
+- **Keep `onEvents` reference stable** — a new `onEvents` object on each render triggers a full rebind. Memoize it with `useMemo` (or hoist) when handlers don't change.
+- **Don't share one DOM element across multiple `useEcharts` hooks** — the instance cache reuses a single ECharts instance and emits a dev warning; updates from different hooks will overwrite each other.
+- **`initOpts` and custom `theme` objects recreate the instance on reference change** — pass memoized or module-level constants unless recreation is intended.
+- **StrictMode is safe** — double mount/unmount is handled by the reference-counted instance cache.
+
 ## API Reference
 
 ### `<EChart />` Props
