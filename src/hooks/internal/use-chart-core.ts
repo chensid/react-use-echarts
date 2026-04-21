@@ -320,7 +320,11 @@ export function useChartCore(
     if (!instance) return;
 
     const last = lastAppliedRef.current;
-    if (last && shallowEqual(last.option, option) && shallowEqual(last.opts, setOptionOpts)) return;
+    if (last) {
+      // Fast path: identical refs skip shallowEqual's typeof/keys dispatch
+      if (last.option === option && last.opts === setOptionOpts) return;
+      if (shallowEqual(last.option, option) && shallowEqual(last.opts, setOptionOpts)) return;
+    }
 
     try {
       instance.setOption(option, setOptionOpts);

@@ -650,6 +650,39 @@ describe("useEcharts", () => {
         expect(mockInstance.setOption).toHaveBeenCalledTimes(1);
       });
     });
+
+    it("should take reference-equality fast path when option and setOptionOpts refs are identical", async () => {
+      const element = document.createElement("div");
+      const ref = { current: element };
+      const mockInstance = createMockInstance(element);
+      (echarts.init as ReturnType<typeof vi.fn>).mockReturnValue(mockInstance);
+
+      const stableOption: EChartsOption = { series: [{ type: "line", data: [1, 2, 3] }] };
+      const stableOpts = { notMerge: false };
+
+      const { rerender } = renderHook(
+        ({ option, opts }) => useEcharts(ref, { option, setOptionOpts: opts }),
+        { initialProps: { option: stableOption, opts: stableOpts } },
+      );
+
+      await waitFor(() => {
+        expect(mockInstance.setOption).toHaveBeenCalledTimes(1);
+      });
+
+      rerender({ option: stableOption, opts: stableOpts });
+      rerender({ option: stableOption, opts: stableOpts });
+      rerender({ option: stableOption, opts: stableOpts });
+
+      await waitFor(() => {
+        expect(mockInstance.setOption).toHaveBeenCalledTimes(1);
+      });
+
+      // Control: changing setOptionOpts value (not shallow-equal) must trigger setOption again
+      rerender({ option: stableOption, opts: { notMerge: true } });
+      await waitFor(() => {
+        expect(mockInstance.setOption).toHaveBeenCalledTimes(2);
+      });
+    });
   });
 
   describe("getInstance", () => {
