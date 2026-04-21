@@ -650,6 +650,39 @@ describe("useEcharts", () => {
         expect(mockInstance.setOption).toHaveBeenCalledTimes(1);
       });
     });
+
+    it("should take reference-equality fast path when option and setOptionOpts refs are identical", async () => {
+      const element = document.createElement("div");
+      const ref = { current: element };
+      const mockInstance = createMockInstance(element);
+      (echarts.init as ReturnType<typeof vi.fn>).mockReturnValue(mockInstance);
+
+      const stableOption: EChartsOption = { series: [{ type: "line", data: [1, 2, 3] }] };
+      const stableOpts = { notMerge: false };
+
+      const { rerender } = renderHook(
+        ({ option, opts }) => useEcharts(ref, { option, setOptionOpts: opts }),
+        { initialProps: { option: stableOption, opts: stableOpts } },
+      );
+
+      await waitFor(() => {
+        expect(mockInstance.setOption).toHaveBeenCalledTimes(1);
+      });
+
+      rerender({ option: stableOption, opts: stableOpts });
+      rerender({ option: stableOption, opts: stableOpts });
+      rerender({ option: stableOption, opts: stableOpts });
+
+      await waitFor(() => {
+        expect(mockInstance.setOption).toHaveBeenCalledTimes(1);
+      });
+
+      // Control: changing setOptionOpts value (not shallow-equal) must trigger setOption again
+      rerender({ option: stableOption, opts: { notMerge: true } });
+      await waitFor(() => {
+        expect(mockInstance.setOption).toHaveBeenCalledTimes(2);
+      });
+    });
   });
 
   describe("getInstance", () => {
@@ -1193,6 +1226,63 @@ describe("useEcharts", () => {
       const firstThemeName = (echarts.init as ReturnType<typeof vi.fn>).mock.calls[0][1];
       const secondThemeName = (echarts.init as ReturnType<typeof vi.fn>).mock.calls[1][1];
       expect(firstThemeName).toBe(secondThemeName);
+    });
+
+    it("should assign distinct IDs to distinct circular theme objects", () => {
+      const theme1: Record<string, unknown> = { color: ["#111"] };
+      theme1.self = theme1;
+      const theme2: Record<string, unknown> = { color: ["#222"] };
+      theme2.self = theme2;
+
+      const el1 = document.createElement("div");
+      const ref1 = { current: el1 };
+      const mock1 = createMockInstance(el1);
+      (echarts.init as ReturnType<typeof vi.fn>).mockReturnValueOnce(mock1);
+
+      renderHook(() => useEcharts(ref1, { option: baseOption, theme: theme1 }));
+
+      const el2 = document.createElement("div");
+      const ref2 = { current: el2 };
+      const mock2 = createMockInstance(el2);
+      (echarts.init as ReturnType<typeof vi.fn>).mockReturnValueOnce(mock2);
+
+      renderHook(() => useEcharts(ref2, { option: baseOption, theme: theme2 }));
+
+      expect(echarts.registerTheme).toHaveBeenCalledTimes(2);
+      const firstThemeName = (echarts.init as ReturnType<typeof vi.fn>).mock.calls[0][1];
+      const secondThemeName = (echarts.init as ReturnType<typeof vi.fn>).mock.calls[1][1];
+      expect(firstThemeName).not.toBe(secondThemeName);
+    });
+
+    it("should fall back to Math.random when crypto.randomUUID is unavailable", () => {
+      const original = globalThis.crypto;
+      // Stub crypto with no randomUUID to exercise the fallback branch
+      Object.defineProperty(globalThis, "crypto", {
+        value: {},
+        configurable: true,
+        writable: true,
+      });
+
+      try {
+        const theme: Record<string, unknown> = { color: ["#333"] };
+        theme.self = theme;
+
+        const element = document.createElement("div");
+        const ref = { current: element };
+        const mockInstance = createMockInstance(element);
+        (echarts.init as ReturnType<typeof vi.fn>).mockReturnValue(mockInstance);
+
+        renderHook(() => useEcharts(ref, { option: baseOption, theme }));
+
+        expect(echarts.init).toHaveBeenCalled();
+        expect(echarts.registerTheme).toHaveBeenCalled();
+      } finally {
+        Object.defineProperty(globalThis, "crypto", {
+          value: original,
+          configurable: true,
+          writable: true,
+        });
+      }
     });
   });
 
