@@ -46,19 +46,11 @@ export default defineConfig({
   pack: [
     {
       entry: "src/index.ts",
-      format: ["esm", "umd"],
+      format: ["esm"],
       dts: { build: true },
+      publint: true,
+      attw: { profile: "esm-only" },
       platform: "browser",
-      globalName: "ReactUseEcharts",
-      outputOptions: {
-        globals: {
-          react: "React",
-          "react-dom": "ReactDOM",
-          "react/jsx-runtime": "ReactJSXRuntime",
-          "react/compiler-runtime": "ReactCompilerRuntime",
-          echarts: "echarts",
-        },
-      },
       plugins: [babel({ presets: [reactCompilerPreset()] })],
     },
     {
@@ -66,11 +58,6 @@ export default defineConfig({
       format: ["esm"],
       dts: { build: true },
       platform: "browser",
-      outputOptions: {
-        globals: {
-          echarts: "echarts",
-        },
-      },
     },
   ],
   server: {

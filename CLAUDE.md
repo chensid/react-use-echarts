@@ -2,7 +2,7 @@
 
 React hooks library for Apache ECharts. Hook + declarative component, TypeScript, zero runtime deps.
 
-- **Peer deps:** React 19+ (`react` + `react-dom`), ECharts 6.x | **CSR only** | **Package manager:** pnpm
+- **Peer deps:** React 19+ (`react` + `react-dom`), ECharts 6.x | **Runtime:** Node 22+ | **CSR only** | **ESM-only** | **Package manager:** pnpm
 
 ## Vite+ Toolchain
 
@@ -101,7 +101,7 @@ All instance-related state lives in `useChartCore`; the orchestrator has zero ef
 - **Commit format:** `feat|fix|docs|test|refactor|chore: <subject>`
 - **Types-first:** define types in `src/types/index.ts` before implementing
 - **Paired cleanup:** all side effects must have cleanup functions
-- **Build outputs:** `dist/index.js` (ESM), `dist/index.umd.js` (UMD), `dist/index.d.ts`, `dist/themes/registry.js` + `.d.ts` (theme subpath)
+- **Build outputs:** `dist/index.js` + `.d.ts` (ESM), `dist/themes/registry.js` + `.d.ts` (theme subpath). `publint` + `attw` run automatically via `vp pack`.
 
 ## Anti-patterns
 

@@ -11,8 +11,6 @@ export function useLazyInit(
   elementRef: RefObject<Element | null>,
   options: boolean | IntersectionObserverInit = false,
 ): boolean {
-  // If lazyInit is false, initialize as already in view
-  // 如果 lazyInit 为 false，初始状态就是可见
   const isLazyMode = options !== false;
   const [isInView, setIsInView] = useState(!isLazyMode);
 
@@ -61,5 +59,7 @@ export function useLazyInit(
     // eslint-disable-next-line react-hooks/exhaustive-deps -- isInView excluded: observer self-disconnects on intersection
   }, [elementRef, isLazyMode, observerOptions]);
 
-  return isInView;
+  // Derive visibility — when lazy mode is toggled off at runtime,
+  // the hook should report visible without waiting for an effect tick.
+  return !isLazyMode || isInView;
 }

@@ -28,8 +28,11 @@ React hooks & component for Apache ECharts — TypeScript, auto-resize, themes, 
 
 - React 19+ (`react` + `react-dom`)
 - ECharts 6.x
+- Node.js 22+ (required only for tooling/SSR frameworks — the published bundle is browser ESM)
 
-> **Note**: CSR only. ECharts requires DOM access, so SSR is not supported.
+> **CSR only.** ECharts needs a live DOM; SSR is not supported.
+>
+> **ESM-only since 1.3.0.** The package publishes a single ESM build (`dist/index.js`). Every modern bundler (Vite, Next.js, webpack 5+, Rspack, Parcel, Turbopack) and Node 22+ (`require(ESM)`) consume it natively. If you still depend on CJS-only tooling, pin to `1.2.x`.
 
 ## Installation
 
@@ -63,6 +66,8 @@ function MyChart() {
 }
 ```
 
+`<EChart />` defaults to `width: 100%` and `height: 100%`, so the parent container still needs an explicit height.
+
 Pass `ref` to access `{ setOption, getInstance, resize }` imperatively.
 
 ### `useEcharts` Hook
@@ -81,6 +86,8 @@ function MyChart() {
   return <div ref={chartRef} style={{ width: "100%", height: "400px" }} />;
 }
 ```
+
+The chart container must have an explicit size, for example `style={{ width: "100%", height: "400px" }}`.
 
 ## Recipes
 

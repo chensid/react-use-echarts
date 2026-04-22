@@ -60,6 +60,61 @@ describe("useEcharts", () => {
       expect(mockInstance.setOption).toHaveBeenCalledWith(baseOption, undefined);
     });
 
+    it("should warn in development when container size is zero", () => {
+      const previousNodeEnv = process.env.NODE_ENV;
+      process.env.NODE_ENV = "development";
+
+      const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+      try {
+        const element = document.createElement("div");
+        const ref = { current: element };
+        const mockInstance = createMockInstance(element);
+        (echarts.init as ReturnType<typeof vi.fn>).mockReturnValue(mockInstance);
+
+        renderHook(() => useEcharts(ref, { option: baseOption }));
+
+        expect(warnSpy).toHaveBeenCalledWith(
+          expect.stringContaining("chart container has zero width or height during initialization"),
+        );
+      } finally {
+        warnSpy.mockRestore();
+        process.env.NODE_ENV = previousNodeEnv;
+      }
+    });
+
+    it("should not warn in development when container size is non-zero", () => {
+      const previousNodeEnv = process.env.NODE_ENV;
+      process.env.NODE_ENV = "development";
+
+      const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+      try {
+        const element = document.createElement("div");
+        Object.defineProperty(element, "getBoundingClientRect", {
+          value: vi.fn(() => ({
+            width: 640,
+            height: 400,
+            top: 0,
+            right: 640,
+            bottom: 400,
+            left: 0,
+            x: 0,
+            y: 0,
+            toJSON: () => ({}),
+          })),
+        });
+        const ref = { current: element };
+        const mockInstance = createMockInstance(element);
+        (echarts.init as ReturnType<typeof vi.fn>).mockReturnValue(mockInstance);
+
+        renderHook(() => useEcharts(ref, { option: baseOption }));
+
+        expect(warnSpy).not.toHaveBeenCalled();
+      } finally {
+        warnSpy.mockRestore();
+        process.env.NODE_ENV = previousNodeEnv;
+      }
+    });
+
     it("should use svg renderer when specified", () => {
       const element = document.createElement("div");
       const ref = { current: element };

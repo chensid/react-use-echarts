@@ -171,4 +171,22 @@ describe("useLazyInit", () => {
     // Should not observe again since already visible
     expect(mockObserve).not.toHaveBeenCalled();
   });
+
+  it("should become visible immediately when lazy mode is disabled after mount", async () => {
+    const element = document.createElement("div");
+    const ref = { current: element };
+
+    const { result, rerender } = renderHook(
+      ({ lazyInit }: { lazyInit: boolean }) => useLazyInit(ref, lazyInit),
+      { initialProps: { lazyInit: true } },
+    );
+
+    expect(result.current).toBe(false);
+
+    rerender({ lazyInit: false });
+
+    await waitFor(() => {
+      expect(result.current).toBe(true);
+    });
+  });
 });

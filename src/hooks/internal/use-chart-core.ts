@@ -54,6 +54,7 @@ function computeThemeKey(theme: string | object | null | undefined): string | nu
  * dev 模式下已警告过的名称，避免重复输出。
  */
 const warnedThemeNames: Set<string> = new Set();
+const warnedZeroSizeContainers = new WeakSet<HTMLElement>();
 
 /**
  * Resolve theme to a registered ECharts theme name (has side effects).
@@ -98,6 +99,26 @@ function logError(
   } else {
     console.error(message, error);
   }
+}
+
+function warnZeroSizeContainer(element: HTMLElement): void {
+  if (
+    warnedZeroSizeContainers.has(element) ||
+    process.env.NODE_ENV === "production" ||
+    process.env.NODE_ENV === "test"
+  ) {
+    return;
+  }
+
+  const { width, height } = element.getBoundingClientRect();
+  if (width > 0 && height > 0) return;
+
+  warnedZeroSizeContainers.add(element);
+  console.warn(
+    "react-use-echarts: chart container has zero width or height during initialization. " +
+      "Give the container an explicit size; <EChart /> defaults to height: 100%, " +
+      "so its parent also needs an explicit height.",
+  );
 }
 
 // --- Types ---
@@ -233,6 +254,8 @@ export function useChartCore(
 
     const element = ref.current;
     if (!element) return;
+
+    warnZeroSizeContainer(element);
 
     const resolvedTheme = resolveThemeName(themeRef.current, themeKey);
 

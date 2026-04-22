@@ -4,7 +4,7 @@ Thanks for your interest in improving `react-use-echarts`!
 
 ## Prerequisites
 
-- Node.js 24.x (matches CI; required for the current Vite toolchain)
+- Node.js 22 or newer (CI runs on 24.x)
 - Vite+ CLI (`vp`) available in your shell
 - Git
 
@@ -25,7 +25,7 @@ Thanks for your interest in improving `react-use-echarts`!
 - `vp test` – execute the Vitest suite (watch mode by default).
 - `vp test run --coverage` – generate coverage reports.
 - `vp build` – build the examples application with Vite.
-- `vp pack` – build the library bundles (ESM + UMD) and type declarations into `dist/`.
+- `vp pack` – build the library (ESM) and type declarations into `dist/`. Runs `publint` + `attw` automatically.
 
 Run `vp check && vp test run` before opening a pull request. This is the same set of checks we rely on for releases.
 
