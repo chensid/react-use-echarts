@@ -29,6 +29,9 @@ jobs:
           node-version: "24"
           cache: true
 
+      - name: Enable pnpm via corepack
+        run: corepack enable
+
       - name: Install dependencies
         run: vp install --frozen-lockfile
 
