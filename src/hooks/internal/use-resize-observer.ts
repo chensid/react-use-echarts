@@ -1,4 +1,4 @@
-import { useEffect, useRef, type RefObject } from "react";
+import { useEffect, useLayoutEffect, useRef, type RefObject } from "react";
 import { getCachedInstance } from "../../utils/instance-cache";
 
 /**
@@ -11,7 +11,9 @@ export function useResizeObserver(
   onError?: (error: unknown) => void,
 ): void {
   const onErrorRef = useRef(onError);
-  onErrorRef.current = onError;
+  useLayoutEffect(() => {
+    onErrorRef.current = onError;
+  });
 
   useEffect(() => {
     if (!autoResize) return;

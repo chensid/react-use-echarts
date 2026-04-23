@@ -115,6 +115,32 @@ describe("useEcharts", () => {
       }
     });
 
+    it("should skip the zero-size warning if getBoundingClientRect throws", () => {
+      const previousNodeEnv = process.env.NODE_ENV;
+      process.env.NODE_ENV = "development";
+
+      const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+      try {
+        const element = document.createElement("div");
+        Object.defineProperty(element, "getBoundingClientRect", {
+          value: vi.fn(() => {
+            throw new Error("detached element");
+          }),
+        });
+        const ref = { current: element };
+        const mockInstance = createMockInstance(element);
+        (echarts.init as ReturnType<typeof vi.fn>).mockReturnValue(mockInstance);
+
+        expect(() => renderHook(() => useEcharts(ref, { option: baseOption }))).not.toThrow();
+        expect(warnSpy).not.toHaveBeenCalledWith(
+          expect.stringContaining("chart container has zero width or height during initialization"),
+        );
+      } finally {
+        warnSpy.mockRestore();
+        process.env.NODE_ENV = previousNodeEnv;
+      }
+    });
+
     it("should use svg renderer when specified", () => {
       const element = document.createElement("div");
       const ref = { current: element };
