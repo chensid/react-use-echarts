@@ -10,58 +10,16 @@ import {
 import { updateGroup, getInstanceGroup } from "../../utils/connect";
 import { getOrRegisterCustomTheme, isKnownTheme } from "../../themes";
 import { shallowEqual } from "../../utils/shallow-equal";
+import { computeStableKey, isCircularFallbackKey } from "../../utils/stable-key";
+import { warnedThemeNames, warnedZeroSizeContainers } from "../../utils/dev-warnings";
 import { bindEvents, unbindEvents, eventsEqual } from "./event-utils";
-
-// --- Module-level helpers ---
-
-// Stable IDs for objects that cannot be JSON-serialized (e.g. circular references).
-// Each object gets a unique string via crypto.randomUUID (Math.random fallback),
-// stored in a WeakMap so the same object consistently maps to the same id.
-const CIRCULAR_PREFIX = "__circular_";
-const circularObjectIds = new WeakMap<object, string>();
-
-function getCircularObjectId(obj: object): string {
-  let id = circularObjectIds.get(obj);
-  if (!id) {
-    const rand =
-      typeof crypto !== "undefined" && typeof crypto.randomUUID === "function"
-        ? crypto.randomUUID()
-        : `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
-    id = `${CIRCULAR_PREFIX}${rand}`;
-    circularObjectIds.set(obj, id);
-  }
-  return id;
-}
-
-/**
- * Compute a stable identity key for theme.
- * Falls back to a WeakMap-based ID for circular-reference objects.
- * 计算主题的稳定标识键。对循环引用对象回退到 WeakMap 分配的 ID。
- */
-function computeThemeKey(theme: string | object | null | undefined): string | null {
-  if (theme == null) return null;
-  if (typeof theme === "string") return theme;
-  if (typeof theme !== "object") return null;
-  try {
-    return JSON.stringify(theme);
-  } catch {
-    return getCircularObjectId(theme);
-  }
-}
-
-/**
- * Names already warned about in dev to prevent log spam.
- * dev 模式下已警告过的名称，避免重复输出。
- */
-const warnedThemeNames: Set<string> = new Set();
-const warnedZeroSizeContainers = new WeakSet<HTMLElement>();
 
 /**
  * Resolve theme to a registered ECharts theme name (has side effects).
  * Must only be called inside effects, not during render.
  * 将主题解析为已注册的 ECharts 主题名称（有副作用，仅可在 effect 内调用）。
  *
- * @param themeKey Pre-computed key from computeThemeKey — passed as contentHash
+ * @param themeKey Pre-computed key from computeStableKey — passed as contentHash
  *   to avoid redundant JSON.stringify inside getOrRegisterCustomTheme.
  */
 function resolveThemeName(
@@ -85,7 +43,7 @@ function resolveThemeName(
     return theme;
   }
   if (typeof theme !== "object") return null;
-  const contentHash = themeKey && !themeKey.startsWith(CIRCULAR_PREFIX) ? themeKey : undefined;
+  const contentHash = themeKey && !isCircularFallbackKey(themeKey) ? themeKey : undefined;
   return getOrRegisterCustomTheme(theme, contentHash);
 }
 
@@ -110,7 +68,17 @@ function warnZeroSizeContainer(element: HTMLElement): void {
     return;
   }
 
-  const { width, height } = element.getBoundingClientRect();
+  let width = 0;
+  let height = 0;
+  try {
+    const rect = element.getBoundingClientRect();
+    width = rect.width;
+    height = rect.height;
+  } catch {
+    // getBoundingClientRect is highly reliable on mounted elements but can throw in
+    // exotic environments (detached SVG, cross-realm nodes); skip warning in those cases.
+    return;
+  }
   if (width > 0 && height > 0) return;
 
   warnedZeroSizeContainers.add(element);
@@ -207,15 +175,8 @@ export function useChartCore(
   const lastLoadingRef = useRef<LastLoading | null>(null);
 
   // --- Stable dependency keys ---
-  const themeKey = useMemo(() => computeThemeKey(theme), [theme]);
-  const initOptsKey = useMemo(() => {
-    if (!initOpts) return null;
-    try {
-      return JSON.stringify(initOpts);
-    } catch {
-      return getCircularObjectId(initOpts);
-    }
-  }, [initOpts]);
+  const themeKey = useMemo(() => computeStableKey(theme), [theme]);
+  const initOptsKey = useMemo(() => computeStableKey(initOpts), [initOpts]);
 
   // --- Public API ---
 

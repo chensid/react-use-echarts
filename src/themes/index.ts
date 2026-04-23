@@ -1,5 +1,6 @@
 import * as echarts from "echarts";
 import type { BuiltinTheme } from "../types";
+import { resetDevWarnings } from "../utils/dev-warnings";
 
 /**
  * Hardcoded set of built-in theme names (no JSON dependency)
@@ -143,4 +144,5 @@ export function clearThemeCache(): void {
   contentHashCache.clear();
   knownThemeNames.clear();
   customThemeCounter = 0;
+  resetDevWarnings();
 }
