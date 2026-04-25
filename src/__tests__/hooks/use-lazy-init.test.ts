@@ -43,6 +43,16 @@ describe("useLazyInit", () => {
     expect(mockObserve).not.toHaveBeenCalled();
   });
 
+  it("should default to lazy mode disabled when options argument is omitted", () => {
+    const element = document.createElement("div");
+    const ref = { current: element };
+
+    const { result } = renderHook(() => useLazyInit(ref));
+
+    expect(result.current).toBe(true);
+    expect(mockObserve).not.toHaveBeenCalled();
+  });
+
   it("should return false initially when lazy mode is enabled", () => {
     const element = document.createElement("div");
     const ref = { current: element };
