@@ -128,6 +128,41 @@ describe("useLazyInit", () => {
     expect(mockObserve).not.toHaveBeenCalled();
   });
 
+  it("should initialize immediately when IntersectionObserver is unavailable", () => {
+    const originalIntersectionObserver = globalThis.IntersectionObserver;
+    Reflect.deleteProperty(globalThis, "IntersectionObserver");
+
+    try {
+      const element = document.createElement("div");
+      const ref = { current: element };
+
+      const { result } = renderHook(() => useLazyInit(ref, true));
+
+      expect(result.current).toBe(true);
+      expect(mockObserve).not.toHaveBeenCalled();
+    } finally {
+      globalThis.IntersectionObserver = originalIntersectionObserver;
+    }
+  });
+
+  it("should observe a replacement ref element before it is visible", async () => {
+    const element1 = document.createElement("div");
+    const element2 = document.createElement("div");
+    const ref = { current: element1 };
+
+    const { rerender } = renderHook(() => useLazyInit(ref, true));
+
+    expect(mockObserve).toHaveBeenCalledWith(element1);
+
+    ref.current = element2;
+    rerender();
+
+    await waitFor(() => {
+      expect(mockObserve).toHaveBeenCalledWith(element2);
+    });
+    expect(mockDisconnect).toHaveBeenCalled();
+  });
+
   it("should cleanup on unmount", () => {
     const element = document.createElement("div");
     const ref = { current: element };

@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useRef, type RefObject } from "react";
+import { useEffect, useLayoutEffect, useRef } from "react";
 import { getCachedInstance } from "../../utils/instance-cache";
 
 /**
@@ -6,7 +6,7 @@ import { getCachedInstance } from "../../utils/instance-cache";
  * 内部 hook：基于 ResizeObserver 的自动 resize，使用 RAF 节流。
  */
 export function useResizeObserver(
-  ref: RefObject<HTMLElement | null>,
+  element: HTMLElement | null,
   autoResize: boolean,
   onError?: (error: unknown) => void,
 ): void {
@@ -18,7 +18,6 @@ export function useResizeObserver(
   useEffect(() => {
     if (!autoResize) return;
 
-    const element = ref.current;
     if (!element) return;
 
     let resizeObserver: ResizeObserver | undefined;
@@ -49,5 +48,5 @@ export function useResizeObserver(
       }
       resizeObserver?.disconnect();
     };
-  }, [ref, autoResize]);
+  }, [element, autoResize]);
 }

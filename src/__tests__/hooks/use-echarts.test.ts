@@ -11,6 +11,7 @@ import { clearGroups, getGroupInstances } from "../../utils/connect";
 import type { EChartsOption } from "echarts";
 import type { BuiltinTheme } from "../../types";
 import { clearThemeCache } from "../../themes";
+import { registerBuiltinThemes } from "../../themes/registry";
 import { createMockInstance, MockResizeObserver, MockIntersectionObserver } from "../helpers";
 
 // Mock ECharts
@@ -182,6 +183,51 @@ describe("useEcharts", () => {
       globalThis.IntersectionObserver =
         MockIntersectionObserver as unknown as typeof IntersectionObserver;
     });
+
+    it("should recreate the instance when ref.current changes to a new element", async () => {
+      const element1 = document.createElement("div");
+      const element2 = document.createElement("div");
+      const ref = { current: element1 };
+      const option1: EChartsOption = { series: [{ type: "line", data: [1, 2, 3] }] };
+      const option2: EChartsOption = { series: [{ type: "bar", data: [4, 5, 6] }] };
+      const onClick = vi.fn();
+      const mockInstance1 = createMockInstance(element1);
+      const mockInstance2 = createMockInstance(element2);
+      (echarts.init as ReturnType<typeof vi.fn>)
+        .mockReturnValueOnce(mockInstance1)
+        .mockReturnValueOnce(mockInstance2);
+
+      const { result, rerender } = renderHook(
+        ({ option }) =>
+          useEcharts(ref, {
+            option,
+            group: "swapGroup",
+            showLoading: true,
+            onEvents: { click: onClick },
+          }),
+        { initialProps: { option: option1 } },
+      );
+
+      await waitFor(() => {
+        expect(getCachedInstance(element1)).toBe(mockInstance1);
+      });
+
+      ref.current = element2;
+      rerender({ option: option2 });
+
+      await waitFor(() => {
+        expect(getCachedInstance(element2)).toBe(mockInstance2);
+      });
+
+      expect(mockInstance1.dispose).toHaveBeenCalledTimes(1);
+      expect(getCachedInstance(element1)).toBeUndefined();
+      expect(result.current.getInstance()).toBe(mockInstance2);
+      expect(mockInstance2.setOption).toHaveBeenCalledWith(option2, undefined);
+      expect(mockInstance2.showLoading).toHaveBeenCalled();
+      expect(mockInstance2.on).toHaveBeenCalledWith("click", onClick, undefined);
+      expect(getGroupInstances("swapGroup")).toContain(mockInstance2);
+      expect(getGroupInstances("swapGroup")).not.toContain(mockInstance1);
+    });
   });
 
   describe("theme handling", () => {
@@ -205,6 +251,51 @@ describe("useEcharts", () => {
       renderHook(() => useEcharts(ref, { option: baseOption, theme: "dark" }));
 
       expect(echarts.init).toHaveBeenCalledWith(element, "dark", expect.any(Object));
+    });
+
+    it("should warn in development when a builtin theme is used before registration", () => {
+      const previousNodeEnv = process.env.NODE_ENV;
+      process.env.NODE_ENV = "development";
+      const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+
+      try {
+        const element = document.createElement("div");
+        const ref = { current: element };
+        const mockInstance = createMockInstance(element);
+        (echarts.init as ReturnType<typeof vi.fn>).mockReturnValue(mockInstance);
+
+        renderHook(() => useEcharts(ref, { option: baseOption, theme: "dark" }));
+
+        expect(warnSpy).toHaveBeenCalledWith(
+          expect.stringContaining('built-in theme "dark" was not registered'),
+        );
+      } finally {
+        warnSpy.mockRestore();
+        process.env.NODE_ENV = previousNodeEnv;
+      }
+    });
+
+    it("should not warn for a builtin theme after registry registration", () => {
+      const previousNodeEnv = process.env.NODE_ENV;
+      process.env.NODE_ENV = "development";
+      const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+
+      try {
+        const element = document.createElement("div");
+        const ref = { current: element };
+        const mockInstance = createMockInstance(element);
+        (echarts.init as ReturnType<typeof vi.fn>).mockReturnValue(mockInstance);
+
+        registerBuiltinThemes();
+        renderHook(() => useEcharts(ref, { option: baseOption, theme: "dark" }));
+
+        expect(warnSpy).not.toHaveBeenCalledWith(
+          expect.stringContaining('built-in theme "dark" was not registered'),
+        );
+      } finally {
+        warnSpy.mockRestore();
+        process.env.NODE_ENV = previousNodeEnv;
+      }
     });
 
     it("should register and use custom theme object", () => {
@@ -1081,6 +1172,31 @@ describe("useEcharts", () => {
 
       unmount();
 
+      expect(resizeObserverInstances[0].disconnect).toHaveBeenCalled();
+    });
+
+    it("should move resize observer to a replacement ref element", async () => {
+      const element1 = document.createElement("div");
+      const element2 = document.createElement("div");
+      const ref = { current: element1 };
+      const mockInstance1 = createMockInstance(element1);
+      const mockInstance2 = createMockInstance(element2);
+      (echarts.init as ReturnType<typeof vi.fn>)
+        .mockReturnValueOnce(mockInstance1)
+        .mockReturnValueOnce(mockInstance2);
+
+      const { rerender } = renderHook(() => useEcharts(ref, { option: baseOption }));
+
+      await waitFor(() => {
+        expect(resizeObserverInstances[0].observe).toHaveBeenCalledWith(element1);
+      });
+
+      ref.current = element2;
+      rerender();
+
+      await waitFor(() => {
+        expect(resizeObserverInstances[1].observe).toHaveBeenCalledWith(element2);
+      });
       expect(resizeObserverInstances[0].disconnect).toHaveBeenCalled();
     });
 
