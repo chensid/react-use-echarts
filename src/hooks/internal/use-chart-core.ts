@@ -48,7 +48,6 @@ function resolveThemeName(
       );
     } else if (
       process.env.NODE_ENV !== "production" &&
-      process.env.NODE_ENV !== "test" &&
       !isKnownTheme(theme) &&
       !warnedThemeNames.has(theme)
     ) {
