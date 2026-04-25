@@ -7,6 +7,7 @@ import { resetDevWarnings } from "../utils/dev-warnings";
  * 内置主题名称硬编码集合（不依赖 JSON 数据）
  */
 const BUILTIN_THEME_NAMES: ReadonlySet<string> = new Set<string>(["light", "dark", "macarons"]);
+const REGISTERED_BUILTIN_THEME_NAMES_KEY = "__react_use_echarts_registered_builtin_theme_names__";
 
 /**
  * Names known to be registered via this library's API. Used by `isKnownTheme`
@@ -16,6 +17,13 @@ const BUILTIN_THEME_NAMES: ReadonlySet<string> = new Set<string>(["light", "dark
  * 若要消除 dev 警告请改用 `registerCustomTheme`。
  */
 const knownThemeNames: Set<string> = new Set<string>();
+type ThemeGlobal = typeof globalThis & {
+  [REGISTERED_BUILTIN_THEME_NAMES_KEY]?: Set<BuiltinTheme>;
+};
+const themeGlobal = globalThis as ThemeGlobal;
+const registeredBuiltinThemeNames: Set<BuiltinTheme> =
+  themeGlobal[REGISTERED_BUILTIN_THEME_NAMES_KEY] ?? new Set<BuiltinTheme>();
+themeGlobal[REGISTERED_BUILTIN_THEME_NAMES_KEY] = registeredBuiltinThemeNames;
 
 /**
  * Cache for custom theme names (theme object -> registered theme name)
@@ -59,6 +67,21 @@ export function isBuiltinTheme(themeName: string): themeName is BuiltinTheme {
  */
 export function isKnownTheme(themeName: string): boolean {
   return BUILTIN_THEME_NAMES.has(themeName) || knownThemeNames.has(themeName);
+}
+
+/**
+ * Whether a built-in theme has been registered through the registry entry.
+ * Used internally for dev-time warnings without importing preset JSON.
+ */
+export function isBuiltinThemeRegistered(themeName: BuiltinTheme): boolean {
+  return registeredBuiltinThemeNames.has(themeName);
+}
+
+/**
+ * Mark a built-in theme as registered by the optional registry entry.
+ */
+export function markBuiltinThemeRegistered(themeName: BuiltinTheme): void {
+  registeredBuiltinThemeNames.add(themeName);
 }
 
 /**
@@ -143,6 +166,7 @@ export function getOrRegisterCustomTheme(themeConfig: object, precomputedHash?: 
 export function clearThemeCache(): void {
   contentHashCache.clear();
   knownThemeNames.clear();
+  registeredBuiltinThemeNames.clear();
   customThemeCounter = 0;
   resetDevWarnings();
 }

@@ -1,4 +1,5 @@
 import { useEffect, useState, useMemo, type RefObject } from "react";
+import { useRefElement } from "./internal/use-ref-element";
 
 /**
  * Hook for lazy initialization using IntersectionObserver
@@ -11,8 +12,17 @@ export function useLazyInit(
   elementRef: RefObject<Element | null>,
   options: boolean | IntersectionObserverInit = false,
 ): boolean {
+  const element = useRefElement(elementRef);
+  return useLazyInitForElement(element, options);
+}
+
+export function useLazyInitForElement(
+  element: Element | null,
+  options: boolean | IntersectionObserverInit = false,
+): boolean {
   const isLazyMode = options !== false;
   const [isInView, setIsInView] = useState(!isLazyMode);
+  const supportsIntersectionObserver = typeof IntersectionObserver !== "undefined";
 
   // Extract config values for stable dependency comparison
   // 提取配置值用于稳定的依赖比较
@@ -36,10 +46,7 @@ export function useLazyInit(
   useEffect(() => {
     // Skip if lazy mode is disabled or already in view
     // 如果禁用了懒加载模式或已经可见，则跳过
-    if (!isLazyMode || isInView) return;
-
-    const element = elementRef.current;
-    if (!element) return;
+    if (!isLazyMode || isInView || !supportsIntersectionObserver || !element) return;
 
     const observer = new IntersectionObserver((entries) => {
       const [entry] = entries;
@@ -57,9 +64,9 @@ export function useLazyInit(
       observer.disconnect();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps -- isInView excluded: observer self-disconnects on intersection
-  }, [elementRef, isLazyMode, observerOptions]);
+  }, [element, isLazyMode, observerOptions, supportsIntersectionObserver]);
 
   // Derive visibility — when lazy mode is toggled off at runtime,
   // the hook should report visible without waiting for an effect tick.
-  return !isLazyMode || isInView;
+  return !isLazyMode || !supportsIntersectionObserver || isInView;
 }

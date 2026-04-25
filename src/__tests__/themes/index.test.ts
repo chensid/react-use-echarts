@@ -2,6 +2,8 @@ import { describe, it, expect, vi, beforeEach } from "vite-plus/test";
 import * as echarts from "echarts";
 import {
   isBuiltinTheme,
+  isBuiltinThemeRegistered,
+  markBuiltinThemeRegistered,
   registerCustomTheme,
   getOrRegisterCustomTheme,
   clearThemeCache,
@@ -37,6 +39,24 @@ describe("themes utilities", () => {
 
     it("should return false for empty string", () => {
       expect(isBuiltinTheme("")).toBe(false);
+    });
+  });
+
+  describe("builtin theme registration state", () => {
+    it("should track registered builtin themes separately from builtin names", () => {
+      expect(isBuiltinTheme("dark")).toBe(true);
+      expect(isBuiltinThemeRegistered("dark")).toBe(false);
+
+      markBuiltinThemeRegistered("dark");
+
+      expect(isBuiltinThemeRegistered("dark")).toBe(true);
+    });
+
+    it("should clear registered builtin theme state", () => {
+      markBuiltinThemeRegistered("dark");
+      clearThemeCache();
+
+      expect(isBuiltinThemeRegistered("dark")).toBe(false);
     });
   });
 

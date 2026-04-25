@@ -1,8 +1,9 @@
 import { useCallback, useMemo, type RefObject } from "react";
 import type { UseEchartsOptions, UseEchartsReturn } from "../types";
-import { useLazyInit } from "./use-lazy-init";
+import { useLazyInitForElement } from "./use-lazy-init";
 import { useChartCore } from "./internal/use-chart-core";
 import { useResizeObserver } from "./internal/use-resize-observer";
+import { useRefElement } from "./internal/use-ref-element";
 
 /**
  * React hook for Apache ECharts integration
@@ -31,10 +32,11 @@ function useEcharts(
     onError,
   } = options;
 
-  const shouldInit = useLazyInit(ref, lazyInit);
+  const element = useRefElement(ref);
+  const shouldInit = useLazyInitForElement(element, lazyInit);
 
   // Core: instance lifecycle + option sync + events + loading + group (1 useLayoutEffect + 4 useEffect)
-  const { getInstance, setOption } = useChartCore(ref, shouldInit, {
+  const { getInstance, setOption } = useChartCore(element, shouldInit, {
     option,
     theme,
     renderer,
@@ -47,7 +49,7 @@ function useEcharts(
     onError,
   });
 
-  useResizeObserver(ref, autoResize, onError);
+  useResizeObserver(element, autoResize, onError);
 
   const resize = useCallback(() => {
     getInstance()?.resize();

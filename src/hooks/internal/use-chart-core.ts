@@ -1,4 +1,4 @@
-import { useEffect, useRef, useCallback, useLayoutEffect, useMemo, type RefObject } from "react";
+import { useEffect, useRef, useCallback, useLayoutEffect, useMemo } from "react";
 import * as echarts from "echarts";
 import type { ECharts, SetOptionOpts, EChartsOption } from "echarts";
 import type { EChartsEvents, EChartsInitOpts, UseEchartsOptions, LoadingOption } from "../../types";
@@ -8,7 +8,12 @@ import {
   releaseCachedInstance,
 } from "../../utils/instance-cache";
 import { updateGroup, getInstanceGroup } from "../../utils/connect";
-import { getOrRegisterCustomTheme, isKnownTheme } from "../../themes";
+import {
+  getOrRegisterCustomTheme,
+  isBuiltinTheme,
+  isBuiltinThemeRegistered,
+  isKnownTheme,
+} from "../../themes";
 import { shallowEqual } from "../../utils/shallow-equal";
 import { computeStableKey, isCircularFallbackKey } from "../../utils/stable-key";
 import { warnedThemeNames, warnedZeroSizeContainers } from "../../utils/dev-warnings";
@@ -30,6 +35,20 @@ function resolveThemeName(
   if (typeof theme === "string") {
     if (
       process.env.NODE_ENV !== "production" &&
+      process.env.NODE_ENV !== "test" &&
+      isBuiltinTheme(theme) &&
+      !isBuiltinThemeRegistered(theme) &&
+      !warnedThemeNames.has(theme)
+    ) {
+      warnedThemeNames.add(theme);
+      console.warn(
+        `react-use-echarts: built-in theme "${theme}" was not registered. ` +
+          `Import registerBuiltinThemes() from "react-use-echarts/themes/registry" and call it once before using built-in themes. ` +
+          `Unregistered themes silently fall back to the default theme.`,
+      );
+    } else if (
+      process.env.NODE_ENV !== "production" &&
+      process.env.NODE_ENV !== "test" &&
       !isKnownTheme(theme) &&
       !warnedThemeNames.has(theme)
     ) {
@@ -129,7 +148,7 @@ interface ChartCoreReturn {
  * 内部管理所有 ref 和共享可变状态——调用方仅传入原始值。
  */
 export function useChartCore(
-  ref: RefObject<HTMLDivElement | null>,
+  element: HTMLDivElement | null,
   shouldInit: boolean,
   config: ChartCoreConfig,
 ): ChartCoreReturn {
@@ -181,9 +200,9 @@ export function useChartCore(
   // --- Public API ---
 
   const getInstance = useCallback((): ECharts | undefined => {
-    if (!ref.current) return undefined;
-    return getCachedInstance(ref.current);
-  }, [ref]);
+    if (!element) return undefined;
+    return getCachedInstance(element);
+  }, [element]);
 
   const setOption = useCallback(
     (newOption: EChartsOption, opts?: SetOptionOpts) => {
@@ -213,7 +232,6 @@ export function useChartCore(
   useLayoutEffect(() => {
     if (!shouldInit) return;
 
-    const element = ref.current;
     if (!element) return;
 
     warnZeroSizeContainer(element);
@@ -289,8 +307,8 @@ export function useChartCore(
 
       releaseCachedInstance(element);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- refs are stable containers; only structural deps trigger re-init
-  }, [shouldInit, ref, themeKey, renderer, initOptsKey]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- latest config values are read from refs; only structural deps trigger re-init
+  }, [shouldInit, element, themeKey, renderer, initOptsKey]);
 
   // =====================================================================
   // Effect 2: OPTION UPDATES
