@@ -46,18 +46,18 @@ function eventConfigEqual(a: EChartsEventConfig, b: EChartsEventConfig): boolean
 
 /**
  * Shallow comparison of two EChartsEvents maps.
- * Compares keys, then each event config at the handler/query/context level.
- * 两个事件映射的浅比较。比较键，然后在 handler/query/context 级别比较每个事件配置。
+ * Empty maps and undefined are treated as equivalent (no listeners).
+ * 两个事件映射的浅比较；空对象与 undefined 视为等价（均表示无监听）。
  */
 export function eventsEqual(a: EChartsEvents | undefined, b: EChartsEvents | undefined): boolean {
   if (a === b) return true;
-  if (!a || !b) return false;
-  const keysA = Object.keys(a);
-  const keysB = Object.keys(b);
+  const keysA = a ? Object.keys(a) : [];
+  const keysB = b ? Object.keys(b) : [];
   if (keysA.length !== keysB.length) return false;
+  if (keysA.length === 0) return true;
   for (const key of keysA) {
-    if (!Object.prototype.hasOwnProperty.call(b, key)) return false;
-    if (!eventConfigEqual(a[key], b[key])) return false;
+    if (!Object.prototype.hasOwnProperty.call(b!, key)) return false;
+    if (!eventConfigEqual(a![key], b![key])) return false;
   }
   return true;
 }

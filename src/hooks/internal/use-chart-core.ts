@@ -132,6 +132,24 @@ interface ChartCoreConfig {
   onError?: (e: unknown) => void;
 }
 
+/**
+ * Resolved latest values that must stay current for refs read inside effects
+ * without re-triggering them. Defaults applied (renderer, showLoading) so the
+ * fields are non-optional from the consumer's perspective.
+ */
+interface LatestConfig {
+  option: EChartsOption;
+  theme: UseEchartsOptions["theme"];
+  renderer: "canvas" | "svg";
+  initOpts: EChartsInitOpts | undefined;
+  setOptionOpts: SetOptionOpts | undefined;
+  showLoading: boolean;
+  loadingOption: LoadingOption | undefined;
+  onEvents: EChartsEvents | undefined;
+  group: string | undefined;
+  onError: ((e: unknown) => void) | undefined;
+}
+
 interface ChartCoreReturn {
   getInstance: () => ECharts | undefined;
   setOption: (option: EChartsOption, opts?: SetOptionOpts) => void;
@@ -164,27 +182,35 @@ export function useChartCore(
     onError,
   } = config;
 
-  // --- Internal refs: latest values for the init effect to read without re-triggering ---
-  const optionRef = useRef(option);
-  const setOptionOptsRef = useRef(setOptionOpts);
-  const showLoadingRef = useRef(showLoading);
-  const loadingOptionRef = useRef(loadingOption);
-  const onEventsRef = useRef(onEvents);
-  const groupRef = useRef(group);
-  const onErrorRef = useRef(onError);
-  const themeRef = useRef(theme);
-  const initOptsRef = useRef(initOpts);
+  // --- Internal ref: latest values for effects to read without re-triggering.
+  // Adding a field to LatestConfig forces it to appear in both the initializer
+  // and the sync layout effect below — TS catches stale-config drift at compile time.
+  const latestRef = useRef<LatestConfig>({
+    option,
+    theme,
+    renderer,
+    initOpts,
+    setOptionOpts,
+    showLoading,
+    loadingOption,
+    onEvents,
+    group,
+    onError,
+  });
 
   useLayoutEffect(() => {
-    optionRef.current = option;
-    setOptionOptsRef.current = setOptionOpts;
-    showLoadingRef.current = showLoading;
-    loadingOptionRef.current = loadingOption;
-    onEventsRef.current = onEvents;
-    groupRef.current = group;
-    onErrorRef.current = onError;
-    themeRef.current = theme;
-    initOptsRef.current = initOpts;
+    latestRef.current = {
+      option,
+      theme,
+      renderer,
+      initOpts,
+      setOptionOpts,
+      showLoading,
+      loadingOption,
+      onEvents,
+      group,
+      onError,
+    };
   });
 
   // --- Internal shared state ---
@@ -208,11 +234,12 @@ export function useChartCore(
       const instance = getInstance();
       if (!instance) return;
       try {
-        const finalOpts = { ...setOptionOptsRef.current, ...opts };
+        const finalOpts = { ...latestRef.current.setOptionOpts, ...opts };
         instance.setOption(newOption, finalOpts);
       } catch (error) {
-        if (onErrorRef.current) {
-          onErrorRef.current(error);
+        const onError = latestRef.current.onError;
+        if (onError) {
+          onError(error);
         } else {
           throw error;
         }
@@ -235,7 +262,8 @@ export function useChartCore(
 
     warnZeroSizeContainer(element);
 
-    const resolvedTheme = resolveThemeName(themeRef.current, themeKey);
+    const latest = latestRef.current;
+    const resolvedTheme = resolveThemeName(latest.theme, themeKey);
 
     const existing = getCachedInstance(element);
     let instance: ECharts;
@@ -254,39 +282,38 @@ export function useChartCore(
       try {
         instance = echarts.init(element, resolvedTheme, {
           renderer,
-          ...initOptsRef.current,
+          ...latest.initOpts,
         });
       } catch (error) {
-        logError(error, "ECharts init failed:", onErrorRef.current);
+        logError(error, "ECharts init failed:", latest.onError);
         return;
       }
       setCachedInstance(element, instance);
     }
 
     try {
-      instance.setOption(optionRef.current, setOptionOptsRef.current);
+      instance.setOption(latest.option, latest.setOptionOpts);
       lastAppliedRef.current = {
-        option: optionRef.current,
-        opts: setOptionOptsRef.current,
+        option: latest.option,
+        opts: latest.setOptionOpts,
       };
     } catch (error) {
-      logError(error, "ECharts setOption failed:", onErrorRef.current);
+      logError(error, "ECharts setOption failed:", latest.onError);
     }
 
-    if (showLoadingRef.current) {
-      instance.showLoading(loadingOptionRef.current);
+    if (latest.showLoading) {
+      instance.showLoading(latest.loadingOption);
     }
     lastLoadingRef.current = {
-      showLoading: showLoadingRef.current,
-      loadingOption: loadingOptionRef.current,
+      showLoading: latest.showLoading,
+      loadingOption: latest.loadingOption,
     };
 
-    bindEvents(instance, onEventsRef.current);
-    boundEventsRef.current = onEventsRef.current;
+    bindEvents(instance, latest.onEvents);
+    boundEventsRef.current = latest.onEvents;
 
-    const currentGroup = groupRef.current;
-    if (currentGroup) {
-      updateGroup(instance, undefined, currentGroup);
+    if (latest.group) {
+      updateGroup(instance, undefined, latest.group);
     }
 
     return () => {
@@ -331,7 +358,7 @@ export function useChartCore(
       instance.setOption(option, setOptionOpts);
       lastAppliedRef.current = { option, opts: setOptionOpts };
     } catch (error) {
-      logError(error, "ECharts setOption failed:", onErrorRef.current);
+      logError(error, "ECharts setOption failed:", latestRef.current.onError);
     }
   }, [getInstance, option, setOptionOpts]);
 

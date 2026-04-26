@@ -64,9 +64,7 @@ export function addToGroup(instance: ECharts, groupId: string): void {
   (instance as EChartsWithGroup).group = groupId;
   group.add(instance);
 
-  if (group.size > 1) {
-    echarts.connect(groupId);
-  }
+  syncGroupConnectivity(groupId, group);
 }
 
 /**

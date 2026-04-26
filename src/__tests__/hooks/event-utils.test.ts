@@ -24,6 +24,15 @@ describe("eventsEqual", () => {
     expect(eventsEqual(undefined, { click: handler() })).toBe(false);
   });
 
+  it("should treat empty object and undefined as equivalent", () => {
+    expect(eventsEqual({}, undefined)).toBe(true);
+    expect(eventsEqual(undefined, {})).toBe(true);
+  });
+
+  it("should return true for two empty objects", () => {
+    expect(eventsEqual({}, {})).toBe(true);
+  });
+
   it("should return true for same function handlers", () => {
     const h = handler();
     expect(eventsEqual({ click: h }, { click: h })).toBe(true);
