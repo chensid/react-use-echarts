@@ -52,6 +52,22 @@ describe("connect utilities", () => {
       expect(getGroupInstances("group1")).toHaveLength(2);
     });
 
+    it("should reconnect when re-adding after the group was disconnected", () => {
+      const instance1 = createMockInstance();
+      const instance2 = createMockInstance();
+      const instance3 = createMockInstance();
+
+      addToGroup(instance1, "group1");
+      addToGroup(instance2, "group1");
+      removeFromGroup(instance1, "group1");
+      vi.clearAllMocks();
+
+      addToGroup(instance3, "group1");
+
+      expect(echarts.connect).toHaveBeenCalledWith("group1");
+      expect(getGroupInstances("group1")).toHaveLength(2);
+    });
+
     it("should handle adding to multiple groups", () => {
       const instance1 = createMockInstance();
       const instance2 = createMockInstance();
