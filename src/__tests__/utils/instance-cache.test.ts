@@ -46,17 +46,35 @@ describe("instance-cache utilities", () => {
       expect(getReferenceCount(element)).toBe(1);
     });
 
-    it("should increment ref count for existing element", () => {
+    it("should increment ref count for existing element with same instance", () => {
+      const element = document.createElement("div");
+      const instance = createMockInstance();
+      const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+
+      setCachedInstance(element, instance);
+      const result = setCachedInstance(element, instance);
+
+      expect(result).toBe(instance);
+      expect(getReferenceCount(element)).toBe(2);
+      expect(warnSpy).not.toHaveBeenCalled();
+      warnSpy.mockRestore();
+    });
+
+    it("should warn and keep the cached instance when called with a different one", () => {
       const element = document.createElement("div");
       const instance1 = createMockInstance();
       const instance2 = createMockInstance();
+      const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
 
       setCachedInstance(element, instance1);
       const result = setCachedInstance(element, instance2);
 
-      // Should return the original cached instance
       expect(result).toBe(instance1);
       expect(getReferenceCount(element)).toBe(2);
+      expect(warnSpy).toHaveBeenCalledWith(
+        expect.stringContaining("called with a different instance"),
+      );
+      warnSpy.mockRestore();
     });
   });
 
