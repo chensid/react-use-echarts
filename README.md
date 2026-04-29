@@ -68,7 +68,7 @@ function MyChart() {
 
 `<EChart />` defaults to `width: 100%` and `height: 100%`, so the parent container still needs an explicit height.
 
-Pass `ref` to access `{ setOption, getInstance, resize }` imperatively.
+Pass `ref` to access `{ setOption, getInstance, resize, dispatchAction, clear }` imperatively.
 
 ### `useEcharts` Hook
 
@@ -162,6 +162,38 @@ useEcharts(chartRef, {
 });
 ```
 
+### Use with Next.js (App Router)
+
+The package entry and `themes/registry` are marked with `"use client"`, so
+importing them inside any React Server Component file does **not** bundle
+ECharts into the server payload. Wrap the chart in your own client
+component and import it from any Server Component:
+
+```tsx
+// app/components/MyChart.tsx
+"use client";
+import { EChart } from "react-use-echarts";
+
+export function MyChart() {
+  return <EChart option={{ series: [{ type: "line", data: [1, 2, 3] }] }} />;
+}
+```
+
+```tsx
+// app/page.tsx (Server Component) — imports the Client Component directly
+import { MyChart } from "./components/MyChart";
+
+export default function Page() {
+  return <MyChart />;
+}
+```
+
+> **Pages Router only:** if you need to load the chart inside `getServerSideProps` /
+> `getStaticProps` pages and force client-only rendering, use
+> `dynamic(() => import("./components/MyChart").then((m) => m.MyChart), { ssr: false })`.
+> In the **App Router**, `next/dynamic` with `ssr: false` is disallowed inside
+> Server Components — the `"use client"` directive already does the right thing.
+
 ## Gotchas
 
 - **Container needs explicit size** — the chart won't render in a zero-height div; give the container `height` (and `width` if not 100%).
@@ -176,11 +208,11 @@ useEcharts(chartRef, {
 
 Declarative component wrapping `useEcharts`. Accepts all hook options as props plus:
 
-| Prop        | Type                    | Default                             | Description                                  |
-| ----------- | ----------------------- | ----------------------------------- | -------------------------------------------- |
-| `style`     | `React.CSSProperties`   | `{ width: '100%', height: '100%' }` | Container style (merged with defaults)       |
-| `className` | `string`                | —                                   | Container CSS class                          |
-| `ref`       | `Ref<UseEchartsReturn>` | —                                   | Exposes `{ setOption, getInstance, resize }` |
+| Prop        | Type                    | Default                             | Description                                                         |
+| ----------- | ----------------------- | ----------------------------------- | ------------------------------------------------------------------- |
+| `style`     | `React.CSSProperties`   | `{ width: '100%', height: '100%' }` | Container style (merged with defaults)                              |
+| `className` | `string`                | —                                   | Container CSS class                                                 |
+| `ref`       | `Ref<UseEchartsReturn>` | —                                   | Exposes `{ setOption, getInstance, resize, dispatchAction, clear }` |
 
 ### `useEcharts(ref, options)`
 
@@ -203,11 +235,13 @@ Declarative component wrapping `useEcharts`. Accepts all hook options as props p
 
 #### Returns
 
-| Method        | Type                                                    | Description                   |
-| ------------- | ------------------------------------------------------- | ----------------------------- |
-| `setOption`   | `(option: EChartsOption, opts?: SetOptionOpts) => void` | Update chart configuration    |
-| `getInstance` | `() => ECharts \| undefined`                            | Get ECharts instance          |
-| `resize`      | `() => void`                                            | Manually trigger chart resize |
+| Method           | Type                                                                                 | Description                                                           |
+| ---------------- | ------------------------------------------------------------------------------------ | --------------------------------------------------------------------- |
+| `setOption`      | `(option: EChartsOption, opts?: SetOptionOpts) => void`                              | Update chart configuration                                            |
+| `getInstance`    | `() => ECharts \| undefined`                                                         | Get ECharts instance                                                  |
+| `resize`         | `() => void`                                                                         | Manually trigger chart resize                                         |
+| `dispatchAction` | `(payload: Payload, opt?: boolean \| { silent?: boolean; flush?: boolean }) => void` | Dispatch an ECharts action (`highlight`, `downplay`, `showTip`, etc.) |
+| `clear`          | `() => void`                                                                         | Clear current chart content                                           |
 
 ### Other Exports
 
@@ -219,6 +253,59 @@ import { registerBuiltinThemes } from "react-use-echarts/themes/registry"; // ~2
 // All exported types: UseEchartsOptions, UseEchartsReturn, EChartProps,
 // EChartsEvents, EChartsEventConfig, EChartsInitOpts, BuiltinTheme, LoadingOption
 // EChartsOption and SetOptionOpts come from the "echarts" package directly.
+```
+
+## Migrating from `echarts-for-react`
+
+Most props map 1:1; a few are folded into existing options. Quick reference:
+
+| `echarts-for-react`       | `react-use-echarts`                       | Notes                                                                                                                                                                                  |
+| ------------------------- | ----------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `option`                  | `option`                                  | Same                                                                                                                                                                                   |
+| `theme`                   | `theme`                                   | Same; built-in themes need `registerBuiltinThemes()` first (see [Themes](#themes))                                                                                                     |
+| `notMerge` / `lazyUpdate` | `setOptionOpts: { notMerge, lazyUpdate }` | Folded into a single object passed to `setOption`                                                                                                                                      |
+| `showLoading`             | `showLoading`                             | Same                                                                                                                                                                                   |
+| `loadingOption`           | `loadingOption`                           | Same                                                                                                                                                                                   |
+| `onEvents`                | `onEvents`                                | Same shape; also accepts `{ handler, query?, context? }` for query/context binding                                                                                                     |
+| `onChartReady`            | Use the imperative API                    | Read `getInstance()` from the hook return (or `ref.current`) — fires after first init                                                                                                  |
+| `opts.renderer`           | `renderer: 'canvas' \| 'svg'`             | Promoted to a top-level option                                                                                                                                                         |
+| `opts` (rest)             | `initOpts`                                | Same shape (`devicePixelRatio`, `locale`, `width`, `height`, `useDirtyRect`, etc.)                                                                                                     |
+| `style`                   | `style`                                   | `<EChart />` defaults to `{ width: '100%', height: '100%' }` so the parent needs size                                                                                                  |
+| `className`               | `className`                               | Same                                                                                                                                                                                   |
+| `lazyUpdate` (top-level)  | `setOptionOpts: { lazyUpdate: true }`     | See `notMerge` row                                                                                                                                                                     |
+| `shouldSetOption`         | Gate the `option` prop yourself           | Top-level keys are deduped via `shallowEqual` automatically; for custom predicates (deep compare, throttling, app-state gating) memoize/skip the `option` prop in the parent component |
+| `autoResize` (4.x)        | `autoResize`                              | Same default (`true`); resize uses ResizeObserver + RAF                                                                                                                                |
+| _none_                    | `lazyInit`                                | New: defer init until the container scrolls into viewport                                                                                                                              |
+| _none_                    | `group`                                   | New: chart linkage via shared group ID                                                                                                                                                 |
+| _none_                    | `onError`                                 | New: route init / setOption / dispatchAction errors through a callback                                                                                                                 |
+
+Side-by-side example:
+
+```tsx
+// echarts-for-react
+<ReactECharts
+  option={option}
+  theme="dark"
+  notMerge
+  lazyUpdate
+  opts={{ renderer: "svg", devicePixelRatio: 2 }}
+  onEvents={{ click: handleClick }}
+  showLoading={loading}
+  onChartReady={(instance) => instanceRef.current = instance}
+/>
+
+// react-use-echarts
+<EChart
+  ref={chartRef}
+  option={option}
+  theme="dark"
+  setOptionOpts={{ notMerge: true, lazyUpdate: true }}
+  renderer="svg"
+  initOpts={{ devicePixelRatio: 2 }}
+  onEvents={{ click: handleClick }}
+  showLoading={loading}
+/>
+// chartRef.current?.getInstance() replaces onChartReady
 ```
 
 ## Contributing

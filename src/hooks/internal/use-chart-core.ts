@@ -1,6 +1,6 @@
 import { useEffect, useRef, useCallback, useLayoutEffect, useMemo } from "react";
 import * as echarts from "echarts";
-import type { ECharts, SetOptionOpts, EChartsOption } from "echarts";
+import type { ECharts, SetOptionOpts, EChartsOption, Payload } from "echarts";
 import type { EChartsEvents, EChartsInitOpts, UseEchartsOptions, LoadingOption } from "../../types";
 import {
   getCachedInstance,
@@ -153,6 +153,11 @@ interface LatestConfig {
 interface ChartCoreReturn {
   getInstance: () => ECharts | undefined;
   setOption: (option: EChartsOption, opts?: SetOptionOpts) => void;
+  dispatchAction: (
+    payload: Payload,
+    opt?: boolean | { silent?: boolean; flush?: boolean | undefined },
+  ) => void;
+  clear: () => void;
 }
 
 // --- Hook ---
@@ -248,6 +253,28 @@ export function useChartCore(
     [getInstance],
   );
 
+  const dispatchAction = useCallback(
+    (payload: Payload, opt?: boolean | { silent?: boolean; flush?: boolean | undefined }) => {
+      const instance = getInstance();
+      if (!instance) return;
+      try {
+        instance.dispatchAction(payload, opt);
+      } catch (error) {
+        const onError = latestRef.current.onError;
+        if (onError) {
+          onError(error);
+        } else {
+          throw error;
+        }
+      }
+    },
+    [getInstance],
+  );
+
+  const clear = useCallback(() => {
+    getInstance()?.clear();
+  }, [getInstance]);
+
   // =====================================================================
   // Effect 1: INSTANCE LIFECYCLE (init / recreate / cleanup)
   //
@@ -268,7 +295,6 @@ export function useChartCore(
     const existing = getCachedInstance(element);
     let instance: ECharts;
     if (existing) {
-      /* v8 ignore next 4 -- NODE_ENV is always "test" in vitest; production branch never taken */
       if (process.env.NODE_ENV !== "production") {
         console.warn(
           "react-use-echarts: multiple hooks share the same DOM element. " +
@@ -419,5 +445,8 @@ export function useChartCore(
     updateGroup(instance, currentGroup, group);
   }, [getInstance, group]);
 
-  return useMemo(() => ({ getInstance, setOption }), [getInstance, setOption]);
+  return useMemo(
+    () => ({ getInstance, setOption, dispatchAction, clear }),
+    [getInstance, setOption, dispatchAction, clear],
+  );
 }

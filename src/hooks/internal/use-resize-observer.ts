@@ -42,11 +42,21 @@ export function useResizeObserver(
       }
     }
 
+    // Browsers throttle requestAnimationFrame in hidden tabs, so a resize that
+    // fires while the tab is in background may never reach the chart. Resync
+    // when the tab becomes visible again.
+    const handleVisibilityChange = (): void => {
+      if (document.hidden) return;
+      getCachedInstance(element)?.resize();
+    };
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
     return () => {
       if (rafId !== undefined) {
         cancelAnimationFrame(rafId);
       }
       resizeObserver?.disconnect();
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
   }, [element, autoResize]);
 }

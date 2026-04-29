@@ -79,6 +79,15 @@ export const featureItems: readonly FeatureItem[] = [
     source: () => import("../lazy/LazyCharts.tsx?raw"),
     sourcePath: "examples/lazy/LazyCharts.tsx",
   },
+  {
+    id: "error",
+    title: "Error Handling",
+    description: "Catch chart errors gracefully via the onError callback.",
+    icon: "alert",
+    component: React.lazy(() => import("../error/OnErrorDemo")),
+    source: () => import("../error/OnErrorDemo.tsx?raw"),
+    sourcePath: "examples/error/OnErrorDemo.tsx",
+  },
 ];
 
 export const findFeatureItem = (id: string | undefined): FeatureItem | undefined =>

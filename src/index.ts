@@ -1,3 +1,5 @@
+"use client";
+
 /**
  * react-use-echarts
  * A React hook library for Apache ECharts with TypeScript support
@@ -39,6 +41,13 @@ export type {
   BuiltinTheme,
   LoadingOption,
 } from "./types";
+
+/**
+ * Re-exported ECharts `Payload` type — useful when annotating arguments to
+ * the imperative `dispatchAction` returned from `useEcharts`.
+ * 转出的 ECharts `Payload` 类型，便于在调用 `dispatchAction` 时显式标注参数。
+ */
+export type { Payload } from "echarts";
 
 /**
  * Theme utilities (lightweight, no JSON bundled)
