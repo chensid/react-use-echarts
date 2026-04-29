@@ -1,3 +1,5 @@
+"use client";
+
 import * as echarts from "echarts";
 import type { BuiltinTheme } from "../types";
 import { isBuiltinThemeRegistered, markBuiltinThemeRegistered } from "./index";

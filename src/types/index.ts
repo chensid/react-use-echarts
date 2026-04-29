@@ -3,6 +3,7 @@ import type {
   ECharts,
   SetOptionOpts,
   EChartsInitOpts as RawEChartsInitOpts,
+  Payload,
 } from "echarts";
 import type { CSSProperties } from "react";
 
@@ -230,6 +231,25 @@ export interface UseEchartsReturn {
    * 手动触发 resize
    */
   resize: () => void;
+
+  /**
+   * Dispatch an ECharts action (e.g. highlight, downplay, showTip).
+   * No-op when the instance is not initialized.
+   * 派发 ECharts 动作（如 highlight、downplay、showTip）。实例未初始化时为 no-op。
+   * Errors are routed through `onError` if provided; otherwise rethrown.
+   * @see https://echarts.apache.org/en/api.html#echartsInstance.dispatchAction
+   */
+  dispatchAction: (
+    payload: Payload,
+    opt?: boolean | { silent?: boolean; flush?: boolean | undefined },
+  ) => void;
+
+  /**
+   * Clear current chart content. No-op when the instance is not initialized.
+   * 清空当前图表内容。实例未初始化时为 no-op。
+   * @see https://echarts.apache.org/en/api.html#echartsInstance.clear
+   */
+  clear: () => void;
 }
 
 /**

@@ -36,7 +36,7 @@ function useEcharts(
   const shouldInit = useLazyInitForElement(element, lazyInit);
 
   // Core: instance lifecycle + option sync + events + loading + group (1 useLayoutEffect + 4 useEffect)
-  const { getInstance, setOption } = useChartCore(element, shouldInit, {
+  const { getInstance, setOption, dispatchAction, clear } = useChartCore(element, shouldInit, {
     option,
     theme,
     renderer,
@@ -55,7 +55,10 @@ function useEcharts(
     getInstance()?.resize();
   }, [getInstance]);
 
-  return useMemo(() => ({ setOption, getInstance, resize }), [setOption, getInstance, resize]);
+  return useMemo(
+    () => ({ setOption, getInstance, resize, dispatchAction, clear }),
+    [setOption, getInstance, resize, dispatchAction, clear],
+  );
 }
 
 export default useEcharts;

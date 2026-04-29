@@ -100,6 +100,26 @@ describe("EChart component", () => {
     expect(typeof ref.current!.setOption).toBe("function");
     expect(typeof ref.current!.getInstance).toBe("function");
     expect(typeof ref.current!.resize).toBe("function");
+    expect(typeof ref.current!.dispatchAction).toBe("function");
+    expect(typeof ref.current!.clear).toBe("function");
+  });
+
+  it("should forward dispatchAction and clear via ref", () => {
+    let captured: ReturnType<typeof createMockInstance> | null = null;
+    (echarts.init as ReturnType<typeof vi.fn>).mockImplementation((el: HTMLElement) => {
+      captured = createMockInstance(el);
+      return captured;
+    });
+
+    const ref = createRef<UseEchartsReturn>();
+
+    render(<EChart ref={ref} option={{ series: [{ type: "line", data: [1, 2, 3] }] }} />);
+
+    ref.current!.dispatchAction({ type: "highlight" });
+    ref.current!.clear();
+
+    expect(captured!.dispatchAction).toHaveBeenCalledWith({ type: "highlight" }, undefined);
+    expect(captured!.clear).toHaveBeenCalled();
   });
 
   it("should pass options through to useEcharts", () => {

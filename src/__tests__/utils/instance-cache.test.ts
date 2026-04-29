@@ -61,20 +61,27 @@ describe("instance-cache utilities", () => {
     });
 
     it("should warn and keep the cached instance when called with a different one", () => {
-      const element = document.createElement("div");
-      const instance1 = createMockInstance();
-      const instance2 = createMockInstance();
+      const previousNodeEnv = process.env.NODE_ENV;
+      process.env.NODE_ENV = "development";
+
       const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+      try {
+        const element = document.createElement("div");
+        const instance1 = createMockInstance();
+        const instance2 = createMockInstance();
 
-      setCachedInstance(element, instance1);
-      const result = setCachedInstance(element, instance2);
+        setCachedInstance(element, instance1);
+        const result = setCachedInstance(element, instance2);
 
-      expect(result).toBe(instance1);
-      expect(getReferenceCount(element)).toBe(2);
-      expect(warnSpy).toHaveBeenCalledWith(
-        expect.stringContaining("called with a different instance"),
-      );
-      warnSpy.mockRestore();
+        expect(result).toBe(instance1);
+        expect(getReferenceCount(element)).toBe(2);
+        expect(warnSpy).toHaveBeenCalledWith(
+          expect.stringContaining("called with a different instance"),
+        );
+      } finally {
+        warnSpy.mockRestore();
+        process.env.NODE_ENV = previousNodeEnv;
+      }
     });
   });
 

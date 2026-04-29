@@ -33,10 +33,12 @@ function pruneDisposed(group: Set<ECharts>): void {
 }
 
 /**
- * Synchronize ECharts connect/disconnect state after removing an instance.
- * 移除实例后根据组大小同步 ECharts 的 connect/disconnect 状态。
+ * Synchronize ECharts connect/disconnect state for a group.
+ * Prunes disposed instances first so size decisions reflect live members.
+ * 同步组的 ECharts connect/disconnect 状态。先剔除已销毁实例以保证 size 判断准确。
  */
 function syncGroupConnectivity(groupId: string, group: Set<ECharts>): void {
+  pruneDisposed(group);
   if (group.size === 0) {
     groupRegistry.delete(groupId);
     echarts.disconnect(groupId);
@@ -59,7 +61,6 @@ export function addToGroup(instance: ECharts, groupId: string): void {
     group = new Set();
     groupRegistry.set(groupId, group);
   }
-  pruneDisposed(group);
 
   (instance as EChartsWithGroup).group = groupId;
   group.add(instance);
@@ -80,7 +81,6 @@ export function removeFromGroup(instance: ECharts, groupId: string): void {
     return;
   }
   group.delete(instance);
-  pruneDisposed(group);
   if ((instance as EChartsWithGroup).group === groupId) {
     (instance as EChartsWithGroup).group = undefined;
   }

@@ -906,6 +906,116 @@ describe("useEcharts", () => {
     });
   });
 
+  describe("dispatchAction", () => {
+    it("should forward payload to instance", () => {
+      const element = document.createElement("div");
+      const ref = { current: element };
+      const mockInstance = createMockInstance(element);
+      (echarts.init as ReturnType<typeof vi.fn>).mockReturnValue(mockInstance);
+
+      const { result } = renderHook(() => useEcharts(ref, { option: baseOption }));
+
+      const payload = { type: "highlight", seriesIndex: 0 };
+      act(() => {
+        result.current.dispatchAction(payload);
+      });
+
+      expect(mockInstance.dispatchAction).toHaveBeenCalledWith(payload, undefined);
+    });
+
+    it("should forward opts argument", () => {
+      const element = document.createElement("div");
+      const ref = { current: element };
+      const mockInstance = createMockInstance(element);
+      (echarts.init as ReturnType<typeof vi.fn>).mockReturnValue(mockInstance);
+
+      const { result } = renderHook(() => useEcharts(ref, { option: baseOption }));
+
+      const payload = { type: "showTip", seriesIndex: 0, dataIndex: 1 };
+      act(() => {
+        result.current.dispatchAction(payload, { silent: true });
+      });
+
+      expect(mockInstance.dispatchAction).toHaveBeenCalledWith(payload, { silent: true });
+    });
+
+    it("should be a no-op when instance is not initialized", () => {
+      const ref = { current: null };
+
+      const { result } = renderHook(() => useEcharts(ref, { option: baseOption }));
+
+      // Should not throw
+      act(() => {
+        result.current.dispatchAction({ type: "highlight" });
+      });
+    });
+
+    it("should route dispatch errors through onError", () => {
+      const element = document.createElement("div");
+      const ref = { current: element };
+      const mockInstance = createMockInstance(element);
+      const dispatchError = new Error("invalid action");
+      mockInstance.dispatchAction.mockImplementation(() => {
+        throw dispatchError;
+      });
+      (echarts.init as ReturnType<typeof vi.fn>).mockReturnValue(mockInstance);
+
+      const onError = vi.fn();
+      const { result } = renderHook(() => useEcharts(ref, { option: baseOption, onError }));
+
+      act(() => {
+        result.current.dispatchAction({ type: "broken" });
+      });
+
+      expect(onError).toHaveBeenCalledWith(dispatchError);
+    });
+
+    it("should rethrow dispatch errors when no onError", () => {
+      const element = document.createElement("div");
+      const ref = { current: element };
+      const mockInstance = createMockInstance(element);
+      mockInstance.dispatchAction.mockImplementation(() => {
+        throw new Error("boom");
+      });
+      (echarts.init as ReturnType<typeof vi.fn>).mockReturnValue(mockInstance);
+
+      const { result } = renderHook(() => useEcharts(ref, { option: baseOption }));
+
+      expect(() => {
+        act(() => {
+          result.current.dispatchAction({ type: "broken" });
+        });
+      }).toThrow("boom");
+    });
+  });
+
+  describe("clear", () => {
+    it("should call clear on instance", () => {
+      const element = document.createElement("div");
+      const ref = { current: element };
+      const mockInstance = createMockInstance(element);
+      (echarts.init as ReturnType<typeof vi.fn>).mockReturnValue(mockInstance);
+
+      const { result } = renderHook(() => useEcharts(ref, { option: baseOption }));
+
+      act(() => {
+        result.current.clear();
+      });
+
+      expect(mockInstance.clear).toHaveBeenCalled();
+    });
+
+    it("should not throw when instance is undefined", () => {
+      const ref = { current: null };
+
+      const { result } = renderHook(() => useEcharts(ref, { option: baseOption }));
+
+      act(() => {
+        result.current.clear();
+      });
+    });
+  });
+
   describe("cleanup", () => {
     it("should dispose instance on unmount", () => {
       const element = document.createElement("div");
@@ -1308,6 +1418,66 @@ describe("useEcharts", () => {
 
       expect(resizeObserverInstances).toHaveLength(0);
     });
+
+    describe("visibilitychange resume", () => {
+      const originalDescriptor = Object.getOwnPropertyDescriptor(Document.prototype, "hidden");
+      let hiddenValue = false;
+
+      beforeEach(() => {
+        hiddenValue = false;
+        Object.defineProperty(Document.prototype, "hidden", {
+          configurable: true,
+          get: () => hiddenValue,
+        });
+      });
+
+      afterEach(() => {
+        if (originalDescriptor) {
+          Object.defineProperty(Document.prototype, "hidden", originalDescriptor);
+        } else {
+          delete (Document.prototype as unknown as { hidden?: boolean }).hidden;
+        }
+      });
+
+      it("should resize when tab becomes visible again", () => {
+        const element = document.createElement("div");
+        const ref = { current: element };
+        const mockInstance = createMockInstance(element);
+        (echarts.init as ReturnType<typeof vi.fn>).mockReturnValue(mockInstance);
+
+        renderHook(() => useEcharts(ref, { option: baseOption }));
+
+        // Reset resize calls from initial mount (e.g. from ResizeObserver firing
+        // on observe() in jsdom).
+        mockInstance.resize.mockClear();
+
+        hiddenValue = true;
+        document.dispatchEvent(new Event("visibilitychange"));
+        expect(mockInstance.resize).not.toHaveBeenCalled();
+
+        hiddenValue = false;
+        document.dispatchEvent(new Event("visibilitychange"));
+        expect(mockInstance.resize).toHaveBeenCalledTimes(1);
+      });
+
+      it("should remove visibilitychange listener on unmount", () => {
+        const element = document.createElement("div");
+        const ref = { current: element };
+        const mockInstance = createMockInstance(element);
+        (echarts.init as ReturnType<typeof vi.fn>).mockReturnValue(mockInstance);
+
+        const { unmount } = renderHook(() => useEcharts(ref, { option: baseOption }));
+        unmount();
+
+        // Cache is cleared on unmount, so even if the listener leaked the
+        // resize call would no-op. Assert through the listener API: a fresh
+        // event after unmount does not bring the disposed instance's resize
+        // back to life.
+        mockInstance.resize.mockClear();
+        document.dispatchEvent(new Event("visibilitychange"));
+        expect(mockInstance.resize).not.toHaveBeenCalled();
+      });
+    });
   });
 
   describe("initOpts", () => {
@@ -1625,21 +1795,49 @@ describe("useEcharts", () => {
     });
 
     it("should warn in development when reusing cached instance from another consumer", () => {
-      const element = document.createElement("div");
-      const ref = { current: element };
-      const existingInstance = createMockInstance(element);
-
-      setCachedInstance(element, existingInstance as never);
+      const previousNodeEnv = process.env.NODE_ENV;
+      process.env.NODE_ENV = "development";
 
       const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+      try {
+        const element = document.createElement("div");
+        const ref = { current: element };
+        const existingInstance = createMockInstance(element);
 
-      renderHook(() => useEcharts(ref, { option: baseOption }));
+        setCachedInstance(element, existingInstance as never);
 
-      expect(warnSpy).toHaveBeenCalledWith(
-        expect.stringContaining("multiple hooks share the same DOM element"),
-      );
+        renderHook(() => useEcharts(ref, { option: baseOption }));
 
-      warnSpy.mockRestore();
+        expect(warnSpy).toHaveBeenCalledWith(
+          expect.stringContaining("multiple hooks share the same DOM element"),
+        );
+      } finally {
+        warnSpy.mockRestore();
+        process.env.NODE_ENV = previousNodeEnv;
+      }
+    });
+
+    it("should not warn in production when reusing cached instance from another consumer", () => {
+      const previousNodeEnv = process.env.NODE_ENV;
+      process.env.NODE_ENV = "production";
+
+      const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+      try {
+        const element = document.createElement("div");
+        const ref = { current: element };
+        const existingInstance = createMockInstance(element);
+
+        setCachedInstance(element, existingInstance as never);
+
+        renderHook(() => useEcharts(ref, { option: baseOption }));
+
+        expect(warnSpy).not.toHaveBeenCalledWith(
+          expect.stringContaining("multiple hooks share the same DOM element"),
+        );
+      } finally {
+        warnSpy.mockRestore();
+        process.env.NODE_ENV = previousNodeEnv;
+      }
     });
   });
 

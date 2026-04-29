@@ -11,6 +11,8 @@ export function createMockInstance(element?: HTMLElement) {
     getDom: vi.fn(() => element),
     resize: vi.fn(),
     isDisposed: vi.fn(() => false),
+    dispatchAction: vi.fn(),
+    clear: vi.fn(),
   };
 }
 
