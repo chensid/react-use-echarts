@@ -127,16 +127,16 @@ export interface UseEchartsOptions {
    * - any theme name already registered via `registerCustomTheme()` or `echarts.registerTheme()`
    *   — unknown strings silently fall back to the default theme (typos are NOT detected at runtime)
    * - a custom theme config object (auto-deduplicated by content hash)
-   * - `null` / `undefined` for the default theme
+   * - omit the field for the default theme
    *
    * 主题。可为：
    * - 内置主题名：`"light" | "dark" | "macarons"`
    * - 已通过 `registerCustomTheme()` 或 `echarts.registerTheme()` 注册过的任意主题名
    *   —— 未知字符串会静默回退到默认主题（运行时不会检测拼写错误）
    * - 自定义主题配置对象（按内容哈希自动去重）
-   * - `null` / `undefined` 表示默认主题
+   * - 省略字段表示默认主题
    */
-  theme?: BuiltinTheme | (string & {}) | object | null;
+  theme?: BuiltinTheme | (string & {}) | object;
 
   /**
    * Renderer type

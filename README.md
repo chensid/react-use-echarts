@@ -221,7 +221,7 @@ Declarative component wrapping `useEcharts`. Accepts all hook options as props p
 | Option          | Type                                  | Default    | Description                                                                                                     |
 | --------------- | ------------------------------------- | ---------- | --------------------------------------------------------------------------------------------------------------- |
 | `option`        | `EChartsOption`                       | (required) | ECharts configuration                                                                                           |
-| `theme`         | `string \| object \| null`            | `null`     | Any registered theme name, or custom theme object                                                               |
+| `theme`         | `string \| object`                    | —          | Any registered theme name, or custom theme object                                                               |
 | `renderer`      | `'canvas' \| 'svg'`                   | `'canvas'` | Renderer type                                                                                                   |
 | `lazyInit`      | `boolean \| IntersectionObserverInit` | `false`    | Lazy initialization via IntersectionObserver                                                                    |
 | `group`         | `string`                              | —          | Chart linkage group ID                                                                                          |

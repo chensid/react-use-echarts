@@ -38,7 +38,7 @@ export function useResizeObserver(
       if (onErrorRef.current) {
         onErrorRef.current(error);
       } else {
-        console.warn("ResizeObserver not available:", error);
+        console.error("ResizeObserver not available:", error);
       }
     }
 

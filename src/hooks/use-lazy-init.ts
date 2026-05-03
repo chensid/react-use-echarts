@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo, type RefObject } from "react";
+import { useEffect, useState, type RefObject } from "react";
 import { useRefElement } from "./internal/use-ref-element";
 
 /**
@@ -30,40 +30,39 @@ export function useLazyInitForElement(
   const optRootMargin = isObject ? options.rootMargin : undefined;
   const optThreshold = isObject ? options.threshold : undefined;
 
-  // Create stable observer options to avoid unnecessary recreation
-  // when inline objects are passed (e.g. lazyInit={{ threshold: 0.5 }})
-  // 创建稳定的 observer 配置，避免传入内联对象时不必要的 observer 重建
-  const observerOptions = useMemo(
-    (): IntersectionObserverInit => ({
-      root: optRoot ?? null,
-      rootMargin: optRootMargin ?? "50px",
-      threshold: optThreshold ?? 0.1,
-    }),
-    [optRoot, optRootMargin, optThreshold],
-  );
+  // Stable dep for inline number[] threshold (e.g. lazyInit={{ threshold: [0, 0.5, 1] }})
+  // so a new array literal each render doesn't recreate the observer.
+  const thresholdDep = Array.isArray(optThreshold) ? optThreshold.join(",") : optThreshold;
 
   useEffect(() => {
     // Skip if lazy mode is disabled or already in view
     // 如果禁用了懒加载模式或已经可见，则跳过
     if (!isLazyMode || isInView || !element) return;
 
-    const observer = new IntersectionObserver((entries) => {
-      const [entry] = entries;
-      if (entry.isIntersecting) {
-        setIsInView(true);
-        // Once visible, stop observing
-        // 一旦可见，就停止观察
-        observer.disconnect();
-      }
-    }, observerOptions);
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const [entry] = entries;
+        if (entry.isIntersecting) {
+          setIsInView(true);
+          // Once visible, stop observing
+          // 一旦可见，就停止观察
+          observer.disconnect();
+        }
+      },
+      {
+        root: optRoot ?? null,
+        rootMargin: optRootMargin ?? "50px",
+        threshold: optThreshold ?? 0.1,
+      },
+    );
 
     observer.observe(element);
 
     return () => {
       observer.disconnect();
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- isInView excluded: observer self-disconnects on intersection
-  }, [element, isLazyMode, observerOptions]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- isInView excluded (observer self-disconnects); thresholdDep stabilizes inline number[] in place of optThreshold
+  }, [element, isLazyMode, optRoot, optRootMargin, thresholdDep]);
 
   // Derive visibility — when lazy mode is toggled off at runtime,
   // the hook should report visible without waiting for an effect tick.

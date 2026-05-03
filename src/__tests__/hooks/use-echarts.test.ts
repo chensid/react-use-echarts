@@ -313,17 +313,6 @@ describe("useEcharts", () => {
         customTheme,
       );
     });
-
-    it("should use null when theme is explicitly null", () => {
-      const element = document.createElement("div");
-      const ref = { current: element };
-      const mockInstance = createMockInstance(element);
-      (echarts.init as ReturnType<typeof vi.fn>).mockReturnValue(mockInstance);
-
-      renderHook(() => useEcharts(ref, { option: baseOption, theme: null }));
-
-      expect(echarts.init).toHaveBeenCalledWith(element, null, expect.any(Object));
-    });
   });
 
   describe("loading state", () => {
@@ -1230,7 +1219,7 @@ describe("useEcharts", () => {
         }
       } as unknown as typeof ResizeObserver;
 
-      const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+      const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
 
       const element = document.createElement("div");
       const ref = { current: element };
@@ -1240,9 +1229,9 @@ describe("useEcharts", () => {
       // Should not throw
       renderHook(() => useEcharts(ref, { option: baseOption }));
 
-      expect(warnSpy).toHaveBeenCalledWith("ResizeObserver not available:", expect.any(Error));
+      expect(errorSpy).toHaveBeenCalledWith("ResizeObserver not available:", expect.any(Error));
 
-      warnSpy.mockRestore();
+      errorSpy.mockRestore();
       globalThis.ResizeObserver = originalResizeObserver;
     });
 
@@ -1256,7 +1245,7 @@ describe("useEcharts", () => {
       } as unknown as typeof ResizeObserver;
 
       const onError = vi.fn();
-      const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+      const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
 
       const element = document.createElement("div");
       const ref = { current: element };
@@ -1266,9 +1255,9 @@ describe("useEcharts", () => {
       renderHook(() => useEcharts(ref, { option: baseOption, onError }));
 
       expect(onError).toHaveBeenCalledWith(thrown);
-      expect(warnSpy).not.toHaveBeenCalled();
+      expect(errorSpy).not.toHaveBeenCalled();
 
-      warnSpy.mockRestore();
+      errorSpy.mockRestore();
       globalThis.ResizeObserver = originalResizeObserver;
     });
 
@@ -1619,37 +1608,6 @@ describe("useEcharts", () => {
       const firstThemeName = (echarts.init as ReturnType<typeof vi.fn>).mock.calls[0][1];
       const secondThemeName = (echarts.init as ReturnType<typeof vi.fn>).mock.calls[1][1];
       expect(firstThemeName).not.toBe(secondThemeName);
-    });
-
-    it("should fall back to Math.random when crypto.randomUUID is unavailable", () => {
-      const original = globalThis.crypto;
-      // Stub crypto with no randomUUID to exercise the fallback branch
-      Object.defineProperty(globalThis, "crypto", {
-        value: {},
-        configurable: true,
-        writable: true,
-      });
-
-      try {
-        const theme: Record<string, unknown> = { color: ["#333"] };
-        theme.self = theme;
-
-        const element = document.createElement("div");
-        const ref = { current: element };
-        const mockInstance = createMockInstance(element);
-        (echarts.init as ReturnType<typeof vi.fn>).mockReturnValue(mockInstance);
-
-        renderHook(() => useEcharts(ref, { option: baseOption, theme }));
-
-        expect(echarts.init).toHaveBeenCalled();
-        expect(echarts.registerTheme).toHaveBeenCalled();
-      } finally {
-        Object.defineProperty(globalThis, "crypto", {
-          value: original,
-          configurable: true,
-          writable: true,
-        });
-      }
     });
   });
 

@@ -9,18 +9,14 @@
 const CIRCULAR_PREFIX = "__circular_";
 
 // Stable IDs for objects that cannot be JSON-serialized (e.g. circular references).
-// Each object gets a unique string via crypto.randomUUID (Math.random fallback),
-// stored in a WeakMap so the same object consistently maps to the same id.
+// Each object gets a unique string via crypto.randomUUID, stored in a WeakMap so
+// the same object consistently maps to the same id.
 const circularObjectIds = new WeakMap<object, string>();
 
 function getCircularObjectId(obj: object): string {
   let id = circularObjectIds.get(obj);
   if (!id) {
-    const rand =
-      typeof crypto !== "undefined" && typeof crypto.randomUUID === "function"
-        ? crypto.randomUUID()
-        : `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
-    id = `${CIRCULAR_PREFIX}${rand}`;
+    id = `${CIRCULAR_PREFIX}${crypto.randomUUID()}`;
     circularObjectIds.set(obj, id);
   }
   return id;
