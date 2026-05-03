@@ -128,6 +128,36 @@ describe("useLazyInit", () => {
     });
   });
 
+  it("should not recreate observer when threshold is an inline array across rerenders", () => {
+    const element = document.createElement("div");
+    const ref = { current: element };
+
+    let constructorCount = 0;
+    class CountingObserver {
+      constructor(_cb: IntersectionObserverCallback, options?: IntersectionObserverInit) {
+        constructorCount += 1;
+        lastConstructorOptions = options;
+      }
+      observe = mockObserve;
+      disconnect = mockDisconnect;
+      unobserve = mockUnobserve;
+    }
+    globalThis.IntersectionObserver = CountingObserver as unknown as typeof IntersectionObserver;
+
+    const { rerender } = renderHook(
+      // Inline array literal — different reference every render
+      () => useLazyInit(ref, { threshold: [0, 0.5, 1] }),
+    );
+
+    expect(constructorCount).toBe(1);
+    expect(lastConstructorOptions?.threshold).toEqual([0, 0.5, 1]);
+
+    rerender();
+    rerender();
+
+    expect(constructorCount).toBe(1);
+  });
+
   it("should handle null ref", () => {
     const ref = { current: null };
 
