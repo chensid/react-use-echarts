@@ -24,17 +24,19 @@ function getCircularObjectId(obj: object): string {
 
 /**
  * Compute a stable identity key for a value.
- * Strings are returned as-is; objects are JSON-serialized; circular objects
- * fall back to a WeakMap-assigned id; nullish returns null.
+ * Strings pass through; numbers coerce via `String(...)`; objects are
+ * JSON-serialized (circular ones fall back to a WeakMap-assigned id);
+ * nullish and other unsupported types return null.
  */
 export function computeStableKey(value: unknown): string | null {
   if (value == null) return null;
   if (typeof value === "string") return value;
+  if (typeof value === "number") return String(value);
   if (typeof value !== "object") return null;
   try {
     return JSON.stringify(value);
   } catch {
-    return getCircularObjectId(value as object);
+    return getCircularObjectId(value);
   }
 }
 
