@@ -1,5 +1,6 @@
 import { useEffect, useState, type RefObject } from "react";
 import { useRefElement } from "./internal/use-ref-element";
+import { computeStableKey } from "../utils/stable-key";
 
 /**
  * Hook for lazy initialization using IntersectionObserver
@@ -32,7 +33,7 @@ export function useLazyInitForElement(
 
   // Stable dep for inline number[] threshold (e.g. lazyInit={{ threshold: [0, 0.5, 1] }})
   // so a new array literal each render doesn't recreate the observer.
-  const thresholdDep = Array.isArray(optThreshold) ? optThreshold.join(",") : optThreshold;
+  const thresholdDep = computeStableKey(optThreshold);
 
   useEffect(() => {
     // Skip if lazy mode is disabled or already in view
