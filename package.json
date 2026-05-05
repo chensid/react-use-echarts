@@ -52,14 +52,12 @@
   "scripts": {
     "dev": "vp dev",
     "build": "vp build",
-    "build:pages": "vp build",
     "pack": "vp pack",
     "test": "vp test",
-    "coverage": "vp test run --coverage",
-    "lint": "vp lint .",
+    "coverage": "vp test --coverage",
+    "lint": "vp lint",
     "check": "vp check",
     "prepublishOnly": "vp pack",
-    "typecheck": "tsc -b",
     "prepare": "vp config"
   },
   "devDependencies": {
@@ -93,7 +91,7 @@
     "react-dom": "^19.0.0"
   },
   "engines": {
-    "node": ">=22"
+    "node": ">=22.12.0"
   },
   "packageManager": "pnpm@11.0.3"
 }
