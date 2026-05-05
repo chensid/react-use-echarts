@@ -17,6 +17,7 @@ import {
 import { shallowEqual } from "../../utils/shallow-equal";
 import { computeStableKey, isCircularFallbackKey } from "../../utils/stable-key";
 import { warnedThemeNames, warnedZeroSizeContainers } from "../../utils/dev-warnings";
+import { routeEffectError, routeImperativeError } from "../../utils/error";
 import { bindEvents, unbindEvents, eventsEqual } from "./event-utils";
 
 /**
@@ -28,9 +29,12 @@ import { bindEvents, unbindEvents, eventsEqual } from "./event-utils";
  *   to avoid redundant JSON.stringify inside getOrRegisterCustomTheme.
  */
 function resolveThemeName(
-  theme: string | object | null | undefined,
+  theme: string | object | undefined,
   themeKey: string | null,
 ): string | null {
+  // Public type forbids null, but JS callers can still pass it. typeof null
+  // is "object" so without this guard we'd hit getOrRegisterCustomTheme(null)
+  // and throw inside the WeakMap path — outside Effect 1's init try/catch.
   if (theme == null) return null;
   if (typeof theme === "string") {
     if (
@@ -63,18 +67,6 @@ function resolveThemeName(
   if (typeof theme !== "object") return null;
   const contentHash = themeKey && !isCircularFallbackKey(themeKey) ? themeKey : undefined;
   return getOrRegisterCustomTheme(theme, contentHash);
-}
-
-function logError(
-  error: unknown,
-  message: string,
-  onError: ((e: unknown) => void) | undefined,
-): void {
-  if (onError) {
-    onError(error);
-  } else {
-    console.error(message, error);
-  }
 }
 
 function warnZeroSizeContainer(element: HTMLElement): void {
@@ -158,6 +150,7 @@ interface ChartCoreReturn {
     opt?: boolean | { silent?: boolean; flush?: boolean | undefined },
   ) => void;
   clear: () => void;
+  resize: () => void;
 }
 
 // --- Hook ---
@@ -219,7 +212,12 @@ export function useChartCore(
   });
 
   // --- Internal shared state ---
-  const boundEventsRef = useRef<EChartsEvents | undefined>(undefined);
+  // Event maps for which bindEvents() has been attempted but unbindEvents()
+  // has not yet successfully completed. Typically holds one entry (the
+  // currently bound events), but grows when an unbind attempt fails so
+  // cleanup can retry and avoid leaking handlers. The tail entry is treated
+  // as the current declared intent for dedup against new prop values.
+  const pendingUnbindRef = useRef<EChartsEvents[]>([]);
   const lastAppliedRef = useRef<LastApplied | null>(null);
   const lastLoadingRef = useRef<LastLoading | null>(null);
 
@@ -238,16 +236,14 @@ export function useChartCore(
     (newOption: EChartsOption, opts?: SetOptionOpts) => {
       const instance = getInstance();
       if (!instance) return;
+      const finalOpts = { ...latestRef.current.setOptionOpts, ...opts };
       try {
-        const finalOpts = { ...latestRef.current.setOptionOpts, ...opts };
         instance.setOption(newOption, finalOpts);
+        // Keep lastAppliedRef in sync so prop-driven Effect 2 dedup reflects
+        // what's actually on the instance, not what props last sent.
+        lastAppliedRef.current = { option: newOption, opts: finalOpts };
       } catch (error) {
-        const onError = latestRef.current.onError;
-        if (onError) {
-          onError(error);
-        } else {
-          throw error;
-        }
+        routeImperativeError(error, latestRef.current.onError);
       }
     },
     [getInstance],
@@ -260,19 +256,30 @@ export function useChartCore(
       try {
         instance.dispatchAction(payload, opt);
       } catch (error) {
-        const onError = latestRef.current.onError;
-        if (onError) {
-          onError(error);
-        } else {
-          throw error;
-        }
+        routeImperativeError(error, latestRef.current.onError);
       }
     },
     [getInstance],
   );
 
   const clear = useCallback(() => {
-    getInstance()?.clear();
+    const instance = getInstance();
+    if (!instance) return;
+    try {
+      instance.clear();
+    } catch (error) {
+      routeImperativeError(error, latestRef.current.onError);
+    }
+  }, [getInstance]);
+
+  const resize = useCallback(() => {
+    const instance = getInstance();
+    if (!instance) return;
+    try {
+      instance.resize();
+    } catch (error) {
+      routeImperativeError(error, latestRef.current.onError);
+    }
   }, [getInstance]);
 
   // =====================================================================
@@ -298,8 +305,8 @@ export function useChartCore(
       if (process.env.NODE_ENV !== "production") {
         console.warn(
           "react-use-echarts: multiple hooks share the same DOM element. " +
-            "The shared instance will be reused - theme/renderer/initOpts changes will not recreate it, " +
-            "and option/events/loading/group updates from different hooks may overwrite each other.",
+            "The shared instance is reused; theme/renderer/initOpts changes from later hooks are ignored, " +
+            "and option/events/loading/group writes from later hooks overwrite earlier ones.",
         );
       }
       instance = existing;
@@ -311,7 +318,7 @@ export function useChartCore(
           ...latest.initOpts,
         });
       } catch (error) {
-        logError(error, "ECharts init failed:", latest.onError);
+        routeEffectError(error, "ECharts init failed:", latest.onError);
         return;
       }
       setCachedInstance(element, instance);
@@ -324,22 +331,37 @@ export function useChartCore(
         opts: latest.setOptionOpts,
       };
     } catch (error) {
-      logError(error, "ECharts setOption failed:", latest.onError);
+      routeEffectError(error, "ECharts setOption failed:", latest.onError);
     }
 
-    if (latest.showLoading) {
-      instance.showLoading(latest.loadingOption);
+    try {
+      if (latest.showLoading) {
+        instance.showLoading(latest.loadingOption);
+      }
+      lastLoadingRef.current = {
+        showLoading: latest.showLoading,
+        loadingOption: latest.loadingOption,
+      };
+    } catch (error) {
+      routeEffectError(error, "ECharts loading toggle failed:", latest.onError);
     }
-    lastLoadingRef.current = {
-      showLoading: latest.showLoading,
-      loadingOption: latest.loadingOption,
-    };
 
-    bindEvents(instance, latest.onEvents);
-    boundEventsRef.current = latest.onEvents;
+    // Track for cleanup regardless of partial bind failure so off() can be
+    // attempted on any handlers that did get bound (off is tolerant of
+    // unknown handlers).
+    pendingUnbindRef.current = latest.onEvents ? [latest.onEvents] : [];
+    try {
+      bindEvents(instance, latest.onEvents);
+    } catch (error) {
+      routeEffectError(error, "ECharts event bind failed:", latest.onError);
+    }
 
     if (latest.group) {
-      updateGroup(instance, undefined, latest.group);
+      try {
+        updateGroup(instance, undefined, latest.group);
+      } catch (error) {
+        routeEffectError(error, "ECharts group switch failed:", latest.onError);
+      }
     }
 
     return () => {
@@ -349,15 +371,29 @@ export function useChartCore(
       const inst = getCachedInstance(element);
       if (!inst) return;
 
-      const instGroup = getInstanceGroup(inst);
-      if (instGroup) {
-        updateGroup(inst, instGroup, undefined);
+      // releaseCachedInstance must always run (refCount/dispose/group cleanup);
+      // walk every pending entry so handlers from previous failed unbinds
+      // get one more chance, and let `finally` guarantee the release lands
+      // even if the user's onError callback itself throws.
+      try {
+        for (const entry of pendingUnbindRef.current) {
+          try {
+            unbindEvents(inst, entry);
+          } catch (error) {
+            routeEffectError(error, "ECharts event unbind failed:", latestRef.current.onError);
+          }
+        }
+      } finally {
+        pendingUnbindRef.current = [];
+        // Release can now throw (instance-cache propagates leaveGroup/dispose
+        // failures to the caller). Route it like any other effect-side error
+        // so the React commit isn't disrupted at unmount.
+        try {
+          releaseCachedInstance(element);
+        } catch (error) {
+          routeEffectError(error, "ECharts release failed:", latestRef.current.onError);
+        }
       }
-
-      unbindEvents(inst, boundEventsRef.current);
-      boundEventsRef.current = undefined;
-
-      releaseCachedInstance(element);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps -- latest config values are read from refs; only structural deps trigger re-init
   }, [shouldInit, element, themeKey, renderer, initOptsKey]);
@@ -384,7 +420,7 @@ export function useChartCore(
       instance.setOption(option, setOptionOpts);
       lastAppliedRef.current = { option, opts: setOptionOpts };
     } catch (error) {
-      logError(error, "ECharts setOption failed:", latestRef.current.onError);
+      routeEffectError(error, "ECharts setOption failed:", latestRef.current.onError);
     }
   }, [getInstance, option, setOptionOpts]);
 
@@ -398,11 +434,44 @@ export function useChartCore(
     const instance = getInstance();
     if (!instance) return;
 
-    if (eventsEqual(boundEventsRef.current, onEvents)) return;
+    const pending = pendingUnbindRef.current;
+    const lastIntent = pending[pending.length - 1];
+    if (eventsEqual(lastIntent, onEvents)) return;
 
-    unbindEvents(instance, boundEventsRef.current);
-    bindEvents(instance, onEvents);
-    boundEventsRef.current = onEvents;
+    // Semantic match — handler/query/context all equal — rather than just
+    // reference identity, so an inline event map that's a fresh object but
+    // describes the same bindings still gets recognized as already-bound.
+    const alreadyPending =
+      onEvents !== undefined && pending.some((entry) => eventsEqual(entry, onEvents));
+
+    // Order matters: ECharts `off(name, handler)` matches by handler reference
+    // and ignores query/context, so a same-handler rebind (query A → query B)
+    // must unbind the old binding BEFORE the new one is registered — otherwise
+    // the off call would remove the freshly-bound handler too.
+    const stillPending: EChartsEvents[] = [];
+    for (const prev of pending) {
+      // Skip entries semantically equivalent to onEvents — their handlers
+      // remain bound and are carried forward via the onEvents entry pushed
+      // at the tail below.
+      if (eventsEqual(prev, onEvents)) continue;
+      try {
+        unbindEvents(instance, prev);
+      } catch (error) {
+        routeEffectError(error, "ECharts event unbind failed:", latestRef.current.onError);
+        stillPending.push(prev);
+      }
+    }
+
+    if (onEvents && !alreadyPending) {
+      try {
+        bindEvents(instance, onEvents);
+      } catch (error) {
+        routeEffectError(error, "ECharts event bind failed:", latestRef.current.onError);
+      }
+    }
+
+    if (onEvents) stillPending.push(onEvents);
+    pendingUnbindRef.current = stillPending;
   }, [getInstance, onEvents]);
 
   // =====================================================================
@@ -421,12 +490,16 @@ export function useChartCore(
     if (last && last.showLoading === showLoading && shallowEqual(last.loadingOption, loadingOption))
       return;
 
-    if (showLoading) {
-      instance.showLoading(loadingOption);
-    } else {
-      instance.hideLoading();
+    try {
+      if (showLoading) {
+        instance.showLoading(loadingOption);
+      } else {
+        instance.hideLoading();
+      }
+      lastLoadingRef.current = { showLoading, loadingOption };
+    } catch (error) {
+      routeEffectError(error, "ECharts loading toggle failed:", latestRef.current.onError);
     }
-    lastLoadingRef.current = { showLoading, loadingOption };
   }, [getInstance, showLoading, loadingOption]);
 
   // =====================================================================
@@ -442,11 +515,15 @@ export function useChartCore(
     const currentGroup = getInstanceGroup(instance);
     if (currentGroup === group) return;
 
-    updateGroup(instance, currentGroup, group);
+    try {
+      updateGroup(instance, currentGroup, group);
+    } catch (error) {
+      routeEffectError(error, "ECharts group switch failed:", latestRef.current.onError);
+    }
   }, [getInstance, group]);
 
   return useMemo(
-    () => ({ getInstance, setOption, dispatchAction, clear }),
-    [getInstance, setOption, dispatchAction, clear],
+    () => ({ getInstance, setOption, dispatchAction, clear, resize }),
+    [getInstance, setOption, dispatchAction, clear, resize],
   );
 }

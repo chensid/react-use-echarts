@@ -88,6 +88,19 @@ export function removeFromGroup(instance: ECharts, groupId: string): void {
 }
 
 /**
+ * Remove an instance from whatever group it currently belongs to (if any).
+ * Centralizes the "look up own group → leave it" pattern so dispose paths
+ * don't have to inline `getInstanceGroup` + `removeFromGroup`.
+ * 让实例脱离当前所在的组（若存在），集中表达 dispose 前的所有权清理。
+ */
+export function leaveGroup(instance: ECharts): void {
+  const groupId = getInstanceGroup(instance);
+  if (groupId) {
+    removeFromGroup(instance, groupId);
+  }
+}
+
+/**
  * Update group for chart instance
  * 更新图表实例的组
  * @param instance ECharts instance

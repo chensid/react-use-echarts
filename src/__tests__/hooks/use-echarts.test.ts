@@ -12,6 +12,7 @@ import type { EChartsOption } from "echarts";
 import type { BuiltinTheme } from "../../types";
 import { clearThemeCache } from "../../themes";
 import { registerBuiltinThemes } from "../../themes/registry";
+import { __resetVisibilityCoordinatorForTesting__ } from "../../utils/visibility-coordinator";
 import { createMockInstance, MockResizeObserver, MockIntersectionObserver } from "../helpers";
 
 // Mock ECharts
@@ -40,6 +41,7 @@ describe("useEcharts", () => {
     clearInstanceCache();
     clearGroups();
     clearThemeCache();
+    __resetVisibilityCoordinatorForTesting__();
     resizeObserverInstances = [];
     vi.clearAllMocks();
   });
@@ -313,6 +315,32 @@ describe("useEcharts", () => {
         customTheme,
       );
     });
+
+    it("should treat runtime theme=null as default theme without throwing", () => {
+      // Public TS type forbids null, but JS callers (or escape hatches) can still
+      // pass it. typeof null === "object", so without the nullish guard
+      // resolveThemeName would route into the custom-theme path and crash.
+      const element = document.createElement("div");
+      const ref = { current: element };
+      const mockInstance = createMockInstance(element);
+      (echarts.init as ReturnType<typeof vi.fn>).mockReturnValue(mockInstance);
+
+      const onError = vi.fn();
+      expect(() => {
+        renderHook(() =>
+          useEcharts(ref, {
+            option: baseOption,
+            // Bypass TS type to simulate a JS caller passing null.
+            theme: null as unknown as undefined,
+            onError,
+          }),
+        );
+      }).not.toThrow();
+
+      expect(echarts.init).toHaveBeenCalledWith(element, null, expect.any(Object));
+      expect(echarts.registerTheme).not.toHaveBeenCalled();
+      expect(onError).not.toHaveBeenCalled();
+    });
   });
 
   describe("loading state", () => {
@@ -464,6 +492,57 @@ describe("useEcharts", () => {
         expect(mockInstance.showLoading).toHaveBeenLastCalledWith(optionB);
       });
     });
+
+    it("should route loading toggle errors through onError", async () => {
+      const element = document.createElement("div");
+      const ref = { current: element };
+      const mockInstance = createMockInstance(element);
+      const loadingError = new Error("showLoading failed");
+      // Init effect's initial showLoading=false won't fire; only the dynamic
+      // toggle in Effect 4 reaches the wrapped path.
+      mockInstance.showLoading.mockImplementation(() => {
+        throw loadingError;
+      });
+      (echarts.init as ReturnType<typeof vi.fn>).mockReturnValue(mockInstance);
+
+      const onError = vi.fn();
+      const { rerender } = renderHook<ReturnType<typeof useEcharts>, { showLoading: boolean }>(
+        ({ showLoading }) => useEcharts(ref, { option: baseOption, showLoading, onError }),
+        {
+          initialProps: { showLoading: false },
+        },
+      );
+
+      rerender({ showLoading: true });
+
+      await waitFor(() => {
+        expect(onError).toHaveBeenCalledWith(loadingError);
+      });
+    });
+
+    it("should route initial showLoading errors through onError without breaking cleanup", () => {
+      const element = document.createElement("div");
+      const ref = { current: element };
+      const mockInstance = createMockInstance(element);
+      const loadingError = new Error("initial showLoading failed");
+      mockInstance.showLoading.mockImplementation(() => {
+        throw loadingError;
+      });
+      (echarts.init as ReturnType<typeof vi.fn>).mockReturnValue(mockInstance);
+
+      const onError = vi.fn();
+      const { unmount } = renderHook(() =>
+        useEcharts(ref, { option: baseOption, showLoading: true, onError }),
+      );
+
+      // Init's bare showLoading would have thrown out of the layout effect —
+      // now it routes through onError, leaving the cleanup return intact.
+      expect(onError).toHaveBeenCalledWith(loadingError);
+
+      // Cleanup must still register: unmount disposes without leaking the instance.
+      unmount();
+      expect(mockInstance.dispose).toHaveBeenCalled();
+    });
   });
 
   describe("event handling", () => {
@@ -567,6 +646,31 @@ describe("useEcharts", () => {
       expect(mockInstance.off).toHaveBeenCalledWith("click", clickHandler);
     });
 
+    it("should route initial event bind errors through onError without breaking cleanup", () => {
+      const element = document.createElement("div");
+      const ref = { current: element };
+      const mockInstance = createMockInstance(element);
+      const bindError = new Error("on() failed");
+      mockInstance.on.mockImplementation(() => {
+        throw bindError;
+      });
+      (echarts.init as ReturnType<typeof vi.fn>).mockReturnValue(mockInstance);
+
+      const onError = vi.fn();
+      const { unmount } = renderHook(() =>
+        useEcharts(ref, {
+          option: baseOption,
+          onEvents: { click: () => {} },
+          onError,
+        }),
+      );
+
+      expect(onError).toHaveBeenCalledWith(bindError);
+
+      unmount();
+      expect(mockInstance.dispose).toHaveBeenCalled();
+    });
+
     it("should rebind events when onEvents changes", async () => {
       const element = document.createElement("div");
       const ref = { current: element };
@@ -587,6 +691,304 @@ describe("useEcharts", () => {
         expect(mockInstance.off).toHaveBeenCalledWith("click", clickHandler1);
         expect(mockInstance.on).toHaveBeenCalledWith("click", clickHandler2, undefined);
       });
+    });
+
+    it("should route dynamic rebind bind errors through onError", async () => {
+      const element = document.createElement("div");
+      const ref = { current: element };
+      const mockInstance = createMockInstance(element);
+      (echarts.init as ReturnType<typeof vi.fn>).mockReturnValue(mockInstance);
+
+      const handler1 = vi.fn();
+      const handler2 = vi.fn();
+      const bindError = new Error("rebind on() failed");
+
+      // First mount binds handler1 successfully; rerender with handler2 fails on bind.
+      mockInstance.on.mockImplementationOnce(() => {});
+      mockInstance.on.mockImplementationOnce(() => {
+        throw bindError;
+      });
+
+      const onError = vi.fn();
+      const { rerender } = renderHook(
+        ({ handler }) =>
+          useEcharts(ref, { option: baseOption, onEvents: { click: { handler } }, onError }),
+        { initialProps: { handler: handler1 } },
+      );
+
+      rerender({ handler: handler2 });
+
+      await waitFor(() => {
+        expect(onError).toHaveBeenCalledWith(bindError);
+      });
+      // The old handler must still have been off()'d so it doesn't double-fire.
+      expect(mockInstance.off).toHaveBeenCalledWith("click", handler1);
+    });
+
+    it("should route dynamic rebind unbind errors through onError and still bind new handlers", async () => {
+      const element = document.createElement("div");
+      const ref = { current: element };
+      const mockInstance = createMockInstance(element);
+      (echarts.init as ReturnType<typeof vi.fn>).mockReturnValue(mockInstance);
+
+      const handler1 = vi.fn();
+      const handler2 = vi.fn();
+      const unbindError = new Error("rebind off() failed");
+
+      mockInstance.off.mockImplementation(() => {
+        throw unbindError;
+      });
+
+      const onError = vi.fn();
+      const { rerender } = renderHook(
+        ({ handler }) =>
+          useEcharts(ref, { option: baseOption, onEvents: { click: { handler } }, onError }),
+        { initialProps: { handler: handler1 } },
+      );
+
+      rerender({ handler: handler2 });
+
+      await waitFor(() => {
+        expect(onError).toHaveBeenCalledWith(unbindError);
+        // Bind path still runs after a unbind throw.
+        expect(mockInstance.on).toHaveBeenCalledWith("click", handler2, undefined);
+      });
+    });
+
+    it("should release cached instance even when cleanup unbind throws", () => {
+      const element = document.createElement("div");
+      const ref = { current: element };
+      const mockInstance = createMockInstance(element);
+      (echarts.init as ReturnType<typeof vi.fn>).mockReturnValue(mockInstance);
+
+      const unbindError = new Error("cleanup off() failed");
+      mockInstance.off.mockImplementation(() => {
+        throw unbindError;
+      });
+
+      const onError = vi.fn();
+      const { unmount } = renderHook(() =>
+        useEcharts(ref, {
+          option: baseOption,
+          onEvents: { click: () => {} },
+          onError,
+        }),
+      );
+
+      unmount();
+
+      expect(onError).toHaveBeenCalledWith(unbindError);
+      // refCount/dispose/group cleanup must all still happen.
+      expect(mockInstance.dispose).toHaveBeenCalled();
+    });
+
+    it("should not double-bind when toggling back to a previously-pending event map", async () => {
+      // Rapid toggle: off(A) throws so A stays in pending; user toggles back to
+      // A (same ref). Re-binding A would register handlers twice — the
+      // alreadyPending check must short-circuit and only off the in-between map.
+      const element = document.createElement("div");
+      const ref = { current: element };
+      const mockInstance = createMockInstance(element);
+      (echarts.init as ReturnType<typeof vi.fn>).mockReturnValue(mockInstance);
+
+      const handlerA = vi.fn();
+      const handlerB = vi.fn();
+      const eventsA = { click: handlerA };
+      const eventsB = { click: handlerB };
+
+      // off throws on the first call (when unbinding A) so A stays pending.
+      let offCallCount = 0;
+      mockInstance.off.mockImplementation(() => {
+        offCallCount += 1;
+        if (offCallCount === 1) throw new Error("first off failed");
+      });
+
+      const onError = vi.fn();
+      const { rerender } = renderHook(
+        ({ events }) => useEcharts(ref, { option: baseOption, onEvents: events, onError }),
+        {
+          initialProps: { events: eventsA },
+        },
+      );
+
+      // Toggle to B: off(A) throws, on(B) succeeds. pending = [A, B].
+      rerender({ events: eventsB });
+      await waitFor(() => {
+        expect(mockInstance.on).toHaveBeenCalledWith("click", handlerB, undefined);
+      });
+
+      mockInstance.on.mockClear();
+      mockInstance.off.mockClear();
+
+      // Toggle back to A (same reference): bind must NOT fire again, and B
+      // gets off()'d cleanly.
+      rerender({ events: eventsA });
+      await waitFor(() => {
+        expect(mockInstance.off).toHaveBeenCalledWith("click", handlerB);
+      });
+      expect(mockInstance.on).not.toHaveBeenCalled();
+    });
+
+    it("should clear pending events when onEvents transitions to undefined", async () => {
+      const element = document.createElement("div");
+      const ref = { current: element };
+      const mockInstance = createMockInstance(element);
+      (echarts.init as ReturnType<typeof vi.fn>).mockReturnValue(mockInstance);
+
+      const handler = vi.fn();
+
+      const { rerender, unmount } = renderHook(
+        ({ events }: { events: { click: typeof handler } | undefined }) =>
+          useEcharts(ref, { option: baseOption, onEvents: events }),
+        { initialProps: { events: { click: handler } as { click: typeof handler } | undefined } },
+      );
+
+      // Drop onEvents — must off the previously-bound handler and leave the
+      // pending list empty so cleanup is a no-op.
+      rerender({ events: undefined });
+      await waitFor(() => {
+        expect(mockInstance.off).toHaveBeenCalledWith("click", handler);
+      });
+
+      mockInstance.off.mockClear();
+      unmount();
+      // Cleanup with empty pending list shouldn't make any more off() calls.
+      expect(mockInstance.off).not.toHaveBeenCalled();
+    });
+
+    it("should not double-bind when toggling back to a semantically-equal inline event map", async () => {
+      // Reviewer scenario: rebind unbind throws so the old map stays pending.
+      // User then passes a new inline event map that's structurally equal to
+      // the pending one (same handler/query/context, different reference).
+      // Reference-only includes() would miss this and re-bind, doubling the
+      // handler. Semantic dedup via eventsEqual must short-circuit the bind.
+      const element = document.createElement("div");
+      const ref = { current: element };
+      const mockInstance = createMockInstance(element);
+      (echarts.init as ReturnType<typeof vi.fn>).mockReturnValue(mockInstance);
+
+      const handlerA = vi.fn();
+      const handlerB = vi.fn();
+      const eventsA1 = { click: handlerA };
+
+      // off throws on the first call (when unbinding A1).
+      let offCallCount = 0;
+      mockInstance.off.mockImplementation(() => {
+        offCallCount += 1;
+        if (offCallCount === 1) throw new Error("first off failed");
+      });
+
+      const onError = vi.fn();
+      const { rerender } = renderHook(
+        ({ events }) => useEcharts(ref, { option: baseOption, onEvents: events, onError }),
+        { initialProps: { events: eventsA1 as Record<string, typeof handlerA> } },
+      );
+
+      // Toggle to B: off(A1) throws → A1 stays pending. on(handlerB).
+      rerender({ events: { click: handlerB } });
+      await waitFor(() => {
+        expect(mockInstance.on).toHaveBeenCalledWith("click", handlerB, undefined);
+      });
+
+      mockInstance.on.mockClear();
+
+      // Toggle to a NEW inline event map that's semantically equal to A1
+      // (same handlerA reference, no query/context). Must NOT trigger another
+      // bind — otherwise handlerA would get registered twice.
+      const eventsA2 = { click: handlerA };
+      rerender({ events: eventsA2 });
+
+      await waitFor(() => {
+        // B should still get off()'d cleanly during this rebind.
+        expect(mockInstance.off).toHaveBeenCalledWith("click", handlerB);
+      });
+      expect(mockInstance.on).not.toHaveBeenCalled();
+    });
+
+    it("should unbind old events before binding when the handler reference is reused", async () => {
+      // ECharts off(name, handler) ignores query/context — so a same-handler
+      // rebind from query A → query B must off() BEFORE on(); otherwise the
+      // unbind would remove the freshly-bound handler.
+      const element = document.createElement("div");
+      const ref = { current: element };
+      const mockInstance = createMockInstance(element);
+      (echarts.init as ReturnType<typeof vi.fn>).mockReturnValue(mockInstance);
+
+      const handler = vi.fn();
+      const sequence: string[] = [];
+      mockInstance.on.mockImplementation((..._args: unknown[]) => {
+        sequence.push("on");
+      });
+      mockInstance.off.mockImplementation((..._args: unknown[]) => {
+        sequence.push("off");
+      });
+
+      const { rerender } = renderHook(
+        ({ query }) =>
+          useEcharts(ref, {
+            option: baseOption,
+            onEvents: { click: { handler, query } },
+          }),
+        { initialProps: { query: "series0" } },
+      );
+
+      // Initial mount: just on().
+      expect(sequence).toEqual(["on"]);
+
+      rerender({ query: "series1" });
+
+      await waitFor(() => {
+        // Rebind path must run off() before the new on().
+        expect(sequence).toEqual(["on", "off", "on"]);
+      });
+      expect(mockInstance.off).toHaveBeenLastCalledWith("click", handler);
+      expect(mockInstance.on).toHaveBeenLastCalledWith("click", "series1", handler, undefined);
+    });
+
+    it("should retry off() on previously-failed unbind targets at cleanup", async () => {
+      // Scenario: rebind unbind throws → cleanup must still try to off the
+      // OLD handler so it doesn't leak. Single boundEventsRef would forget the
+      // old map after the rebind; the pending list keeps both alive.
+      const element = document.createElement("div");
+      const ref = { current: element };
+      const mockInstance = createMockInstance(element);
+      (echarts.init as ReturnType<typeof vi.fn>).mockReturnValue(mockInstance);
+
+      const oldHandler = vi.fn();
+      const newHandler = vi.fn();
+
+      // off throws once during the rebind, succeeds on subsequent calls.
+      let offCallCount = 0;
+      const rebindError = new Error("rebind off failed");
+      mockInstance.off.mockImplementation(() => {
+        offCallCount += 1;
+        if (offCallCount === 1) throw rebindError;
+      });
+
+      const onError = vi.fn();
+      const { rerender, unmount } = renderHook(
+        ({ handler }) =>
+          useEcharts(ref, { option: baseOption, onEvents: { click: handler }, onError }),
+        { initialProps: { handler: oldHandler } },
+      );
+
+      // Trigger rebind: off(oldHandler) throws, on(newHandler) succeeds.
+      rerender({ handler: newHandler });
+
+      await waitFor(() => {
+        expect(onError).toHaveBeenCalledWith(rebindError);
+      });
+
+      mockInstance.off.mockClear();
+
+      // Cleanup must off both old AND new handlers — old is still pending
+      // because its unbind failed.
+      unmount();
+
+      const offCalls = mockInstance.off.mock.calls;
+      expect(offCalls).toContainEqual(["click", oldHandler]);
+      expect(offCalls).toContainEqual(["click", newHandler]);
+      expect(mockInstance.dispose).toHaveBeenCalled();
     });
   });
 
@@ -706,6 +1108,67 @@ describe("useEcharts", () => {
       });
 
       globalThis.IntersectionObserver = originalIntersectionObserver;
+    });
+
+    it("should route group switch errors through onError", async () => {
+      // ECharts assigns instance.group via setter under the hood (connect.ts:65/85).
+      // Simulate a throw at that layer by trapping property assignment.
+      const element = document.createElement("div");
+      const ref = { current: element };
+      const mockInstance = createMockInstance(element);
+      const groupError = new Error("group switch failed");
+      const proxied = new Proxy(mockInstance, {
+        set(target, prop, value) {
+          if (prop === "group" && value === "groupB") {
+            throw groupError;
+          }
+          (target as Record<string | symbol, unknown>)[prop as string] = value;
+          return true;
+        },
+      });
+      (echarts.init as ReturnType<typeof vi.fn>).mockReturnValue(proxied);
+
+      const onError = vi.fn();
+      const { rerender } = renderHook(
+        ({ group }) => useEcharts(ref, { option: baseOption, group, onError }),
+        { initialProps: { group: "groupA" } },
+      );
+
+      rerender({ group: "groupB" });
+
+      await waitFor(() => {
+        expect(onError).toHaveBeenCalledWith(groupError);
+      });
+    });
+
+    it("should route initial group assignment errors through onError without breaking cleanup", () => {
+      const element = document.createElement("div");
+      const ref = { current: element };
+      const mockInstance = createMockInstance(element);
+      const groupError = new Error("initial group assign failed");
+      const proxied = new Proxy(mockInstance, {
+        set(target, prop, value) {
+          if (prop === "group" && value === "initialGroup") {
+            throw groupError;
+          }
+          (target as Record<string | symbol, unknown>)[prop as string] = value;
+          return true;
+        },
+      });
+      (echarts.init as ReturnType<typeof vi.fn>).mockReturnValue(proxied);
+
+      const onError = vi.fn();
+      const { unmount } = renderHook(() =>
+        useEcharts(ref, { option: baseOption, group: "initialGroup", onError }),
+      );
+
+      // Init's bare updateGroup would have thrown out of the layout effect —
+      // now it routes through onError, leaving the cleanup return intact.
+      expect(onError).toHaveBeenCalledWith(groupError);
+
+      // Cleanup must still register: unmount disposes without leaking.
+      unmount();
+      expect(mockInstance.dispose).toHaveBeenCalled();
     });
   });
 
@@ -844,6 +1307,52 @@ describe("useEcharts", () => {
         expect(mockInstance.setOption).toHaveBeenCalledTimes(2);
       });
     });
+
+    it("should keep prop dedup consistent after imperative setOption", async () => {
+      // Imperative setOption must update lastAppliedRef so subsequent prop-driven
+      // Effect 2 sees the actual instance state, not a stale "what props sent last".
+      const element = document.createElement("div");
+      const ref = { current: element };
+      const mockInstance = createMockInstance(element);
+      (echarts.init as ReturnType<typeof vi.fn>).mockReturnValue(mockInstance);
+
+      const sharedSeries = baseOption.series;
+      const propOptionA: EChartsOption = { series: sharedSeries };
+      const propOptionAEqual: EChartsOption = { series: sharedSeries };
+      const imperativeOption: EChartsOption = { series: [{ type: "bar", data: [9] }] };
+
+      const { result, rerender } = renderHook(({ option }) => useEcharts(ref, { option }), {
+        initialProps: { option: propOptionA },
+      });
+
+      // 1. Init applied propOptionA.
+      await waitFor(() => {
+        expect(mockInstance.setOption).toHaveBeenCalledTimes(1);
+      });
+
+      // 2. Imperative call switches the chart to a different option.
+      act(() => {
+        result.current.setOption(imperativeOption);
+      });
+      await waitFor(() => {
+        expect(mockInstance.setOption).toHaveBeenCalledTimes(2);
+        expect(mockInstance.setOption).toHaveBeenLastCalledWith(
+          imperativeOption,
+          expect.any(Object),
+        );
+      });
+
+      // 3. Re-render with a fresh prop ref shallow-equal to propOptionA.
+      //    Without the fix: lastAppliedRef stale at A → shallowEqual(A, A_new)
+      //    skips, chart keeps the imperative option (silently wrong).
+      //    With the fix: lastAppliedRef holds the imperative option → diff
+      //    against the new prop → re-applies the prop option, restoring it.
+      rerender({ option: propOptionAEqual });
+      await waitFor(() => {
+        expect(mockInstance.setOption).toHaveBeenCalledTimes(3);
+        expect(mockInstance.setOption).toHaveBeenLastCalledWith(propOptionAEqual, undefined);
+      });
+    });
   });
 
   describe("getInstance", () => {
@@ -892,6 +1401,44 @@ describe("useEcharts", () => {
       act(() => {
         result.current.resize();
       });
+    });
+
+    it("should route resize errors through onError", () => {
+      const element = document.createElement("div");
+      const ref = { current: element };
+      const mockInstance = createMockInstance(element);
+      const resizeError = new Error("resize failed");
+      mockInstance.resize.mockImplementation(() => {
+        throw resizeError;
+      });
+      (echarts.init as ReturnType<typeof vi.fn>).mockReturnValue(mockInstance);
+
+      const onError = vi.fn();
+      const { result } = renderHook(() => useEcharts(ref, { option: baseOption, onError }));
+
+      act(() => {
+        result.current.resize();
+      });
+
+      expect(onError).toHaveBeenCalledWith(resizeError);
+    });
+
+    it("should rethrow resize errors when no onError", () => {
+      const element = document.createElement("div");
+      const ref = { current: element };
+      const mockInstance = createMockInstance(element);
+      mockInstance.resize.mockImplementation(() => {
+        throw new Error("resize boom");
+      });
+      (echarts.init as ReturnType<typeof vi.fn>).mockReturnValue(mockInstance);
+
+      const { result } = renderHook(() => useEcharts(ref, { option: baseOption }));
+
+      expect(() => {
+        act(() => {
+          result.current.resize();
+        });
+      }).toThrow("resize boom");
     });
   });
 
@@ -1003,6 +1550,44 @@ describe("useEcharts", () => {
         result.current.clear();
       });
     });
+
+    it("should route clear errors through onError", () => {
+      const element = document.createElement("div");
+      const ref = { current: element };
+      const mockInstance = createMockInstance(element);
+      const clearError = new Error("clear failed");
+      mockInstance.clear.mockImplementation(() => {
+        throw clearError;
+      });
+      (echarts.init as ReturnType<typeof vi.fn>).mockReturnValue(mockInstance);
+
+      const onError = vi.fn();
+      const { result } = renderHook(() => useEcharts(ref, { option: baseOption, onError }));
+
+      act(() => {
+        result.current.clear();
+      });
+
+      expect(onError).toHaveBeenCalledWith(clearError);
+    });
+
+    it("should rethrow clear errors when no onError", () => {
+      const element = document.createElement("div");
+      const ref = { current: element };
+      const mockInstance = createMockInstance(element);
+      mockInstance.clear.mockImplementation(() => {
+        throw new Error("clear boom");
+      });
+      (echarts.init as ReturnType<typeof vi.fn>).mockReturnValue(mockInstance);
+
+      const { result } = renderHook(() => useEcharts(ref, { option: baseOption }));
+
+      expect(() => {
+        act(() => {
+          result.current.clear();
+        });
+      }).toThrow("clear boom");
+    });
   });
 
   describe("cleanup", () => {
@@ -1047,6 +1632,30 @@ describe("useEcharts", () => {
       renderHook(() => useEcharts(ref, { option: baseOption }));
 
       expect(getCachedInstance(element)).toBe(mockInstance);
+    });
+
+    it("should route release failures through onError without breaking unmount", () => {
+      // releaseCachedInstance now propagates leaveGroup/dispose failures so
+      // callers can route them. The hook cleanup runs inside a layout effect,
+      // where a thrown error would disrupt React commit — it must catch and
+      // route the failure like any other effect-side error.
+      const element = document.createElement("div");
+      const ref = { current: element };
+      const mockInstance = createMockInstance(element);
+      const disposeError = new Error("dispose failed");
+      mockInstance.dispose.mockImplementation(() => {
+        throw disposeError;
+      });
+      (echarts.init as ReturnType<typeof vi.fn>).mockReturnValue(mockInstance);
+
+      const onError = vi.fn();
+      const { unmount } = renderHook(() => useEcharts(ref, { option: baseOption, onError }));
+
+      expect(() => unmount()).not.toThrow();
+      expect(onError).toHaveBeenCalledWith(disposeError);
+      // Cache bookkeeping ran inside instance-cache's own finally, so the
+      // entry is gone even though dispose itself threw.
+      expect(getCachedInstance(element)).toBeUndefined();
     });
   });
 
@@ -1395,6 +2004,35 @@ describe("useEcharts", () => {
 
         expect(globalThis.cancelAnimationFrame).toHaveBeenCalledWith(42);
       });
+
+      it("should route RAF resize errors through onError", () => {
+        const element = document.createElement("div");
+        const ref = { current: element };
+        const mockInstance = createMockInstance(element);
+        const resizeError = new Error("RAF resize failed");
+        mockInstance.resize.mockImplementation(() => {
+          throw resizeError;
+        });
+        (echarts.init as ReturnType<typeof vi.fn>).mockReturnValue(mockInstance);
+
+        globalThis.requestAnimationFrame = vi.fn((cb: FrameRequestCallback) => {
+          cb(0);
+          return 1;
+        });
+
+        const onError = vi.fn();
+        renderHook(() => useEcharts(ref, { option: baseOption, onError }));
+
+        const observer = resizeObserverInstances[0] as unknown as MockResizeObserver;
+        act(() => {
+          observer.callback(
+            [] as unknown as ResizeObserverEntry[],
+            observer as unknown as ResizeObserver,
+          );
+        });
+
+        expect(onError).toHaveBeenCalledWith(resizeError);
+      });
     });
 
     it("should not create resize observer when autoResize is false", () => {
@@ -1465,6 +2103,38 @@ describe("useEcharts", () => {
         mockInstance.resize.mockClear();
         document.dispatchEvent(new Event("visibilitychange"));
         expect(mockInstance.resize).not.toHaveBeenCalled();
+      });
+
+      it("should attach a single document listener regardless of hook count", () => {
+        const addSpy = vi.spyOn(document, "addEventListener");
+        const removeSpy = vi.spyOn(document, "removeEventListener");
+
+        const element1 = document.createElement("div");
+        const element2 = document.createElement("div");
+        const mockInstance1 = createMockInstance(element1);
+        const mockInstance2 = createMockInstance(element2);
+        (echarts.init as ReturnType<typeof vi.fn>)
+          .mockReturnValueOnce(mockInstance1)
+          .mockReturnValueOnce(mockInstance2);
+
+        const hook1 = renderHook(() => useEcharts({ current: element1 }, { option: baseOption }));
+        const hook2 = renderHook(() => useEcharts({ current: element2 }, { option: baseOption }));
+
+        const visibilityAdds = addSpy.mock.calls.filter((c) => c[0] === "visibilitychange");
+        expect(visibilityAdds).toHaveLength(1);
+
+        // First unmount keeps the shared listener attached.
+        hook1.unmount();
+        let visibilityRemoves = removeSpy.mock.calls.filter((c) => c[0] === "visibilitychange");
+        expect(visibilityRemoves).toHaveLength(0);
+
+        // Last unmount detaches the single listener.
+        hook2.unmount();
+        visibilityRemoves = removeSpy.mock.calls.filter((c) => c[0] === "visibilitychange");
+        expect(visibilityRemoves).toHaveLength(1);
+
+        addSpy.mockRestore();
+        removeSpy.mockRestore();
       });
     });
   });
