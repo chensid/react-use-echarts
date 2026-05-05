@@ -15,14 +15,14 @@ vp install                    # Install dependencies
 vp dev                        # Dev server (localhost:3000, serves examples/)
 vp build                      # Build examples app
 vp pack                       # Library build → dist/
-vp test                       # Vitest (watch mode)
-vp test run                   # Single run
-vp test run --coverage        # Coverage report (v8)
-vp lint .                     # Oxlint
-vp check                      # format + lint + typecheck
+vp test                       # Single run (default since vite-plus 0.1.x)
+vp test watch                 # Watch mode
+vp test --coverage            # Coverage report (v8)
+vp lint                       # Oxlint
+vp check                      # format + lint + typecheck (typecheck via tsgolint)
 ```
 
-**Pre-PR checklist:** `vp check && vp test run`
+**Pre-PR checklist:** `vp check && vp test`
 
 ## Codebase Structure
 
