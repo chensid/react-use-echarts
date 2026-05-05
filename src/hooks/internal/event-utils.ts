@@ -65,6 +65,10 @@ export function eventsEqual(a: EChartsEvents | undefined, b: EChartsEvents | und
 /**
  * Unbind events from ECharts instance
  * 从 ECharts 实例解绑事件
+ *
+ * Relies on ECharts `off(name, handler)` matching listeners by handler
+ * reference (independent of `query`). Multiple bindings of the same handler
+ * with different queries are removed together.
  */
 export function unbindEvents(instance: ECharts, events: EChartsEvents | undefined): void {
   if (!events) return;

@@ -6,6 +6,7 @@ import {
   getReferenceCount,
   clearInstanceCache,
 } from "../../utils/instance-cache";
+import { addToGroup, clearGroups, getGroupInstances } from "../../utils/connect";
 import type { ECharts } from "echarts";
 import { createMockInstance as createBaseMockInstance } from "../helpers";
 
@@ -135,6 +136,129 @@ describe("instance-cache utilities", () => {
       expect(instance2.dispose).toHaveBeenCalled();
       expect(getCachedInstance(el1)).toBeUndefined();
       expect(getCachedInstance(el2)).toBeUndefined();
+    });
+
+    it("should leave group memberships before disposing", () => {
+      // Without leaveGroup integration, clearInstanceCache disposes instances
+      // but leaves stale references in groupRegistry until pruneDisposed runs.
+      clearGroups();
+
+      const element = document.createElement("div");
+      const instance = createMockInstance();
+      setCachedInstance(element, instance);
+      addToGroup(instance, "g1");
+
+      expect(getGroupInstances("g1")).toContain(instance);
+
+      clearInstanceCache();
+
+      // The instance is gone from the group registry without relying on
+      // pruneDisposed's lazy cleanup.
+      expect(getGroupInstances("g1")).not.toContain(instance);
+    });
+
+    it("should continue clearing remaining instances when one dispose throws", () => {
+      const el1 = document.createElement("div");
+      const el2 = document.createElement("div");
+      const instance1 = createMockInstance();
+      const instance2 = createMockInstance();
+      (instance1.dispose as unknown as ReturnType<typeof vi.fn>).mockImplementation(() => {
+        throw new Error("instance1 dispose failed");
+      });
+
+      setCachedInstance(el1, instance1);
+      setCachedInstance(el2, instance2);
+
+      // Per-instance failure must not strand the rest, and outer finally
+      // resets the cache so subsequent tests start clean.
+      expect(() => clearInstanceCache()).not.toThrow();
+      expect(instance2.dispose).toHaveBeenCalled();
+      expect(getCachedInstance(el1)).toBeUndefined();
+      expect(getCachedInstance(el2)).toBeUndefined();
+    });
+  });
+
+  describe("releaseCachedInstance disposal protocol", () => {
+    it("should leave group before disposing when refCount hits zero", () => {
+      clearGroups();
+
+      const element = document.createElement("div");
+      const instance = createMockInstance();
+      setCachedInstance(element, instance);
+      addToGroup(instance, "released-group");
+
+      expect(getGroupInstances("released-group")).toContain(instance);
+
+      releaseCachedInstance(element);
+
+      // Centralized protocol: release path drops group ownership before
+      // dispose so groupRegistry doesn't carry a disposed reference.
+      expect(getGroupInstances("released-group")).not.toContain(instance);
+      expect(instance.dispose).toHaveBeenCalled();
+    });
+
+    it("should preserve group while refCount remains above zero", () => {
+      clearGroups();
+
+      const element = document.createElement("div");
+      const instance = createMockInstance();
+      // Two consumers — refCount becomes 2.
+      setCachedInstance(element, instance);
+      setCachedInstance(element, instance);
+      addToGroup(instance, "shared-group");
+
+      // First release decrements to 1, no dispose, no leaveGroup.
+      releaseCachedInstance(element);
+      expect(instance.dispose).not.toHaveBeenCalled();
+      expect(getGroupInstances("shared-group")).toContain(instance);
+
+      // Last release disposes and leaves the group.
+      releaseCachedInstance(element);
+      expect(instance.dispose).toHaveBeenCalled();
+      expect(getGroupInstances("shared-group")).not.toContain(instance);
+    });
+
+    it("should still dispose instance when leaveGroup throws", () => {
+      clearGroups();
+
+      const element = document.createElement("div");
+      const baseInstance = createBaseMockInstance();
+      // Proxy throws on the .group=undefined assignment that removeFromGroup
+      // performs, simulating a failure inside leaveGroup.
+      const instance = new Proxy(baseInstance, {
+        set(target, prop, value) {
+          if (prop === "group" && value === undefined) {
+            throw new Error("leaveGroup failed");
+          }
+          (target as Record<string | symbol, unknown>)[prop as string] = value;
+          return true;
+        },
+      }) as unknown as ECharts;
+
+      setCachedInstance(element, instance);
+      addToGroup(instance, "throwing-group");
+
+      // Throw propagates so callers can log/route, but dispose still runs and
+      // the cache entry is gone.
+      expect(() => releaseCachedInstance(element)).toThrow("leaveGroup failed");
+      expect(baseInstance.dispose).toHaveBeenCalled();
+      expect(getCachedInstance(element)).toBeUndefined();
+      expect(getReferenceCount(element)).toBe(0);
+    });
+
+    it("should still clear cache bookkeeping when dispose throws", () => {
+      const element = document.createElement("div");
+      const instance = createMockInstance();
+      (instance.dispose as unknown as ReturnType<typeof vi.fn>).mockImplementation(() => {
+        throw new Error("dispose failed");
+      });
+
+      setCachedInstance(element, instance);
+
+      expect(() => releaseCachedInstance(element)).toThrow("dispose failed");
+      // trackedElements / instanceCache cleanup ran in finally despite throw.
+      expect(getCachedInstance(element)).toBeUndefined();
+      expect(getReferenceCount(element)).toBe(0);
     });
   });
 

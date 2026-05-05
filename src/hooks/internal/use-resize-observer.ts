@@ -1,5 +1,7 @@
 import { useEffect, useLayoutEffect, useRef } from "react";
 import { getCachedInstance } from "../../utils/instance-cache";
+import { routeEffectError } from "../../utils/error";
+import { subscribeVisibilityResume } from "../../utils/visibility-coordinator";
 
 /**
  * Internal hook: ResizeObserver-based auto-resize with RAF throttle.
@@ -23,6 +25,14 @@ export function useResizeObserver(
     let resizeObserver: ResizeObserver | undefined;
     let rafId: number | undefined;
 
+    const safeResize = (): void => {
+      try {
+        getCachedInstance(element)?.resize();
+      } catch (error) {
+        routeEffectError(error, "ECharts resize failed:", onErrorRef.current);
+      }
+    };
+
     try {
       resizeObserver = new ResizeObserver(() => {
         if (rafId !== undefined) {
@@ -30,33 +40,26 @@ export function useResizeObserver(
         }
         rafId = requestAnimationFrame(() => {
           rafId = undefined;
-          getCachedInstance(element)?.resize();
+          safeResize();
         });
       });
       resizeObserver.observe(element);
     } catch (error) {
-      if (onErrorRef.current) {
-        onErrorRef.current(error);
-      } else {
-        console.error("ResizeObserver not available:", error);
-      }
+      routeEffectError(error, "ResizeObserver not available:", onErrorRef.current);
     }
 
     // Browsers throttle requestAnimationFrame in hidden tabs, so a resize that
     // fires while the tab is in background may never reach the chart. Resync
-    // when the tab becomes visible again.
-    const handleVisibilityChange = (): void => {
-      if (document.hidden) return;
-      getCachedInstance(element)?.resize();
-    };
-    document.addEventListener("visibilitychange", handleVisibilityChange);
+    // when the tab becomes visible again. Subscription goes through a module
+    // coordinator so a single document listener serves all chart instances.
+    const unsubscribeVisibility = subscribeVisibilityResume(safeResize);
 
     return () => {
       if (rafId !== undefined) {
         cancelAnimationFrame(rafId);
       }
       resizeObserver?.disconnect();
-      document.removeEventListener("visibilitychange", handleVisibilityChange);
+      unsubscribeVisibility();
     };
   }, [element, autoResize]);
 }
