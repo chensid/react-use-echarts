@@ -74,6 +74,16 @@ describe("eventsEqual", () => {
     expect(eventsEqual({ click: h }, { click: { handler: h } })).toBe(true);
   });
 
+  it("should treat full config and shorthand as equal only when query/context are absent", () => {
+    const h = handler();
+    const context = { name: "test" };
+
+    expect(eventsEqual({ click: { handler: h } }, { click: h })).toBe(true);
+    expect(eventsEqual({ click: { handler: handler() } }, { click: h })).toBe(false);
+    expect(eventsEqual({ click: { handler: h, query: "series" } }, { click: h })).toBe(false);
+    expect(eventsEqual({ click: { handler: h, context } }, { click: h })).toBe(false);
+  });
+
   it("should return false when query differs", () => {
     const h = handler();
     expect(
