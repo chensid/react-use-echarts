@@ -1,4 +1,4 @@
-import { useMemo, type RefObject } from "react";
+import { type RefObject } from "react";
 import type { UseEchartsOptions, UseEchartsReturn } from "../types";
 import { useLazyInitForElement } from "./use-lazy-init";
 import { useChartCore } from "./internal/use-chart-core";
@@ -37,29 +37,22 @@ function useEcharts(
 
   // Core owns all instance IO — including the imperative resize/clear methods
   // — so error routing through onError lives in one module.
-  const { getInstance, setOption, dispatchAction, clear, resize } = useChartCore(
-    element,
-    shouldInit,
-    {
-      option,
-      theme,
-      renderer,
-      initOpts,
-      setOptionOpts,
-      showLoading,
-      loadingOption,
-      onEvents,
-      group,
-      onError,
-    },
-  );
+  const chart = useChartCore(element, shouldInit, {
+    option,
+    theme,
+    renderer,
+    initOpts,
+    setOptionOpts,
+    showLoading,
+    loadingOption,
+    onEvents,
+    group,
+    onError,
+  });
 
   useResizeObserver(element, autoResize, onError);
 
-  return useMemo(
-    () => ({ setOption, getInstance, resize, dispatchAction, clear }),
-    [setOption, getInstance, resize, dispatchAction, clear],
-  );
+  return chart;
 }
 
 export default useEcharts;
