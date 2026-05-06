@@ -183,18 +183,23 @@ export function useChartCore(
   // --- Internal ref: latest values for effects to read without re-triggering.
   // Adding a field to LatestConfig forces it to appear in both the initializer
   // and the sync layout effect below — TS catches stale-config drift at compile time.
-  const latestRef = useRef<LatestConfig>({
-    option,
-    theme,
-    renderer,
-    initOpts,
-    setOptionOpts,
-    showLoading,
-    loadingOption,
-    onEvents,
-    group,
-    onError,
-  });
+  // Lazy-init pattern (`null!` + first-render assign) avoids re-evaluating the
+  // 10-field literal on every render — `useRef`'s argument is only used once.
+  const latestRef = useRef<LatestConfig>(null!);
+  if (latestRef.current === null) {
+    latestRef.current = {
+      option,
+      theme,
+      renderer,
+      initOpts,
+      setOptionOpts,
+      showLoading,
+      loadingOption,
+      onEvents,
+      group,
+      onError,
+    };
+  }
 
   useLayoutEffect(() => {
     latestRef.current = {

@@ -34,14 +34,21 @@ export function bindEvents(instance: ECharts, events: EChartsEvents | undefined)
 
 /**
  * Compare two event config values for equality.
- * Normalizes both to full form, then compares handler/query/context by reference.
- * 比较两个事件配置值是否相等。标准化后按引用比较 handler/query/context。
+ * Reads handler/query/context directly without allocating normalized objects;
+ * shorthand (function) form is treated as `{ handler, query: undefined, context: undefined }`.
+ * 比较两个事件配置值是否相等。直接读取字段，避免分配标准化对象；
+ * 函数简写形式视作 `{ handler, query: undefined, context: undefined }`。
  */
 function eventConfigEqual(a: EChartsEventConfig, b: EChartsEventConfig): boolean {
   if (a === b) return true;
-  const na = normalizeEventConfig(a);
-  const nb = normalizeEventConfig(b);
-  return na.handler === nb.handler && na.query === nb.query && na.context === nb.context;
+  if (typeof a === "function") {
+    if (typeof b === "function") return false;
+    return a === b.handler && b.query === undefined && b.context === undefined;
+  }
+  if (typeof b === "function") {
+    return a.handler === b && a.query === undefined && a.context === undefined;
+  }
+  return a.handler === b.handler && a.query === b.query && a.context === b.context;
 }
 
 /**
