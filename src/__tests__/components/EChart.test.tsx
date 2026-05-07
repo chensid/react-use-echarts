@@ -142,6 +142,20 @@ describe("EChart component", () => {
     );
   });
 
+  it("should reuse memoized values on re-render with stable props", () => {
+    (echarts.init as ReturnType<typeof vi.fn>).mockImplementation((el: HTMLElement) =>
+      createMockInstance(el),
+    );
+
+    const option = { series: [{ type: "line" as const, data: [1, 2, 3] }] };
+    const style = { height: 400 };
+    const { rerender, container } = render(<EChart option={option} style={style} className="c" />);
+    const firstChild = container.firstChild;
+    rerender(<EChart option={option} style={style} className="c" />);
+    expect(container.firstChild).toBe(firstChild);
+    expect(echarts.init).toHaveBeenCalledTimes(1);
+  });
+
   it("should dispose instance on unmount and clear cache entry", () => {
     const dispose = vi.fn();
     let cachedElement: HTMLElement | null = null;
