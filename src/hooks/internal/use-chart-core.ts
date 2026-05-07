@@ -433,7 +433,8 @@ export function useChartCore(
   // Effect 3: EVENT REBINDING
   //
   // When onEvents reference changes, unbind old and bind new handlers.
-  // Uses boundEventsRef to track what's currently bound.
+  // Uses pendingUnbindRef to track entries pending cleanup; the tail entry
+  // is treated as the current declared intent for dedup.
   // =====================================================================
   useEffect(() => {
     const instance = getInstance();

@@ -64,7 +64,7 @@ All instance-related state lives in `useChartCore`; the orchestrator has zero ef
 
 1. **Instance Lifecycle** (`useLayoutEffect`) — create/dispose instance, apply initial option, events, loading, group; warns on zero-size container in dev
 2. **Option Updates** (`useEffect`) — call `setOption` when option changes (reference-equality fast path → `shallowEqual` + `lastAppliedRef`)
-3. **Event Rebinding** (`useEffect`) — unbind old, bind new when `onEvents` changes (via `boundEventsRef` + `eventsEqual`; treats empty/undefined as equivalent)
+3. **Event Rebinding** (`useEffect`) — unbind old, bind new when `onEvents` changes (via `pendingUnbindRef` + `eventsEqual`; treats empty/undefined as equivalent; failed unbinds carry forward so cleanup can retry)
 4. **Loading State** (`useEffect`) — toggle `showLoading` / `hideLoading` on dynamic changes (dedup via `lastLoadingRef` + `shallowEqual` on `loadingOption`)
 5. **Group Changes** (`useEffect`) — switch chart group dynamically via `syncGroupConnectivity`
 
@@ -76,7 +76,7 @@ All instance-related state lives in `useChartCore`; the orchestrator has zero ef
 ### Key Design Patterns
 
 - Ref passed in by caller — hook does not create refs internally; `useRefElement` tracks `ref.current` so effects re-run if the DOM node is swapped
-- `useChartCore` owns all shared state internally — `lastAppliedRef`, `boundEventsRef`, `lastLoadingRef`, and the typed `latestRef` never leak to callers
+- `useChartCore` owns all shared state internally — `lastAppliedRef`, `pendingUnbindRef`, `lastLoadingRef`, and the typed `latestRef` never leak to callers
 - `useChartCore(element, shouldInit, config)` — 3-parameter API; takes the resolved element (not a ref) so DOM-node replacement re-triggers the lifecycle effect
 - WeakMap instance cache + reference counting — safe under StrictMode (instance recreated cleanly; refCount prevents premature disposal when multiple consumers share an element)
 - initOpts / theme serialized to stable keys via `computeStableKey` — JSON.stringify with a WeakMap-backed circular-id fallback prevents instance recreation from inline objects

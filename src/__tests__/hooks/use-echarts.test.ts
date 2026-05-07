@@ -947,8 +947,8 @@ describe("useEcharts", () => {
 
     it("should retry off() on previously-failed unbind targets at cleanup", async () => {
       // Scenario: rebind unbind throws → cleanup must still try to off the
-      // OLD handler so it doesn't leak. Single boundEventsRef would forget the
-      // old map after the rebind; the pending list keeps both alive.
+      // OLD handler so it doesn't leak. A single "currently-bound" ref would
+      // forget the old map after the rebind; the pending list keeps both alive.
       const element = document.createElement("div");
       const ref = { current: element };
       const mockInstance = createMockInstance(element);
