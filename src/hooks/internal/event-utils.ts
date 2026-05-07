@@ -1,20 +1,5 @@
 import type { ECharts } from "echarts";
-import type { EChartsEvents, EChartsEventConfig, EChartsEventHandler } from "../../types";
-
-/**
- * Normalize event config to full object form
- * 将事件配置标准化为完整对象形式
- */
-function normalizeEventConfig(config: EChartsEventConfig): {
-  handler: EChartsEventHandler;
-  query?: string | object;
-  context?: object;
-} {
-  if (typeof config === "function") {
-    return { handler: config };
-  }
-  return config;
-}
+import type { EChartsEvents, EChartsEventConfig } from "../../types";
 
 /**
  * Bind events to ECharts instance
@@ -23,7 +8,11 @@ function normalizeEventConfig(config: EChartsEventConfig): {
 export function bindEvents(instance: ECharts, events: EChartsEvents | undefined): void {
   if (!events) return;
   for (const [eventName, config] of Object.entries(events)) {
-    const { handler, query, context } = normalizeEventConfig(config);
+    if (typeof config === "function") {
+      instance.on(eventName, config, undefined);
+      continue;
+    }
+    const { handler, query, context } = config;
     if (query !== undefined) {
       instance.on(eventName, query, handler, context);
     } else {
@@ -80,7 +69,7 @@ export function eventsEqual(a: EChartsEvents | undefined, b: EChartsEvents | und
 export function unbindEvents(instance: ECharts, events: EChartsEvents | undefined): void {
   if (!events) return;
   for (const [eventName, config] of Object.entries(events)) {
-    const { handler } = normalizeEventConfig(config);
+    const handler = typeof config === "function" ? config : config.handler;
     instance.off(eventName, handler);
   }
 }
