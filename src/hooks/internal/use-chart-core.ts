@@ -185,6 +185,7 @@ export function useChartCore(
   // and the sync layout effect below — TS catches stale-config drift at compile time.
   // Lazy-init pattern (`null!` + first-render assign) avoids re-evaluating the
   // 10-field literal on every render — `useRef`'s argument is only used once.
+  // Constraint: nothing may read `latestRef.current` before the if-block runs.
   const latestRef = useRef<LatestConfig>(null!);
   if (latestRef.current === null) {
     latestRef.current = {
@@ -433,7 +434,8 @@ export function useChartCore(
   // Effect 3: EVENT REBINDING
   //
   // When onEvents reference changes, unbind old and bind new handlers.
-  // Uses boundEventsRef to track what's currently bound.
+  // Uses pendingUnbindRef to track entries pending cleanup; the tail entry
+  // is treated as the current declared intent for dedup.
   // =====================================================================
   useEffect(() => {
     const instance = getInstance();

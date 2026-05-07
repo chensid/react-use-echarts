@@ -82,6 +82,7 @@ describe("eventsEqual", () => {
     expect(eventsEqual({ click: { handler: handler() } }, { click: h })).toBe(false);
     expect(eventsEqual({ click: { handler: h, query: "series" } }, { click: h })).toBe(false);
     expect(eventsEqual({ click: { handler: h, context } }, { click: h })).toBe(false);
+    expect(eventsEqual({ click: handler() }, { click: handler() })).toBe(false);
   });
 
   it("should return false when query differs", () => {

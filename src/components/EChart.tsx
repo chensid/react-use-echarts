@@ -14,7 +14,6 @@ import type { EChartProps, UseEchartsReturn } from "../types";
  * <EChart option={{ series: [{ type: 'line', data: [1,2,3] }] }} />
  * ```
  */
-/* v8 ignore next -- React Compiler transforms rest-spread into an uncovered branch */
 function EChart({
   ref,
   style,
