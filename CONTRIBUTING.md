@@ -32,10 +32,21 @@ Run `vp check && vp test run` before opening a pull request. This is the same se
 ## Pull Request Guidelines
 
 - Keep each PR focused on a single feature or fix.
-- Update documentation (`README.md`, `examples/`, API comments) when behavior or public APIs change.
+- Update documentation in **both** `README.md` **and** `README-zh_CN.md` (and `examples/`, API comments) when behavior or public APIs change.
 - Add or update tests in `src/__tests__` for any logic changes.
 - Ensure `vp check` and `vp test run` pass locally.
 - Describe the motivation, solution, and validation steps in the PR body.
+- **Add a changeset** (`pnpm changeset`) for any user-visible change — pick `patch` for fixes, `minor` for additive features, `major` for breaking changes. Internal-only refactors that don't affect the published API may skip this with a note in the PR description.
+
+## Releasing
+
+Releases are driven by [changesets](https://github.com/changesets/changesets):
+
+1. PRs include a `.changeset/*.md` file describing the change.
+2. Pushes to `main` keep an open "Version Packages" PR that aggregates pending changesets.
+3. Merging that PR triggers `release.yml` to build, version, and publish via npm OIDC.
+
+Hotfixes can bypass the queue by cutting a GitHub Release manually — that path runs `npm-publish.yml` (kept as a fallback). Don't include `changeset version` output (CHANGELOG / version bumps) in feature PRs; that belongs only in the auto-generated Version Packages PR.
 
 ## Reporting Issues
 

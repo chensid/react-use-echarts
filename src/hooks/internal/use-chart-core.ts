@@ -40,7 +40,7 @@ function resolveThemeName(
 ): string | null {
   // Public type forbids null, but JS callers can still pass it. typeof null
   // is "object" so without this guard we'd hit getOrRegisterCustomTheme(null)
-  // and throw inside the WeakMap path — outside Effect 1's init try/catch.
+  // and throw inside the WeakMap path — outside the init effect's try/catch.
   if (theme == null) return null;
   if (typeof theme === "string") {
     if (
@@ -236,7 +236,7 @@ export function useChartCore(
   }, [element]);
 
   // =====================================================================
-  // Effect 1: INSTANCE LIFECYCLE (init / recreate / cleanup)
+  // INSTANCE LIFECYCLE (init / recreate / cleanup)
   //
   // When theme, renderer, or initOpts changes, cleanup disposes the old
   // instance and the effect re-runs to create a new one.
@@ -352,9 +352,9 @@ export function useChartCore(
   }, [shouldInit, element, themeKey, renderer, initOptsKey]);
 
   // =====================================================================
-  // Effect 2: OPTION UPDATES
+  // OPTION SYNC
   //
-  // Uses lastAppliedRef to skip the first run after init effect
+  // Uses lastAppliedRef to skip the first run after the lifecycle effect
   // (which already applied the same option). shallowEqual prevents
   // unnecessary setOption when user creates new wrapper objects.
   // =====================================================================
@@ -378,7 +378,7 @@ export function useChartCore(
   }, [getInstance, option, setOptionOpts]);
 
   // =====================================================================
-  // Effect 3: EVENT REBINDING
+  // EVENT REBINDING
   //
   // When onEvents reference changes, unbind old and bind new handlers.
   // Uses pendingUnbindRef to track entries pending cleanup; the tail entry
@@ -429,10 +429,10 @@ export function useChartCore(
   }, [getInstance, onEvents]);
 
   // =====================================================================
-  // Effect 4: LOADING STATE
+  // LOADING TOGGLE
   //
   // Toggles showLoading / hideLoading on dynamic changes.
-  // Init effect handles initial application on instance creation;
+  // Lifecycle effect handles initial application on instance creation;
   // lastLoadingRef + shallowEqual skips redundant calls for inline
   // loadingOption objects with identical content.
   // =====================================================================
@@ -457,10 +457,10 @@ export function useChartCore(
   }, [getInstance, showLoading, loadingOption]);
 
   // =====================================================================
-  // Effect 5: GROUP CHANGES
+  // GROUP SWITCH
   //
   // Switches chart group membership on dynamic changes.
-  // Init effect handles initial group assignment on instance creation.
+  // Lifecycle effect handles initial group assignment on instance creation.
   // =====================================================================
   useEffect(() => {
     const instance = getInstance();

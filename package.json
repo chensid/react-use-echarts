@@ -57,15 +57,21 @@
     "coverage": "vp test --coverage",
     "lint": "vp lint",
     "check": "vp check",
+    "size": "size-limit",
+    "changeset": "changeset",
+    "version": "changeset version",
+    "release": "vp pack && changeset publish",
     "prepublishOnly": "vp pack",
     "prepare": "vp config"
   },
   "devDependencies": {
     "@arethetypeswrong/cli": "^0.18.2",
     "@babel/core": "^7.29.0",
+    "@changesets/cli": "^2.31.0",
     "@rolldown/plugin-babel": "^0.2.3",
     "@shikijs/langs": "^4.0.2",
     "@shikijs/themes": "^4.0.2",
+    "@size-limit/file": "^12.1.0",
     "@testing-library/react": "^16.3.2",
     "@types/node": "^25.6.0",
     "@types/react": "^19.2.14",
@@ -75,11 +81,13 @@
     "babel-plugin-react-compiler": "^1.0.0",
     "echarts": "^6.0.0",
     "jsdom": "^29.1.1",
+    "playwright": "^1.59.1",
     "publint": "^0.3.18",
     "react": "^19.2.5",
     "react-dom": "^19.2.5",
     "react-router-dom": "^7.14.2",
     "shiki": "^4.0.2",
+    "size-limit": "^12.1.0",
     "typescript": "~6.0.3",
     "vite": "npm:@voidzero-dev/vite-plus-core@^0.1.20",
     "vite-plus": "^0.1.20",
@@ -90,8 +98,29 @@
     "react": "^19.0.0",
     "react-dom": "^19.0.0"
   },
+  "size-limit": [
+    {
+      "name": "dist/index.js (gzip)",
+      "path": "dist/index.js",
+      "limit": "12 KB",
+      "gzip": true,
+      "brotli": false
+    },
+    {
+      "name": "dist/themes/registry.js (gzip)",
+      "path": "dist/themes/registry.js",
+      "limit": "3 KB",
+      "gzip": true,
+      "brotli": false
+    }
+  ],
   "engines": {
     "node": ">=22.12.0"
   },
-  "packageManager": "pnpm@11.0.3"
+  "packageManager": "pnpm@11.0.3",
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "esbuild"
+    ]
+  }
 }

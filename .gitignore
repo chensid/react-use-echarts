@@ -25,3 +25,9 @@ dist-ssr
 
 coverage/
 .cursor
+.claude/
+.pnpm-store/
+
+# Vitest browser-mode artifacts
+.vitest-attachments/
+**/__screenshots__/

@@ -498,8 +498,8 @@ describe("useEcharts", () => {
       const ref = { current: element };
       const mockInstance = createMockInstance(element);
       const loadingError = new Error("showLoading failed");
-      // Init effect's initial showLoading=false won't fire; only the dynamic
-      // toggle in Effect 4 reaches the wrapped path.
+      // Lifecycle effect's initial showLoading=false won't fire; only the
+      // dynamic toggle in the LOADING-TOGGLE effect reaches the wrapped path.
       mockInstance.showLoading.mockImplementation(() => {
         throw loadingError;
       });
@@ -1309,8 +1309,9 @@ describe("useEcharts", () => {
     });
 
     it("should keep prop dedup consistent after imperative setOption", async () => {
-      // Imperative setOption must update lastAppliedRef so subsequent prop-driven
-      // Effect 2 sees the actual instance state, not a stale "what props sent last".
+      // Imperative setOption must update lastAppliedRef so the subsequent
+      // prop-driven OPTION-SYNC effect sees the actual instance state, not a
+      // stale "what props sent last".
       const element = document.createElement("div");
       const ref = { current: element };
       const mockInstance = createMockInstance(element);
@@ -2599,7 +2600,8 @@ describe("useEcharts", () => {
       const ref = { current: element };
       const mockInstance = createMockInstance(element);
       const setOptionError = new Error("initial setOption failed");
-      // Only throw once (during init effect), then succeed (for Effect 2)
+      // Only throw once (during the lifecycle effect's initial setOption);
+      // subsequent calls from the OPTION-SYNC effect should succeed.
       mockInstance.setOption
         .mockImplementationOnce(() => {
           throw setOptionError;
@@ -2619,7 +2621,8 @@ describe("useEcharts", () => {
       const ref = { current: element };
       const mockInstance = createMockInstance(element);
       const setOptionError = new Error("initial setOption failed");
-      // Only throw once (during init effect), then succeed (for Effect 2)
+      // Only throw once (during the lifecycle effect's initial setOption);
+      // subsequent calls from the OPTION-SYNC effect should succeed.
       mockInstance.setOption
         .mockImplementationOnce(() => {
           throw setOptionError;
