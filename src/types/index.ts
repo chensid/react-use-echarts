@@ -250,6 +250,17 @@ export interface UseEchartsReturn {
    * @see https://echarts.apache.org/en/api.html#echartsInstance.clear
    */
   clear: () => void;
+
+  /**
+   * Append data to a series; useful for streaming. After a successful append,
+   * the chart's data has drifted from the declarative `option` — the next
+   * shallow-equal-but-new-reference `option` rerender re-applies setOption
+   * to resync.
+   * 向 series 追加数据，常用于流式更新。追加后内部数据会与声明式 option 偏离，
+   * 下一次浅相等但新引用的 option rerender 会重新应用 setOption 进行同步。
+   * @see https://echarts.apache.org/en/api.html#echartsInstance.appendData
+   */
+  appendData: (params: { seriesIndex: number; data: ArrayLike<unknown> }) => void;
 }
 
 /**

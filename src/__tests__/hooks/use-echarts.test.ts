@@ -1588,6 +1588,117 @@ describe("useEcharts", () => {
         });
       }).toThrow("clear boom");
     });
+
+    it("should re-apply prop option after imperative clear when rerender is shallow-equal", async () => {
+      // Without resetting lastAppliedRef inside clear(), the option-sync
+      // effect's dedup fast path sees an unchanged option vs lastApplied and
+      // skips setOption, leaving the chart blank after clear(). Resetting
+      // forces re-application.
+      const element = document.createElement("div");
+      const ref = { current: element };
+      const mockInstance = createMockInstance(element);
+      (echarts.init as ReturnType<typeof vi.fn>).mockReturnValue(mockInstance);
+
+      const sharedSeries = baseOption.series;
+      const propOptionA: EChartsOption = { series: sharedSeries };
+      const propOptionAEqual: EChartsOption = { series: sharedSeries };
+
+      const { result, rerender } = renderHook(({ option }) => useEcharts(ref, { option }), {
+        initialProps: { option: propOptionA },
+      });
+
+      // 1. Init applied propOptionA.
+      await waitFor(() => {
+        expect(mockInstance.setOption).toHaveBeenCalledTimes(1);
+      });
+
+      // 2. Imperative clear() — chart is now blank; lastAppliedRef must be cleared.
+      act(() => {
+        result.current.clear();
+      });
+      expect(mockInstance.clear).toHaveBeenCalledTimes(1);
+
+      // 3. Rerender with a fresh ref shallow-equal to propOptionA. The dedup
+      //    fast path would skip without the fix; with the fix lastAppliedRef
+      //    is null, so setOption is invoked again to restore the chart.
+      rerender({ option: propOptionAEqual });
+      await waitFor(() => {
+        expect(mockInstance.setOption).toHaveBeenCalledTimes(2);
+        expect(mockInstance.setOption).toHaveBeenLastCalledWith(propOptionAEqual, undefined);
+      });
+    });
+  });
+
+  describe("appendData", () => {
+    it("should forward params to instance", () => {
+      const element = document.createElement("div");
+      const ref = { current: element };
+      const mockInstance = createMockInstance(element);
+      (echarts.init as ReturnType<typeof vi.fn>).mockReturnValue(mockInstance);
+
+      const { result } = renderHook(() => useEcharts(ref, { option: baseOption }));
+
+      const params = { seriesIndex: 0, data: [1, 2, 3] };
+      act(() => {
+        result.current.appendData(params);
+      });
+      expect(mockInstance.appendData).toHaveBeenCalledWith(params);
+    });
+
+    it("should not throw when instance is not initialized", () => {
+      const ref = { current: null };
+      const { result } = renderHook(() => useEcharts(ref, { option: baseOption }));
+      act(() => {
+        result.current.appendData({ seriesIndex: 0, data: [] });
+      });
+    });
+
+    it("should reset dedup memory so a shallow-equal-new-ref rerender re-applies setOption", async () => {
+      // Same drift mechanic as clear(): appendData mutates instance state
+      // outside the declarative option, so the next prop rerender that is
+      // shallow-equal but a new reference must NOT be skipped by dedup.
+      const element = document.createElement("div");
+      const ref = { current: element };
+      const mockInstance = createMockInstance(element);
+      (echarts.init as ReturnType<typeof vi.fn>).mockReturnValue(mockInstance);
+
+      const propA = { series: baseOption.series } as EChartsOption;
+
+      const { result, rerender } = renderHook(({ option }) => useEcharts(ref, { option }), {
+        initialProps: { option: propA },
+      });
+      await waitFor(() => {
+        expect(mockInstance.setOption).toHaveBeenCalledTimes(1);
+      });
+
+      act(() => {
+        result.current.appendData({ seriesIndex: 0, data: [42] });
+      });
+      expect(mockInstance.appendData).toHaveBeenCalledTimes(1);
+
+      rerender({ option: { series: baseOption.series } });
+      await waitFor(() => {
+        expect(mockInstance.setOption).toHaveBeenCalledTimes(2);
+      });
+    });
+
+    it("should route errors through onError", () => {
+      const element = document.createElement("div");
+      const ref = { current: element };
+      const mockInstance = createMockInstance(element);
+      const err = new Error("appendData boom");
+      mockInstance.appendData.mockImplementation(() => {
+        throw err;
+      });
+      (echarts.init as ReturnType<typeof vi.fn>).mockReturnValue(mockInstance);
+
+      const onError = vi.fn();
+      const { result } = renderHook(() => useEcharts(ref, { option: baseOption, onError }));
+      act(() => {
+        result.current.appendData({ seriesIndex: 0, data: [] });
+      });
+      expect(onError).toHaveBeenCalledWith(err);
+    });
   });
 
   describe("cleanup", () => {

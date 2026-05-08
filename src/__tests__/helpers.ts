@@ -13,6 +13,7 @@ export function createMockInstance(element?: HTMLElement) {
     isDisposed: vi.fn(() => false),
     dispatchAction: vi.fn(),
     clear: vi.fn(),
+    appendData: vi.fn(),
   };
 }
 
