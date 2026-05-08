@@ -43,21 +43,17 @@ jobs:
           node-version: "24"
           cache: true
 
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v4
-
       - name: Install dependencies
         run: vp install --frozen-lockfile
 
       - name: Create release PR or publish
         uses: changesets/action@v1
         with:
-          # `pnpm version` would invoke pnpm's built-in version-bump command
-          # (npm-version-equivalent) instead of our package script; use
-          # `pnpm run version` to dispatch to scripts.version → `changeset
-          # version`. Same reason for `pnpm run release`.
-          version: pnpm run version
-          publish: pnpm run release
+          # `vp run <script>` dispatches to package.json scripts:
+          # version → `changeset version` (bumps + writes CHANGELOG)
+          # release → `vp pack && changeset publish` (builds + npm publish via OIDC)
+          version: vp run version
+          publish: vp run release
           commit: "chore: release"
           title: "chore: release"
         env:
