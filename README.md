@@ -285,8 +285,8 @@ import { isBuiltinTheme, registerCustomTheme } from "react-use-echarts"; // them
 import { registerBuiltinThemes } from "react-use-echarts/themes/registry"; // ~20KB theme JSON
 
 // All exported types: UseEchartsOptions, UseEchartsReturn, EChartProps,
-// EChartsEvents, EChartsEventConfig, EChartsInitOpts, BuiltinTheme, LoadingOption,
-// ChartFinder, ChartScaleValue
+// EChartsEvents, EChartsEventConfig, EChartsEventHandler, EChartsInitOpts,
+// BuiltinTheme, LoadingOption, ChartFinder, ChartScaleValue, Payload
 // EChartsOption, SetOptionOpts, ResizeOpts come from the "echarts" package directly.
 ```
 
