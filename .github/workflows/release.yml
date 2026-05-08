@@ -1,0 +1,65 @@
+# Changesets-driven release pipeline.
+#
+# On every push to `main`, changesets/action either:
+#   1. Opens (or updates) a "Version Packages" PR aggregating all unreleased
+#      `.changeset/*.md` entries, OR
+#   2. If that PR has just been merged (no remaining changesets), runs the
+#      `release` script — which builds and publishes via OIDC trusted
+#      publishing.
+#
+# Coexists with `npm-publish.yml` — that workflow remains as a manual fallback
+# triggered by a GitHub Release (cut directly without changesets), useful for
+# hotfixes that bypass the queue.
+
+name: Release
+
+on:
+  push:
+    branches: [main]
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    # Only run on the canonical repo so forks don't try to publish.
+    if: github.repository == 'chensid/react-use-echarts'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+      id-token: write # Required for OIDC trusted publishing
+    env:
+      NPM_CONFIG_PROVENANCE: "true"
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Setup Vite+
+        uses: voidzero-dev/setup-vp@v1
+        with:
+          node-version: "24"
+          cache: true
+
+      - name: Enable pnpm via corepack
+        run: corepack enable
+
+      - name: Install dependencies
+        run: vp install --frozen-lockfile
+
+      - name: Create release PR or publish
+        uses: changesets/action@v1
+        with:
+          # `pnpm version` would invoke pnpm's built-in version-bump command
+          # (npm-version-equivalent) instead of our package script; use
+          # `pnpm run version` to dispatch to scripts.version → `changeset
+          # version`. Same reason for `pnpm run release`.
+          version: pnpm run version
+          publish: pnpm run release
+          commit: "chore: release"
+          title: "chore: release"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

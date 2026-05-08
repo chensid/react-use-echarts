@@ -37,8 +37,20 @@ jobs:
       - name: Build library
         run: vp pack
 
-      - name: Test with coverage
-        run: vp test run --coverage
+      - name: Test with coverage (unit project)
+        run: vp test run --coverage --project unit
+
+      - name: Install Playwright Chromium
+        if: matrix.node == '24'
+        run: pnpm exec playwright install --with-deps chromium
+
+      - name: Test (browser project)
+        if: matrix.node == '24'
+        run: vp test run --project browser
+
+      - name: Bundle size budget
+        if: matrix.node == '24'
+        run: pnpm size
 
       - name: Upload coverage to Codecov
         if: matrix.node == '24'

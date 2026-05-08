@@ -1,6 +1,11 @@
 import { defineConfig } from "vite-plus";
 import babel from "@rolldown/plugin-babel";
 import react, { reactCompilerPreset } from "@vitejs/plugin-react";
+// Use the bundled provider from vite-plus-test (vitest is aliased to it in
+// package.json). Importing @vitest/browser-playwright as an external dep would
+// pull a separate copy that mismatches vite-plus-test's bundled Vitest core
+// version, triggering the "Running mixed versions" warning at test start.
+import { playwright } from "vitest/browser/providers/playwright";
 
 const repositoryName = process.env.GITHUB_REPOSITORY?.split("/")[1];
 const base = process.env.GITHUB_ACTIONS === "true" && repositoryName ? `/${repositoryName}/` : "/";
@@ -64,9 +69,8 @@ export default defineConfig({
     port: 3000,
   },
   test: {
-    pool: "threads",
-    globals: true,
-    environment: "jsdom",
+    // Shared coverage / mock-reset config; per-project overrides only set
+    // what differs (environment, include/exclude, browser settings).
     coverage: {
       provider: "v8",
       reporter: ["text", "json", "html", "lcov"],
@@ -83,5 +87,38 @@ export default defineConfig({
     clearMocks: true,
     mockReset: true,
     restoreMocks: true,
+    projects: [
+      {
+        // Default unit-test project: jsdom + ECharts mocked.
+        // Excludes browser smoke tests so they only run via the browser project.
+        extends: true,
+        test: {
+          name: "unit",
+          pool: "threads",
+          globals: true,
+          environment: "jsdom",
+          include: ["src/__tests__/**/*.test.{ts,tsx}"],
+          exclude: ["src/__tests__/browser/**"],
+        },
+      },
+      {
+        // Browser smoke tests: real chromium via playwright provider.
+        // Covers what jsdom can't simulate — IntersectionObserver in a real
+        // viewport, ResizeObserver + RAF interactions, real DOM layout.
+        // Smoke level: assert effects are observable, not exact frame counts.
+        extends: true,
+        test: {
+          name: "browser",
+          globals: true,
+          include: ["src/__tests__/browser/**/*.test.{ts,tsx}"],
+          browser: {
+            enabled: true,
+            provider: playwright(),
+            instances: [{ browser: "chromium" }],
+            headless: true,
+          },
+        },
+      },
+    ],
   },
 });

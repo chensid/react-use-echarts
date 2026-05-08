@@ -54,24 +54,23 @@ src/
 
 ## Architecture
 
-### Hook Decomposition — 8 Effects Across 2 Modules
+### Hook Decomposition
 
-All instance-related state lives in `useChartCore`; the orchestrator has zero effects of its own.
+All instance-related state lives in `useChartCore`; the orchestrator (`useEcharts`) has zero effects of its own. Effects are described by responsibility — there is no global numbering, since adding/removing one shouldn't shift the others' identities.
 
-**`useChartCore`** (6 effects — ref sync + init applies all state for instance recreation, separate effects handle dynamic changes):
+**`useChartCore`** — six effects, grouped by what they keep in sync. Initial application is bundled inside the lifecycle effect; the others handle dynamic post-init changes.
 
-0. **Ref Sync** (`useLayoutEffect`, no deps) — sync the typed `latestRef` (one `LatestConfig` object holding all 10 latest config fields) every render so dependent effects read fresh values without re-running. Adding a new field forces it to appear in both the initializer and the sync block; TS catches stale-config drift at compile time.
+- **Ref Sync** (`useLayoutEffect`, no deps) — sync the typed `latestRef` (one `LatestConfig` object holding all 10 latest config fields) every render so the effects below can read fresh values without re-running. Adding a new field forces it to appear in both the lazy initializer and this sync block; TS catches stale-config drift at compile time.
+- **Instance Lifecycle** (`useLayoutEffect`) — create/dispose instance, apply initial option, events, loading, group; warns on zero-size container in dev. Re-runs only on structural deps (`element` / `themeKey` / `renderer` / `initOptsKey`).
+- **Option Sync** (`useEffect`) — call `setOption` when option changes (reference-equality fast path → `shallowEqual` + `lastAppliedRef`).
+- **Event Rebinding** (`useEffect`) — unbind old, bind new when `onEvents` changes (via `pendingUnbindRef` + `eventsEqual`; treats empty/undefined as equivalent; failed unbinds carry forward so cleanup can retry).
+- **Loading Toggle** (`useEffect`) — toggle `showLoading` / `hideLoading` on dynamic changes (dedup via `lastLoadingRef` + `shallowEqual` on `loadingOption`).
+- **Group Switch** (`useEffect`) — switch chart group dynamically via `syncGroupConnectivity`.
 
-1. **Instance Lifecycle** (`useLayoutEffect`) — create/dispose instance, apply initial option, events, loading, group; warns on zero-size container in dev
-2. **Option Updates** (`useEffect`) — call `setOption` when option changes (reference-equality fast path → `shallowEqual` + `lastAppliedRef`)
-3. **Event Rebinding** (`useEffect`) — unbind old, bind new when `onEvents` changes (via `pendingUnbindRef` + `eventsEqual`; treats empty/undefined as equivalent; failed unbinds carry forward so cleanup can retry)
-4. **Loading State** (`useEffect`) — toggle `showLoading` / `hideLoading` on dynamic changes (dedup via `lastLoadingRef` + `shallowEqual` on `loadingOption`)
-5. **Group Changes** (`useEffect`) — switch chart group dynamically via `syncGroupConnectivity`
+**`useResizeObserver`** — two effects.
 
-**`useResizeObserver`** (2 effects):
-
-6. **onError Ref Sync** (`useLayoutEffect`, no deps) — keep latest `onError` callback reachable from inside the observer effect
-7. **Resize Observer** (`useEffect`) — create/destroy ResizeObserver with RAF throttle; also listens to `document.visibilitychange` to resync when the tab returns to foreground (RAF is throttled in hidden tabs)
+- **onError Ref Sync** (`useLayoutEffect`, no deps) — keep latest `onError` callback reachable from inside the observer effect.
+- **Resize Observer** (`useEffect`) — create/destroy ResizeObserver with RAF throttle; also listens to `document.visibilitychange` to resync when the tab returns to foreground (RAF is throttled in hidden tabs).
 
 ### Key Design Patterns
 
