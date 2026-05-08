@@ -46,7 +46,7 @@ Releases are driven by [changesets](https://github.com/changesets/changesets):
 2. Pushes to `main` keep an open "Version Packages" PR that aggregates pending changesets.
 3. Merging that PR triggers `release.yml` to build, version, and publish via npm OIDC.
 
-Hotfixes can bypass the queue by cutting a GitHub Release manually — that path runs `npm-publish.yml` (kept as a fallback). Don't include `changeset version` output (CHANGELOG / version bumps) in feature PRs; that belongs only in the auto-generated Version Packages PR.
+For hotfixes, follow the same flow — open a PR with a `.changeset/*.md` describing the fix, then merge it and the resulting Version Packages PR. Don't include `changeset version` output (CHANGELOG / version bumps) in feature PRs; that belongs only in the auto-generated Version Packages PR.
 
 ## Reporting Issues
 

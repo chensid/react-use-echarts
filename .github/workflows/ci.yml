@@ -42,7 +42,7 @@ jobs:
 
       - name: Install Playwright Chromium
         if: matrix.node == '24'
-        run: pnpm exec playwright install --with-deps chromium
+        run: vp exec playwright install --with-deps chromium
 
       - name: Test (browser project)
         if: matrix.node == '24'
@@ -50,7 +50,7 @@ jobs:
 
       - name: Bundle size budget
         if: matrix.node == '24'
-        run: pnpm size
+        run: vp run size
 
       - name: Upload coverage to Codecov
         if: matrix.node == '24'

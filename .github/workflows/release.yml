@@ -1,4 +1,4 @@
-# Changesets-driven release pipeline.
+# Changesets-driven release pipeline (single source of release truth).
 #
 # On every push to `main`, changesets/action either:
 #   1. Opens (or updates) a "Version Packages" PR aggregating all unreleased
@@ -7,9 +7,8 @@
 #      `release` script — which builds and publishes via OIDC trusted
 #      publishing.
 #
-# Coexists with `npm-publish.yml` — that workflow remains as a manual fallback
-# triggered by a GitHub Release (cut directly without changesets), useful for
-# hotfixes that bypass the queue.
+# Hotfixes follow the same flow: a PR with a changeset, then merge the
+# resulting Version Packages PR.
 
 name: Release
 
@@ -53,12 +52,11 @@ jobs:
       - name: Create release PR or publish
         uses: changesets/action@v1
         with:
-          # `pnpm version` would invoke pnpm's built-in version-bump command
-          # (npm-version-equivalent) instead of our package script; use
-          # `pnpm run version` to dispatch to scripts.version → `changeset
-          # version`. Same reason for `pnpm run release`.
-          version: pnpm run version
-          publish: pnpm run release
+          # `vp run <script>` dispatches to package.json scripts:
+          # version → `changeset version` (bumps + writes CHANGELOG)
+          # release → `vp pack && changeset publish` (builds + npm publish via OIDC)
+          version: vp run version
+          publish: vp run release
           commit: "chore: release"
           title: "chore: release"
         env:
