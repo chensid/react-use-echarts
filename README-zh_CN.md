@@ -284,8 +284,8 @@ import { isBuiltinTheme, registerCustomTheme } from "react-use-echarts"; // 主�
 import { registerBuiltinThemes } from "react-use-echarts/themes/registry"; // 内置主题 JSON（~20KB）
 
 // 所有导出类型：UseEchartsOptions, UseEchartsReturn, EChartProps,
-// EChartsEvents, EChartsEventConfig, EChartsInitOpts, BuiltinTheme, LoadingOption,
-// ChartFinder, ChartScaleValue
+// EChartsEvents, EChartsEventConfig, EChartsEventHandler, EChartsInitOpts,
+// BuiltinTheme, LoadingOption, ChartFinder, ChartScaleValue, Payload
 // EChartsOption、SetOptionOpts、ResizeOpts 来自 "echarts" 包。
 ```
 
