@@ -1,6 +1,6 @@
 {
   "name": "react-use-echarts",
-  "version": "1.3.3",
+  "version": "1.4.0",
   "private": false,
   "description": "React hooks & component for Apache ECharts — TypeScript, auto-resize, themes, lazy init",
   "keywords": [
