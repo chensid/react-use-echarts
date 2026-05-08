@@ -43,6 +43,9 @@ jobs:
           node-version: "24"
           cache: true
 
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
       - name: Install dependencies
         run: vp install --frozen-lockfile
 
