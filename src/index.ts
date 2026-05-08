@@ -40,6 +40,8 @@ export type {
   EChartProps,
   BuiltinTheme,
   LoadingOption,
+  ChartFinder,
+  ChartScaleValue,
 } from "./types";
 
 /**

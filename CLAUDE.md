@@ -34,7 +34,7 @@ src/
 │   ├── use-echarts.ts          # Orchestrator hook (zero effects of its own; delegates to internal hooks)
 │   ├── use-lazy-init.ts        # IntersectionObserver hook
 │   └── internal/
-│       ├── use-chart-core.ts   # Core: instance lifecycle + option sync + event rebinding + loading + group (6 effects); exposes setOption / dispatchAction / clear / getInstance
+│       ├── use-chart-core.ts   # Core: instance lifecycle + option sync + event rebinding + loading + group (6 effects); exposes the imperative API (setOption, dispatchAction, clear, resize, appendData, getOption, getDataURL, convertToPixel, …)
 │       ├── use-resize-observer.ts # ResizeObserver auto-resize + visibilitychange resync (2 effects: onError ref sync + observer)
 │       ├── use-ref-element.ts  # Track ref.current across DOM-node replacement (re-runs effects when ref swaps)
 │       └── event-utils.ts      # Pure functions: bindEvents / unbindEvents / eventsEqual

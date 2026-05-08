@@ -14,6 +14,16 @@ export function createMockInstance(element?: HTMLElement) {
     dispatchAction: vi.fn(),
     clear: vi.fn(),
     appendData: vi.fn(),
+    getOption: vi.fn(() => ({})),
+    getWidth: vi.fn(() => 400),
+    getHeight: vi.fn(() => 300),
+    getDataURL: vi.fn(() => "data:image/png;base64,mock"),
+    getConnectedDataURL: vi.fn(() => "data:image/png;base64,connected-mock"),
+    renderToSVGString: vi.fn(() => "<svg></svg>"),
+    getSvgDataURL: vi.fn(() => "data:image/svg+xml;base64,svg-mock"),
+    convertToPixel: vi.fn(() => [10, 20]),
+    convertFromPixel: vi.fn(() => [1, 2]),
+    containPixel: vi.fn(() => false),
   };
 }
 

@@ -4,8 +4,29 @@ import type {
   SetOptionOpts,
   EChartsInitOpts as RawEChartsInitOpts,
   Payload,
+  ResizeOpts,
 } from "echarts";
 import type { CSSProperties } from "react";
+
+/**
+ * Model finder accepted by `convertToPixel` / `convertFromPixel` / `containPixel`.
+ * Either a string shorthand (e.g. `"series"`) or a finder object such as
+ * `{ seriesIndex: 0 }`. Extracted from echarts' single-signature `containPixel`
+ * so the public type stays in sync without importing internal aliases.
+ * convertToPixel/convertFromPixel/containPixel 接受的查询条件。可以是字符串简写
+ * （如 "series"）或包含索引/ID/名称的查询对象。从单签名的 containPixel 提取以避免
+ * 引用 echarts 的内部别名。
+ */
+export type ChartFinder = Parameters<ECharts["containPixel"]>[0];
+
+/**
+ * Scalar data value accepted by `convertToPixel`. Mirrors echarts' internal
+ * `ScaleDataValue` (a number, ordinal string, or Date). The value parameter
+ * itself is `ChartScaleValue | ChartScaleValue[]` — single value, axis pair,
+ * or higher-rank tuple.
+ * convertToPixel 接受的单个标量数据值。镜像 echarts 内部的 ScaleDataValue 类型。
+ */
+export type ChartScaleValue = number | string | Date;
 
 /**
  * Built-in theme names
@@ -211,6 +232,21 @@ export interface UseEchartsOptions {
 /**
  * Return type for useEcharts hook
  * useEcharts hook 的返回类型
+ *
+ * Prefer the declarative props (`option`, `theme`, `showLoading`, etc.) over
+ * imperative methods. Use these methods only for actions not covered by props,
+ * such as exporting an image or coordinate conversion.
+ * 优先使用声明式 props（option、theme、showLoading 等）；命令式方法仅在 props
+ * 未覆盖的场景下使用，例如导出图片、坐标转换等。
+ *
+ * All methods are no-ops (or return safe defaults) when the instance is not
+ * yet initialized. When the instance throws, errors are routed through
+ * `onError` if provided (the call returns the fallback value); otherwise
+ * the error is rethrown — including from readers, which never emit a
+ * console.error fallback.
+ * 所有方法在实例未初始化时为 no-op（或返回安全默认值）。实例抛出错误时：
+ * 提供 onError 时路由并返回默认值；未提供 onError 时直接重新抛出，包括读取方法
+ * （不会回退到 console.error）。
  */
 export interface UseEchartsReturn {
   /**
@@ -227,10 +263,12 @@ export interface UseEchartsReturn {
   getInstance: () => ECharts | undefined;
 
   /**
-   * Manually trigger resize
-   * 手动触发 resize
+   * Manually trigger resize. When opts is provided, ECharts uses it to override
+   * the auto-detected container size and animation settings.
+   * 手动触发 resize。传入 opts 时可覆盖自动测量的尺寸与动画。
+   * @see https://echarts.apache.org/en/api.html#echartsInstance.resize
    */
-  resize: () => void;
+  resize: (opts?: ResizeOpts) => void;
 
   /**
    * Dispatch an ECharts action (e.g. highlight, downplay, showTip).
@@ -252,15 +290,103 @@ export interface UseEchartsReturn {
   clear: () => void;
 
   /**
+   * Get the current ECharts option object.
+   * 获取当前完整配置项。
+   * @returns The merged option, or `undefined` when the instance is not initialized.
+   * @see https://echarts.apache.org/en/api.html#echartsInstance.getOption
+   */
+  getOption: () => EChartsOption | undefined;
+
+  /**
+   * Get the current width of the chart container in pixels.
+   * 获取图表容器当前宽度（像素）。
+   */
+  getWidth: () => number | undefined;
+
+  /**
+   * Get the current height of the chart container in pixels.
+   * 获取图表容器当前高度（像素）。
+   */
+  getHeight: () => number | undefined;
+
+  /**
+   * Get the underlying DOM container element used by the chart.
+   * 获取图表底层 DOM 容器节点。
+   */
+  getDom: () => HTMLElement | undefined;
+
+  /**
+   * Whether the underlying ECharts instance has been disposed.
+   * Returns `true` when there is no instance (effectively disposed).
+   * 实例是否已被销毁；当实例不存在时返回 true（视作已销毁）。
+   */
+  isDisposed: () => boolean;
+
+  /**
+   * Get a base64 data URL of the chart image.
+   * 导出图表图片的 base64 data URL。
+   * @see https://echarts.apache.org/en/api.html#echartsInstance.getDataURL
+   */
+  getDataURL: (opts?: Parameters<ECharts["getDataURL"]>[0]) => string | undefined;
+
+  /**
+   * Get a base64 data URL of the connected (linked) chart group as a single image.
+   * 导出整个连接组的合成图片 data URL。
+   * @see https://echarts.apache.org/en/api.html#echartsInstance.getConnectedDataURL
+   */
+  getConnectedDataURL: (opts?: Parameters<ECharts["getConnectedDataURL"]>[0]) => string | undefined;
+
+  /**
+   * Render the chart to an SVG string. Useful with the SVG renderer.
+   * 将图表渲染为 SVG 字符串。
+   * @see https://echarts.apache.org/en/api.html#echartsInstance.renderToSVGString
+   */
+  renderToSVGString: (opts?: Parameters<ECharts["renderToSVGString"]>[0]) => string | undefined;
+
+  /**
+   * Get the SVG data URL of the current chart.
+   * 获取当前图表的 SVG data URL。
+   */
+  getSvgDataURL: () => string | undefined;
+
+  /**
+   * Convert a value from logical coordinates to pixel coordinates.
+   * 将逻辑坐标值转换为像素坐标。
+   * @see https://echarts.apache.org/en/api.html#echartsInstance.convertToPixel
+   */
+  convertToPixel: (
+    finder: ChartFinder,
+    value: ChartScaleValue | ChartScaleValue[],
+  ) => number | number[] | undefined;
+
+  /**
+   * Convert a value from pixel coordinates to logical coordinates.
+   * 将像素坐标值转换为逻辑坐标。
+   * @see https://echarts.apache.org/en/api.html#echartsInstance.convertFromPixel
+   */
+  convertFromPixel: (
+    finder: ChartFinder,
+    value: number | number[],
+  ) => number | number[] | undefined;
+
+  /**
+   * Whether the given pixel point is inside the specified component.
+   * Returns `false` when the instance is not initialized (no component contains it).
+   * 给定像素点是否落在指定组件内；实例未初始化时返回 false。
+   * @see https://echarts.apache.org/en/api.html#echartsInstance.containPixel
+   */
+  containPixel: (finder: ChartFinder, value: number[]) => boolean;
+
+  /**
    * Append data to a series; useful for streaming. After a successful append,
    * the chart's data has drifted from the declarative `option` — the next
-   * shallow-equal-but-new-reference `option` rerender re-applies setOption
-   * to resync.
+   * shallow-equal-but-new-reference `option` rerender re-applies setOption to
+   * resync.
    * 向 series 追加数据，常用于流式更新。追加后内部数据会与声明式 option 偏离，
    * 下一次浅相等但新引用的 option rerender 会重新应用 setOption 进行同步。
    * @see https://echarts.apache.org/en/api.html#echartsInstance.appendData
    */
-  appendData: (params: { seriesIndex: number; data: ArrayLike<unknown> }) => void;
+  appendData: (params: Parameters<ECharts["appendData"]>[0]) => void;
 }
 
 /**

@@ -68,7 +68,7 @@ function MyChart() {
 
 `<EChart />` defaults to `width: 100%` and `height: 100%`, so the parent container still needs an explicit height.
 
-Pass `ref` to access `{ setOption, getInstance, resize, dispatchAction, clear }` imperatively.
+Pass `ref` to access the imperative API — see [Returns](#returns) for the full list (`setOption`, `dispatchAction`, `clear`, `resize`, `appendData`, `getDataURL`, `convertToPixel`, …).
 
 ### `useEcharts` Hook
 
@@ -208,11 +208,11 @@ export default function Page() {
 
 Declarative component wrapping `useEcharts`. Accepts all hook options as props plus:
 
-| Prop        | Type                    | Default                             | Description                                                         |
-| ----------- | ----------------------- | ----------------------------------- | ------------------------------------------------------------------- |
-| `style`     | `React.CSSProperties`   | `{ width: '100%', height: '100%' }` | Container style (merged with defaults)                              |
-| `className` | `string`                | —                                   | Container CSS class                                                 |
-| `ref`       | `Ref<UseEchartsReturn>` | —                                   | Exposes `{ setOption, getInstance, resize, dispatchAction, clear }` |
+| Prop        | Type                    | Default                             | Description                                               |
+| ----------- | ----------------------- | ----------------------------------- | --------------------------------------------------------- |
+| `style`     | `React.CSSProperties`   | `{ width: '100%', height: '100%' }` | Container style (merged with defaults)                    |
+| `className` | `string`                | —                                   | Container CSS class                                       |
+| `ref`       | `Ref<UseEchartsReturn>` | —                                   | Exposes the full imperative API (see [Returns](#returns)) |
 
 ### `useEcharts(ref, options)`
 
@@ -235,13 +235,48 @@ Declarative component wrapping `useEcharts`. Accepts all hook options as props p
 
 #### Returns
 
-| Method           | Type                                                                                 | Description                                                           |
-| ---------------- | ------------------------------------------------------------------------------------ | --------------------------------------------------------------------- |
-| `setOption`      | `(option: EChartsOption, opts?: SetOptionOpts) => void`                              | Update chart configuration                                            |
-| `getInstance`    | `() => ECharts \| undefined`                                                         | Get ECharts instance                                                  |
-| `resize`         | `() => void`                                                                         | Manually trigger chart resize                                         |
-| `dispatchAction` | `(payload: Payload, opt?: boolean \| { silent?: boolean; flush?: boolean }) => void` | Dispatch an ECharts action (`highlight`, `downplay`, `showTip`, etc.) |
-| `clear`          | `() => void`                                                                         | Clear current chart content                                           |
+> Prefer the declarative props (`option`, `theme`, `showLoading`, …) over imperative methods. Use these methods only when a prop does not cover the action — image export, coordinate conversion, streaming append, etc.
+> All methods are no-ops or return safe defaults when the instance is not yet initialized. When the instance throws, errors are routed through `onError` if provided (and the call returns the fallback); otherwise the error is rethrown — including from readers (no `console.error` fallback for imperative methods).
+
+**Lifecycle / updates**
+
+| Method           | Type                                                                                 | Description                                                                                                                                           |
+| ---------------- | ------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `setOption`      | `(option: EChartsOption, opts?: SetOptionOpts) => void`                              | Update chart configuration                                                                                                                            |
+| `dispatchAction` | `(payload: Payload, opt?: boolean \| { silent?: boolean; flush?: boolean }) => void` | Dispatch an ECharts action (`highlight`, `downplay`, `showTip`, etc.)                                                                                 |
+| `clear`          | `() => void`                                                                         | Clear current chart content                                                                                                                           |
+| `resize`         | `(opts?: ResizeOpts) => void`                                                        | Manually trigger chart resize. `ResizeOpts` accepts `width`/`height`/`animation`/`silent`                                                             |
+| `appendData`     | `(params: { seriesIndex: number; data: ArrayLike<unknown> }) => void`                | Append data to a series (streaming). Drift-aware: drops dedup memory so a subsequent shallow-equal-but-new-ref `option` rerender re-applies setOption |
+
+**Read / introspect**
+
+| Method        | Type                               | Description                                                                              |
+| ------------- | ---------------------------------- | ---------------------------------------------------------------------------------------- |
+| `getInstance` | `() => ECharts \| undefined`       | Get ECharts instance                                                                     |
+| `getOption`   | `() => EChartsOption \| undefined` | Get the current merged option                                                            |
+| `getWidth`    | `() => number \| undefined`        | Container width in pixels                                                                |
+| `getHeight`   | `() => number \| undefined`        | Container height in pixels                                                               |
+| `getDom`      | `() => HTMLElement \| undefined`   | Underlying DOM container                                                                 |
+| `isDisposed`  | `() => boolean`                    | Whether the instance is disposed (returns `true` when uninitialized — semantically gone) |
+
+**Export**
+
+| Method                | Type                                                       | Description                                              |
+| --------------------- | ---------------------------------------------------------- | -------------------------------------------------------- |
+| `getDataURL`          | `(opts?) => string \| undefined`                           | Base64 image data URL (`png` / `jpeg` / `svg`)           |
+| `getConnectedDataURL` | `(opts?) => string \| undefined`                           | Combined image of all charts in the same group           |
+| `renderToSVGString`   | `(opts?: { useViewBox?: boolean }) => string \| undefined` | Render chart to SVG string (works with the SVG renderer) |
+| `getSvgDataURL`       | `() => string \| undefined`                                | Get SVG data URL of the current chart                    |
+
+**Coordinate conversion**
+
+| Method             | Type                                                                                                    | Description                                                               |
+| ------------------ | ------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------- |
+| `convertToPixel`   | `(finder: ChartFinder, value: ChartScaleValue \| ChartScaleValue[]) => number \| number[] \| undefined` | Logical → pixel coordinates                                               |
+| `convertFromPixel` | `(finder: ChartFinder, value: number \| number[]) => number \| number[] \| undefined`                   | Pixel → logical coordinates                                               |
+| `containPixel`     | `(finder: ChartFinder, value: number[]) => boolean`                                                     | Whether a pixel point is inside the matched component (false when uninit) |
+
+`ChartFinder` is `string | { seriesIndex?, seriesId?, …, geoIndex?, … }` — a string shorthand or a model finder object. `ChartScaleValue` is `number | string | Date`.
 
 ### Other Exports
 
@@ -251,8 +286,9 @@ import { isBuiltinTheme, registerCustomTheme } from "react-use-echarts"; // them
 import { registerBuiltinThemes } from "react-use-echarts/themes/registry"; // ~20KB theme JSON
 
 // All exported types: UseEchartsOptions, UseEchartsReturn, EChartProps,
-// EChartsEvents, EChartsEventConfig, EChartsInitOpts, BuiltinTheme, LoadingOption
-// EChartsOption and SetOptionOpts come from the "echarts" package directly.
+// EChartsEvents, EChartsEventConfig, EChartsInitOpts, BuiltinTheme, LoadingOption,
+// ChartFinder, ChartScaleValue
+// EChartsOption, SetOptionOpts, ResizeOpts come from the "echarts" package directly.
 ```
 
 ## Migrating from `echarts-for-react`

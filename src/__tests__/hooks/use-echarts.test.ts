@@ -1440,6 +1440,22 @@ describe("useEcharts", () => {
         });
       }).toThrow("resize boom");
     });
+
+    it("should forward ResizeOpts to instance.resize", () => {
+      const element = document.createElement("div");
+      const ref = { current: element };
+      const mockInstance = createMockInstance(element);
+      (echarts.init as ReturnType<typeof vi.fn>).mockReturnValue(mockInstance);
+
+      const { result } = renderHook(() => useEcharts(ref, { option: baseOption }));
+
+      const opts = { width: 800, height: 600, silent: true };
+      act(() => {
+        result.current.resize(opts);
+      });
+
+      expect(mockInstance.resize).toHaveBeenCalledWith(opts);
+    });
   });
 
   describe("dispatchAction", () => {
@@ -1698,6 +1714,161 @@ describe("useEcharts", () => {
         result.current.appendData({ seriesIndex: 0, data: [] });
       });
       expect(onError).toHaveBeenCalledWith(err);
+    });
+  });
+
+  describe("imperative API additions", () => {
+    function setupReady() {
+      const element = document.createElement("div");
+      const ref = { current: element };
+      const mockInstance = createMockInstance(element);
+      (echarts.init as ReturnType<typeof vi.fn>).mockReturnValue(mockInstance);
+      return { element, ref, mockInstance };
+    }
+
+    describe("getOption", () => {
+      it("forwards return from instance.getOption()", () => {
+        const { ref, mockInstance } = setupReady();
+        const fakeOption = { title: { text: "x" } };
+        mockInstance.getOption.mockReturnValue(fakeOption);
+
+        const { result } = renderHook(() => useEcharts(ref, { option: baseOption }));
+        expect(result.current.getOption()).toBe(fakeOption);
+        expect(mockInstance.getOption).toHaveBeenCalled();
+      });
+
+      it("returns undefined when instance is not initialized", () => {
+        const { result } = renderHook(() => useEcharts({ current: null }, { option: baseOption }));
+        expect(result.current.getOption()).toBeUndefined();
+      });
+
+      it("routes errors through onError and returns undefined", () => {
+        const { ref, mockInstance } = setupReady();
+        const err = new Error("getOption boom");
+        mockInstance.getOption.mockImplementation(() => {
+          throw err;
+        });
+        const onError = vi.fn();
+        const { result } = renderHook(() => useEcharts(ref, { option: baseOption, onError }));
+
+        expect(result.current.getOption()).toBeUndefined();
+        expect(onError).toHaveBeenCalledWith(err);
+      });
+
+      it("rethrows when no onError is provided", () => {
+        const { ref, mockInstance } = setupReady();
+        mockInstance.getOption.mockImplementation(() => {
+          throw new Error("getOption boom");
+        });
+        const { result } = renderHook(() => useEcharts(ref, { option: baseOption }));
+        expect(() => result.current.getOption()).toThrow("getOption boom");
+      });
+    });
+
+    describe("getWidth / getHeight", () => {
+      it("forward returns from instance", () => {
+        const { ref, mockInstance } = setupReady();
+        mockInstance.getWidth.mockReturnValue(640);
+        mockInstance.getHeight.mockReturnValue(480);
+        const { result } = renderHook(() => useEcharts(ref, { option: baseOption }));
+        expect(result.current.getWidth()).toBe(640);
+        expect(result.current.getHeight()).toBe(480);
+      });
+
+      it("return undefined when instance is not initialized", () => {
+        const { result } = renderHook(() => useEcharts({ current: null }, { option: baseOption }));
+        expect(result.current.getWidth()).toBeUndefined();
+        expect(result.current.getHeight()).toBeUndefined();
+      });
+    });
+
+    describe("getDom", () => {
+      it("forwards instance.getDom()", () => {
+        const { element, ref } = setupReady();
+        const { result } = renderHook(() => useEcharts(ref, { option: baseOption }));
+        expect(result.current.getDom()).toBe(element);
+      });
+
+      it("returns undefined when instance is not initialized", () => {
+        const { result } = renderHook(() => useEcharts({ current: null }, { option: baseOption }));
+        expect(result.current.getDom()).toBeUndefined();
+      });
+    });
+
+    describe("isDisposed", () => {
+      it("forwards instance.isDisposed()", () => {
+        const { ref, mockInstance } = setupReady();
+        mockInstance.isDisposed.mockReturnValue(false);
+        const { result } = renderHook(() => useEcharts(ref, { option: baseOption }));
+        expect(result.current.isDisposed()).toBe(false);
+      });
+
+      it("returns true when instance is not initialized (semantically disposed)", () => {
+        const { result } = renderHook(() => useEcharts({ current: null }, { option: baseOption }));
+        expect(result.current.isDisposed()).toBe(true);
+      });
+
+      it("falls back to true on error and routes through onError", () => {
+        const { ref, mockInstance } = setupReady();
+        mockInstance.isDisposed.mockImplementation(() => {
+          throw new Error("isDisposed boom");
+        });
+        const onError = vi.fn();
+        const { result } = renderHook(() => useEcharts(ref, { option: baseOption, onError }));
+        expect(result.current.isDisposed()).toBe(true);
+        expect(onError).toHaveBeenCalled();
+      });
+    });
+
+    describe("getDataURL / getConnectedDataURL / getSvgDataURL / renderToSVGString", () => {
+      it("forward opts and return strings from instance", () => {
+        const { ref, mockInstance } = setupReady();
+        const { result } = renderHook(() => useEcharts(ref, { option: baseOption }));
+
+        expect(result.current.getDataURL({ type: "png", pixelRatio: 2 })).toBe(
+          "data:image/png;base64,mock",
+        );
+        expect(mockInstance.getDataURL).toHaveBeenCalledWith({ type: "png", pixelRatio: 2 });
+
+        expect(result.current.getConnectedDataURL()).toBe("data:image/png;base64,connected-mock");
+        expect(mockInstance.getConnectedDataURL).toHaveBeenCalled();
+
+        expect(result.current.getSvgDataURL()).toBe("data:image/svg+xml;base64,svg-mock");
+        expect(result.current.renderToSVGString({ useViewBox: true })).toBe("<svg></svg>");
+      });
+
+      it("return undefined when instance is not initialized", () => {
+        const { result } = renderHook(() => useEcharts({ current: null }, { option: baseOption }));
+        expect(result.current.getDataURL()).toBeUndefined();
+        expect(result.current.getConnectedDataURL()).toBeUndefined();
+        expect(result.current.getSvgDataURL()).toBeUndefined();
+        expect(result.current.renderToSVGString()).toBeUndefined();
+      });
+    });
+
+    describe("convertToPixel / convertFromPixel / containPixel", () => {
+      it("forward finder + value to instance", () => {
+        const { ref, mockInstance } = setupReady();
+        mockInstance.convertToPixel.mockReturnValue([100, 200]);
+        mockInstance.convertFromPixel.mockReturnValue([1, 2]);
+        mockInstance.containPixel.mockReturnValue(true);
+
+        const { result } = renderHook(() => useEcharts(ref, { option: baseOption }));
+
+        const finder = { seriesIndex: 0 };
+        expect(result.current.convertToPixel(finder, [10, 20])).toEqual([100, 200]);
+        expect(mockInstance.convertToPixel).toHaveBeenCalledWith(finder, [10, 20]);
+
+        expect(result.current.convertFromPixel(finder, [100, 200])).toEqual([1, 2]);
+        expect(result.current.containPixel(finder, [50, 60])).toBe(true);
+      });
+
+      it("return undefined / false when instance is not initialized", () => {
+        const { result } = renderHook(() => useEcharts({ current: null }, { option: baseOption }));
+        expect(result.current.convertToPixel("series", 10)).toBeUndefined();
+        expect(result.current.convertFromPixel("series", 10)).toBeUndefined();
+        expect(result.current.containPixel("series", [10, 20])).toBe(false);
+      });
     });
   });
 

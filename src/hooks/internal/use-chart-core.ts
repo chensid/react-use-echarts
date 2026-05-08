@@ -1,7 +1,13 @@
 import { useEffect, useRef, useCallback, useLayoutEffect, useMemo } from "react";
 import * as echarts from "echarts";
-import type { ECharts, SetOptionOpts, EChartsOption, Payload } from "echarts";
-import type { EChartsEvents, EChartsInitOpts, UseEchartsOptions, LoadingOption } from "../../types";
+import type { ECharts, SetOptionOpts, EChartsOption } from "echarts";
+import type {
+  EChartsEvents,
+  EChartsInitOpts,
+  UseEchartsOptions,
+  UseEchartsReturn,
+  LoadingOption,
+} from "../../types";
 import {
   getCachedInstance,
   setCachedInstance,
@@ -142,17 +148,7 @@ interface LatestConfig {
   onError: ((e: unknown) => void) | undefined;
 }
 
-interface ChartCoreReturn {
-  getInstance: () => ECharts | undefined;
-  setOption: (option: EChartsOption, opts?: SetOptionOpts) => void;
-  dispatchAction: (
-    payload: Payload,
-    opt?: boolean | { silent?: boolean; flush?: boolean | undefined },
-  ) => void;
-  clear: () => void;
-  resize: () => void;
-  appendData: (params: { seriesIndex: number; data: ArrayLike<unknown> }) => void;
-}
+type ChartCoreReturn = UseEchartsReturn;
 
 // --- Hook ---
 
@@ -238,77 +234,6 @@ export function useChartCore(
     if (!element) return undefined;
     return getCachedInstance(element);
   }, [element]);
-
-  const setOption = useCallback(
-    (newOption: EChartsOption, opts?: SetOptionOpts) => {
-      const instance = getInstance();
-      if (!instance) return;
-      const finalOpts = { ...latestRef.current.setOptionOpts, ...opts };
-      try {
-        instance.setOption(newOption, finalOpts);
-        // Keep lastAppliedRef in sync so prop-driven Effect 2 dedup reflects
-        // what's actually on the instance, not what props last sent.
-        lastAppliedRef.current = { option: newOption, opts: finalOpts };
-      } catch (error) {
-        routeImperativeError(error, latestRef.current.onError);
-      }
-    },
-    [getInstance],
-  );
-
-  const dispatchAction = useCallback(
-    (payload: Payload, opt?: boolean | { silent?: boolean; flush?: boolean | undefined }) => {
-      const instance = getInstance();
-      if (!instance) return;
-      try {
-        instance.dispatchAction(payload, opt);
-      } catch (error) {
-        routeImperativeError(error, latestRef.current.onError);
-      }
-    },
-    [getInstance],
-  );
-
-  const clear = useCallback(() => {
-    const instance = getInstance();
-    if (!instance) return;
-    try {
-      instance.clear();
-      // Drop dedup memory: instance is now blank, so a subsequent prop
-      // rerender with a shallow-equal-but-new option ref must re-apply
-      // it instead of being skipped by Effect 2's shallowEqual fast path.
-      lastAppliedRef.current = null;
-    } catch (error) {
-      routeImperativeError(error, latestRef.current.onError);
-    }
-  }, [getInstance]);
-
-  const resize = useCallback(() => {
-    const instance = getInstance();
-    if (!instance) return;
-    try {
-      instance.resize();
-    } catch (error) {
-      routeImperativeError(error, latestRef.current.onError);
-    }
-  }, [getInstance]);
-
-  const appendData = useCallback(
-    (params: { seriesIndex: number; data: ArrayLike<unknown> }) => {
-      const instance = getInstance();
-      if (!instance) return;
-      try {
-        instance.appendData(params);
-        // appendData drifts the instance from declarative `option`, same as
-        // clear(): drop dedup memory so the next shallow-equal-new-ref
-        // option prop re-applies setOption to resync.
-        lastAppliedRef.current = null;
-      } catch (error) {
-        routeImperativeError(error, latestRef.current.onError);
-      }
-    },
-    [getInstance],
-  );
 
   // =====================================================================
   // Effect 1: INSTANCE LIFECYCLE (init / recreate / cleanup)
@@ -551,8 +476,95 @@ export function useChartCore(
     }
   }, [getInstance, group]);
 
-  return useMemo(
-    () => ({ getInstance, setOption, dispatchAction, clear, resize, appendData }),
-    [getInstance, setOption, dispatchAction, clear, resize, appendData],
-  );
+  // =====================================================================
+  // Imperative API surface
+  //
+  // All methods follow the "no instance → fallback (undefined / true / false)"
+  // contract. When the instance throws: with onError, route the error and
+  // return the fallback; without onError, rethrow (readers do NOT silently
+  // log-and-default — same policy as setOption / dispatchAction). clear()
+  // and appendData() additionally drop lastAppliedRef so a subsequent
+  // shallow-equal prop rerender re-applies setOption (the instance state
+  // has drifted from props).
+  // =====================================================================
+  return useMemo<ChartCoreReturn>(() => {
+    const withInstance = <T>(fn: (instance: ECharts) => T, fallback: T): T => {
+      const instance = getInstance();
+      if (!instance) return fallback;
+      try {
+        return fn(instance);
+      } catch (error) {
+        routeImperativeError(error, latestRef.current.onError);
+        return fallback;
+      }
+    };
+
+    return {
+      getInstance,
+
+      setOption: (newOption, opts) =>
+        withInstance((instance) => {
+          const finalOpts = { ...latestRef.current.setOptionOpts, ...opts };
+          instance.setOption(newOption, finalOpts);
+          // Keep lastAppliedRef in sync so prop-driven Option-Sync Effect dedup
+          // reflects what's actually on the instance, not what props last sent.
+          lastAppliedRef.current = { option: newOption, opts: finalOpts };
+        }, undefined),
+
+      dispatchAction: (payload, opt) =>
+        withInstance((instance) => instance.dispatchAction(payload, opt), undefined),
+
+      clear: () =>
+        withInstance((instance) => {
+          instance.clear();
+          // Drop dedup memory: instance is now blank, so a subsequent prop
+          // rerender with a shallow-equal-but-new option ref must re-apply
+          // it instead of being skipped by Option-Sync Effect's fast path.
+          lastAppliedRef.current = null;
+        }, undefined),
+
+      resize: (opts) => withInstance((instance) => instance.resize(opts), undefined),
+
+      getOption: () => withInstance((instance) => instance.getOption() as EChartsOption, undefined),
+      getWidth: () => withInstance((instance) => instance.getWidth(), undefined),
+      getHeight: () => withInstance((instance) => instance.getHeight(), undefined),
+      // ECharts' getDom() return is non-nullable, but the post-init contract here
+      // documents `HTMLElement | undefined` (uninit returns undefined). Coerce a
+      // missing return to undefined to keep the type honest if echarts ever
+      // returns something falsy.
+      getDom: () => withInstance((instance) => instance.getDom() ?? undefined, undefined),
+      // No instance → semantically disposed. Errors still route via withInstance,
+      // falling back to true so consumers don't act on a half-broken instance.
+      isDisposed: () => withInstance((instance) => instance.isDisposed(), true),
+      getDataURL: (opts) => withInstance((instance) => instance.getDataURL(opts), undefined),
+      getConnectedDataURL: (opts) =>
+        withInstance((instance) => instance.getConnectedDataURL(opts), undefined),
+      renderToSVGString: (opts) =>
+        withInstance((instance) => instance.renderToSVGString(opts), undefined),
+      getSvgDataURL: () => withInstance((instance) => instance.getSvgDataURL(), undefined),
+      // ECharts' convertToPixel/convertFromPixel are overloaded; passing through
+      // the public widened signature requires `as never` to satisfy the
+      // last-overload-only inference TypeScript performs on overloaded methods.
+      convertToPixel: (finder, value) =>
+        withInstance(
+          (instance) => instance.convertToPixel(finder as never, value as never),
+          undefined,
+        ),
+      convertFromPixel: (finder, value) =>
+        withInstance(
+          (instance) => instance.convertFromPixel(finder as never, value as never),
+          undefined,
+        ),
+      containPixel: (finder, value) =>
+        withInstance((instance) => instance.containPixel(finder, value), false),
+      appendData: (params) =>
+        withInstance((instance) => {
+          instance.appendData(params);
+          // appendData drifts the instance from declarative `option`, same as
+          // clear(): drop dedup memory so the next shallow-equal-new-ref
+          // option prop re-applies setOption to resync.
+          lastAppliedRef.current = null;
+        }, undefined),
+    };
+  }, [getInstance]);
 }
