@@ -151,6 +151,7 @@ interface ChartCoreReturn {
   ) => void;
   clear: () => void;
   resize: () => void;
+  appendData: (params: { seriesIndex: number; data: ArrayLike<unknown> }) => void;
 }
 
 // --- Hook ---
@@ -273,6 +274,10 @@ export function useChartCore(
     if (!instance) return;
     try {
       instance.clear();
+      // Drop dedup memory: instance is now blank, so a subsequent prop
+      // rerender with a shallow-equal-but-new option ref must re-apply
+      // it instead of being skipped by Effect 2's shallowEqual fast path.
+      lastAppliedRef.current = null;
     } catch (error) {
       routeImperativeError(error, latestRef.current.onError);
     }
@@ -287,6 +292,23 @@ export function useChartCore(
       routeImperativeError(error, latestRef.current.onError);
     }
   }, [getInstance]);
+
+  const appendData = useCallback(
+    (params: { seriesIndex: number; data: ArrayLike<unknown> }) => {
+      const instance = getInstance();
+      if (!instance) return;
+      try {
+        instance.appendData(params);
+        // appendData drifts the instance from declarative `option`, same as
+        // clear(): drop dedup memory so the next shallow-equal-new-ref
+        // option prop re-applies setOption to resync.
+        lastAppliedRef.current = null;
+      } catch (error) {
+        routeImperativeError(error, latestRef.current.onError);
+      }
+    },
+    [getInstance],
+  );
 
   // =====================================================================
   // Effect 1: INSTANCE LIFECYCLE (init / recreate / cleanup)
@@ -530,7 +552,7 @@ export function useChartCore(
   }, [getInstance, group]);
 
   return useMemo(
-    () => ({ getInstance, setOption, dispatchAction, clear, resize }),
-    [getInstance, setOption, dispatchAction, clear, resize],
+    () => ({ getInstance, setOption, dispatchAction, clear, resize, appendData }),
+    [getInstance, setOption, dispatchAction, clear, resize, appendData],
   );
 }
