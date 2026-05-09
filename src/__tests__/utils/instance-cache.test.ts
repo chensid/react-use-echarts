@@ -155,6 +155,26 @@ describe("instance-cache utilities", () => {
       expect(getCachedInstance(el2)).toBeUndefined();
     });
 
+    it("should continue clearing remaining instances when one dispose throws", () => {
+      const el1 = document.createElement("div");
+      const el2 = document.createElement("div");
+      const instance1 = createMockInstance();
+      const instance2 = createMockInstance();
+      (instance1.dispose as unknown as ReturnType<typeof vi.fn>).mockImplementation(() => {
+        throw new Error("instance1 dispose failed");
+      });
+
+      setCachedInstance(el1, instance1);
+      setCachedInstance(el2, instance2);
+
+      // Per-instance failure must not strand the rest, and outer finally
+      // resets the cache so subsequent tests start clean.
+      expect(() => clearInstanceCache()).not.toThrow();
+      expect(instance2.dispose).toHaveBeenCalled();
+      expect(getCachedInstance(el1)).toBeUndefined();
+      expect(getCachedInstance(el2)).toBeUndefined();
+    });
+
     it("should leave group memberships before disposing", () => {
       // Without leaveGroup integration, clearInstanceCache disposes instances
       // but leaves stale references in groupRegistry until pruneDisposed runs.

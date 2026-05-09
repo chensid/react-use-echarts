@@ -17,11 +17,10 @@ const groupMembers = new Map<string, Set<ECharts>>();
 
 /**
  * Group IDs we've already called `echarts.connect` for, so we don't redundantly
- * re-connect on every add. Stays populated until `clearGroups`; `removeFromGroup`
- * does not disconnect — `echarts.connectedGroups[id] = true` is harmless when
- * no live chart carries that group.
- * 已经调用过 echarts.connect 的 group ID 集合，避免重复 connect。
- * removeFromGroup 不再 disconnect：echarts 只是个标志位，无实例使用就无副作用。
+ * re-connect on every add. Pruned when the last member leaves the group
+ * (see removeFromGroup) and on `clearGroups`.
+ * 已经调用过 echarts.connect 的 group ID 集合，避免重复 connect；
+ * 最后一个成员离开后由 removeFromGroup 清理。
  */
 const connectedGroupIds = new Set<string>();
 
@@ -75,6 +74,15 @@ export function removeFromGroup(instance: ECharts, groupId: string): void {
 
   if ((instance as EChartsWithGroup).group === groupId) {
     (instance as EChartsWithGroup).group = undefined;
+  }
+
+  // When the last member leaves, drop all bookkeeping for this groupId so
+  // long-lived apps with dynamic group values don't leak module state or
+  // a stale `echarts.connectedGroups[id] = true` flag.
+  if (members.size === 0) {
+    groupMembers.delete(groupId);
+    connectedGroupIds.delete(groupId);
+    echarts.disconnect(groupId);
   }
 }
 

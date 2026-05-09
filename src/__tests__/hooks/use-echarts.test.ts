@@ -790,37 +790,6 @@ describe("useEcharts", () => {
       expect(mockInstance.on).toHaveBeenLastCalledWith("click", "series1", handler, undefined);
     });
 
-    it("should route rebind unbind errors through onError and still bind new handlers", async () => {
-      // off() doesn't throw on real ECharts (zrender Eventful.off is a filter
-      // loop), but routing keeps the rebind path resilient — the new bind
-      // still runs so onEvents stays consistent with props.
-      const element = document.createElement("div");
-      const ref = { current: element };
-      const mockInstance = createMockInstance(element);
-      (echarts.init as ReturnType<typeof vi.fn>).mockReturnValue(mockInstance);
-
-      const handler1 = vi.fn();
-      const handler2 = vi.fn();
-      const unbindError = new Error("rebind off() failed");
-      mockInstance.off.mockImplementation(() => {
-        throw unbindError;
-      });
-
-      const onError = vi.fn();
-      const { rerender } = renderHook(
-        ({ handler }) =>
-          useEcharts(ref, { option: baseOption, onEvents: { click: { handler } }, onError }),
-        { initialProps: { handler: handler1 } },
-      );
-
-      rerender({ handler: handler2 });
-
-      await waitFor(() => {
-        expect(onError).toHaveBeenCalledWith(unbindError);
-        expect(mockInstance.on).toHaveBeenCalledWith("click", handler2, undefined);
-      });
-    });
-
     it("should still release the cached instance when cleanup unbind throws", () => {
       // Cleanup correctness: unbind throwing must not skip release. off()
       // doesn't throw on real ECharts, but the structural try/catch +

@@ -84,17 +84,35 @@ describe("connect utilities", () => {
       expect(instance2.group).toBe("group1");
     });
 
-    it("should not disconnect when removing instances", () => {
-      // Stale `connectedGroups[id] = true` is harmless once no live chart
-      // carries that group; only `clearGroups` (test/teardown) disconnects.
+    it("should not disconnect while other members remain", () => {
+      const instance1 = createMockInstance();
+      const instance2 = createMockInstance();
+
+      addToGroup(instance1, "group1");
+      addToGroup(instance2, "group1");
+      vi.clearAllMocks();
+      removeFromGroup(instance1, "group1");
+
+      expect(echarts.disconnect).not.toHaveBeenCalled();
+      expect(getGroupInstances("group1")).toContain(instance2);
+    });
+
+    it("should disconnect and drop bookkeeping when the last member leaves", () => {
+      // Long-lived apps with dynamic group ids would otherwise leak entries
+      // in groupMembers + connectedGroupIds + echarts.connectedGroups[id].
       const instance = createMockInstance();
 
       addToGroup(instance, "group1");
       vi.clearAllMocks();
       removeFromGroup(instance, "group1");
 
-      expect(echarts.disconnect).not.toHaveBeenCalled();
+      expect(echarts.disconnect).toHaveBeenCalledWith("group1");
       expect(getGroupInstances("group1")).toHaveLength(0);
+
+      // Re-adding to the same id reconnects (the group was fully cleaned up).
+      const instance2 = createMockInstance();
+      addToGroup(instance2, "group1");
+      expect(echarts.connect).toHaveBeenCalledWith("group1");
     });
 
     it("should handle removing from non-existent group", () => {

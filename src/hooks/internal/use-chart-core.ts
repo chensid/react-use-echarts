@@ -374,11 +374,15 @@ export function useChartCore(
     // and ignores query/context, so a same-handler rebind (query A → query B)
     // must unbind the old binding BEFORE the new one is registered — otherwise
     // the off call would remove the freshly-bound handler too.
-    try {
-      unbindEvents(instance, lastBoundRef.current);
-    } catch (error) {
-      routeEffectError(error, "ECharts event unbind failed:", latestRef.current.onError);
-    }
+    //
+    // off() is bare here (no try/catch): zrender Eventful.off is a filter loop
+    // that cannot throw on a real instance. Adding a single-handler "current"
+    // ref + try/catch route would imply we tracked failed unbinds and retried
+    // them — which we deliberately don't (would require the queue this module
+    // removed). Leaving off() bare keeps the contract honest: if ECharts
+    // somehow broke this invariant, the rebind effect surfaces the throw
+    // instead of silently leaking an old listener.
+    unbindEvents(instance, lastBoundRef.current);
     try {
       bindEvents(instance, onEvents);
     } catch (error) {

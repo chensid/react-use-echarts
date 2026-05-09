@@ -123,11 +123,21 @@ export function getReferenceCount(element: HTMLElement): number {
  * 清除所有缓存实例，dispose 所有仍存活的实例。
  */
 export function clearInstanceCache(): void {
-  for (const element of trackedElements) {
-    // trackedElements and instanceCache are always in sync,
-    // so the entry is guaranteed to exist here.
-    performDispose(instanceCache.get(element)!.instance);
+  // Best-effort: a single performDispose failure must not strand the rest,
+  // and the outer finally guarantees the cache resets so test isolation
+  // holds even if an instance throws while disposing.
+  try {
+    for (const element of trackedElements) {
+      try {
+        // trackedElements and instanceCache are always in sync,
+        // so the entry is guaranteed to exist here.
+        performDispose(instanceCache.get(element)!.instance);
+      } catch {
+        // Swallow per-instance failure; continue disposing remaining entries.
+      }
+    }
+  } finally {
+    trackedElements.clear();
+    instanceCache = new WeakMap<HTMLElement, CacheEntry>();
   }
-  trackedElements.clear();
-  instanceCache = new WeakMap<HTMLElement, CacheEntry>();
 }

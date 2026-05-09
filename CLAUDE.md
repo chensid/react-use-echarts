@@ -44,7 +44,7 @@ src/
 │   └── presets/                # Built-in theme JSON (light/dark/macarons)
 ├── utils/
 │   ├── instance-cache.ts       # WeakMap instance cache + reference counting (warns on mismatched setCachedInstance)
-│   ├── connect.ts              # Chart group linkage logic (one connect() per groupId; only clearGroups disconnects)
+│   ├── connect.ts              # Chart group linkage logic (one connect() per groupId; disconnect when last member leaves)
 │   ├── shallow-equal.ts        # Shallow equality for option / setOptionOpts / loadingOption deduplication
 │   ├── stable-key.ts           # Stable dependency keys via JSON.stringify (returns null when not serializable)
 │   └── dev-warnings.ts         # Shared dev-mode warning sets (unknown theme, zero-size container)
