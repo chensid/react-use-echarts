@@ -96,9 +96,15 @@ export function releaseCachedInstance(element: HTMLElement): void {
   entry.refCount -= 1;
 
   if (entry.refCount <= 0) {
-    performDispose(entry.instance);
-    instanceCache.delete(element);
-    trackedElements.delete(element);
+    // Cache bookkeeping must run even if dispose unexpectedly throws —
+    // otherwise a stale entry would survive and the next mount could reuse
+    // a broken instance.
+    try {
+      performDispose(entry.instance);
+    } finally {
+      instanceCache.delete(element);
+      trackedElements.delete(element);
+    }
   }
 }
 

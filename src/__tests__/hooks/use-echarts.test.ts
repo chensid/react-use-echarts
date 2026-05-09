@@ -492,6 +492,55 @@ describe("useEcharts", () => {
         expect(mockInstance.showLoading).toHaveBeenLastCalledWith(optionB);
       });
     });
+
+    it("should route loading toggle errors through onError", async () => {
+      // showLoading can throw via user-registered custom loading types
+      // (echarts.registerLoading('name', renderFn) — renderFn under user control).
+      const element = document.createElement("div");
+      const ref = { current: element };
+      const mockInstance = createMockInstance(element);
+      const loadingError = new Error("custom loading renderer threw");
+      mockInstance.showLoading.mockImplementation(() => {
+        throw loadingError;
+      });
+      (echarts.init as ReturnType<typeof vi.fn>).mockReturnValue(mockInstance);
+
+      const onError = vi.fn();
+      const { rerender } = renderHook<ReturnType<typeof useEcharts>, { showLoading: boolean }>(
+        ({ showLoading }) => useEcharts(ref, { option: baseOption, showLoading, onError }),
+        { initialProps: { showLoading: false } },
+      );
+
+      rerender({ showLoading: true });
+
+      await waitFor(() => {
+        expect(onError).toHaveBeenCalledWith(loadingError);
+      });
+    });
+
+    it("should route initial showLoading errors through onError without breaking cleanup", () => {
+      const element = document.createElement("div");
+      const ref = { current: element };
+      const mockInstance = createMockInstance(element);
+      const loadingError = new Error("initial showLoading failed");
+      mockInstance.showLoading.mockImplementation(() => {
+        throw loadingError;
+      });
+      (echarts.init as ReturnType<typeof vi.fn>).mockReturnValue(mockInstance);
+
+      const onError = vi.fn();
+      const { unmount } = renderHook(() =>
+        useEcharts(ref, { option: baseOption, showLoading: true, onError }),
+      );
+
+      // A bare throw in the lifecycle effect would skip the cleanup return
+      // and leak the cached instance. Routing through onError keeps the
+      // return reachable so unmount can dispose.
+      expect(onError).toHaveBeenCalledWith(loadingError);
+
+      unmount();
+      expect(mockInstance.dispose).toHaveBeenCalled();
+    });
   });
 
   describe("event handling", () => {
@@ -739,6 +788,84 @@ describe("useEcharts", () => {
       });
       expect(mockInstance.off).toHaveBeenLastCalledWith("click", handler);
       expect(mockInstance.on).toHaveBeenLastCalledWith("click", "series1", handler, undefined);
+    });
+
+    it("should route rebind unbind errors through onError and still bind new handlers", async () => {
+      // off() doesn't throw on real ECharts (zrender Eventful.off is a filter
+      // loop), but routing keeps the rebind path resilient — the new bind
+      // still runs so onEvents stays consistent with props.
+      const element = document.createElement("div");
+      const ref = { current: element };
+      const mockInstance = createMockInstance(element);
+      (echarts.init as ReturnType<typeof vi.fn>).mockReturnValue(mockInstance);
+
+      const handler1 = vi.fn();
+      const handler2 = vi.fn();
+      const unbindError = new Error("rebind off() failed");
+      mockInstance.off.mockImplementation(() => {
+        throw unbindError;
+      });
+
+      const onError = vi.fn();
+      const { rerender } = renderHook(
+        ({ handler }) =>
+          useEcharts(ref, { option: baseOption, onEvents: { click: { handler } }, onError }),
+        { initialProps: { handler: handler1 } },
+      );
+
+      rerender({ handler: handler2 });
+
+      await waitFor(() => {
+        expect(onError).toHaveBeenCalledWith(unbindError);
+        expect(mockInstance.on).toHaveBeenCalledWith("click", handler2, undefined);
+      });
+    });
+
+    it("should still release the cached instance when cleanup unbind throws", () => {
+      // Cleanup correctness: unbind throwing must not skip release. off()
+      // doesn't throw on real ECharts, but the structural try/catch +
+      // try/finally guarantees release happens regardless.
+      const element = document.createElement("div");
+      const ref = { current: element };
+      const mockInstance = createMockInstance(element);
+      (echarts.init as ReturnType<typeof vi.fn>).mockReturnValue(mockInstance);
+
+      const unbindError = new Error("cleanup off() failed");
+      mockInstance.off.mockImplementation(() => {
+        throw unbindError;
+      });
+
+      const onError = vi.fn();
+      const { unmount } = renderHook(() =>
+        useEcharts(ref, { option: baseOption, onEvents: { click: () => {} }, onError }),
+      );
+
+      expect(() => unmount()).not.toThrow();
+      expect(onError).toHaveBeenCalledWith(unbindError);
+      expect(mockInstance.dispose).toHaveBeenCalled();
+    });
+
+    it("should route release failures through onError without breaking unmount", () => {
+      // releaseCachedInstance propagates leaveGroup/dispose failures so
+      // callers can route them. Hook cleanup wraps the call so a thrown
+      // error doesn't disrupt React commit at unmount.
+      const element = document.createElement("div");
+      const ref = { current: element };
+      const mockInstance = createMockInstance(element);
+      const disposeError = new Error("dispose failed");
+      mockInstance.dispose.mockImplementation(() => {
+        throw disposeError;
+      });
+      (echarts.init as ReturnType<typeof vi.fn>).mockReturnValue(mockInstance);
+
+      const onError = vi.fn();
+      const { unmount } = renderHook(() => useEcharts(ref, { option: baseOption, onError }));
+
+      expect(() => unmount()).not.toThrow();
+      expect(onError).toHaveBeenCalledWith(disposeError);
+      // Cache bookkeeping ran inside instance-cache's finally even though
+      // dispose threw, so the entry is gone.
+      expect(getCachedInstance(element)).toBeUndefined();
     });
   });
 

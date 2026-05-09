@@ -72,7 +72,9 @@ function resolveThemeName(
     return theme;
   }
   if (typeof theme !== "object") return null;
-  return getOrRegisterCustomTheme(theme, themeKey ?? undefined);
+  // computeStableKey returns non-null for any object (JSON string or per-ref
+  // fallback id), so themeKey is guaranteed populated on this branch.
+  return getOrRegisterCustomTheme(theme, themeKey!);
 }
 
 function warnZeroSizeContainer(element: HTMLElement): void {
@@ -274,13 +276,18 @@ export function useChartCore(
       routeEffectError(error, "ECharts setOption failed:", latest.onError);
     }
 
-    if (latest.showLoading) {
-      instance.showLoading(latest.loadingOption);
+    // showLoading can throw via user-registered custom loading types.
+    try {
+      if (latest.showLoading) {
+        instance.showLoading(latest.loadingOption);
+      }
+      lastLoadingRef.current = {
+        showLoading: latest.showLoading,
+        loadingOption: latest.loadingOption,
+      };
+    } catch (error) {
+      routeEffectError(error, "ECharts loading toggle failed:", latest.onError);
     }
-    lastLoadingRef.current = {
-      showLoading: latest.showLoading,
-      loadingOption: latest.loadingOption,
-    };
 
     // Track for cleanup regardless of partial bind failure so off() can still
     // be attempted on any handlers that did get bound.
@@ -302,9 +309,25 @@ export function useChartCore(
       const inst = getCachedInstance(element);
       if (!inst) return;
 
-      unbindEvents(inst, lastBoundRef.current);
-      lastBoundRef.current = undefined;
-      releaseCachedInstance(element);
+      // Cleanup correctness is critical: release MUST run on unmount or the
+      // instance leaks. unbind itself doesn't throw on real ECharts (zrender
+      // Eventful.off is a filter loop), and the same is true for dispose, but
+      // try/catch + try/finally guards against either misbehaving and ensures
+      // an effect-cleanup throw never disrupts React commit.
+      try {
+        try {
+          unbindEvents(inst, lastBoundRef.current);
+        } catch (error) {
+          routeEffectError(error, "ECharts event unbind failed:", latestRef.current.onError);
+        }
+      } finally {
+        lastBoundRef.current = undefined;
+        try {
+          releaseCachedInstance(element);
+        } catch (error) {
+          routeEffectError(error, "ECharts release failed:", latestRef.current.onError);
+        }
+      }
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps -- latest config values are read from refs; only structural deps trigger re-init
   }, [shouldInit, element, themeKey, renderer, initOptsKey]);
@@ -351,7 +374,11 @@ export function useChartCore(
     // and ignores query/context, so a same-handler rebind (query A → query B)
     // must unbind the old binding BEFORE the new one is registered — otherwise
     // the off call would remove the freshly-bound handler too.
-    unbindEvents(instance, lastBoundRef.current);
+    try {
+      unbindEvents(instance, lastBoundRef.current);
+    } catch (error) {
+      routeEffectError(error, "ECharts event unbind failed:", latestRef.current.onError);
+    }
     try {
       bindEvents(instance, onEvents);
     } catch (error) {
@@ -376,12 +403,16 @@ export function useChartCore(
     if (last && last.showLoading === showLoading && shallowEqual(last.loadingOption, loadingOption))
       return;
 
-    if (showLoading) {
-      instance.showLoading(loadingOption);
-    } else {
-      instance.hideLoading();
+    try {
+      if (showLoading) {
+        instance.showLoading(loadingOption);
+      } else {
+        instance.hideLoading();
+      }
+      lastLoadingRef.current = { showLoading, loadingOption };
+    } catch (error) {
+      routeEffectError(error, "ECharts loading toggle failed:", latestRef.current.onError);
     }
-    lastLoadingRef.current = { showLoading, loadingOption };
   }, [getInstance, showLoading, loadingOption]);
 
   // =====================================================================

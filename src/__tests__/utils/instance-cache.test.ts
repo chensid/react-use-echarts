@@ -118,6 +118,23 @@ describe("instance-cache utilities", () => {
       releaseCachedInstance(element);
       expect(getReferenceCount(element)).toBe(0);
     });
+
+    it("should clear cache bookkeeping in finally even when dispose throws", () => {
+      // dispose doesn't throw on real ECharts, but cache bookkeeping is a
+      // critical invariant — a stale entry would let later mounts reuse a
+      // half-disposed instance.
+      const element = document.createElement("div");
+      const instance = createMockInstance();
+      (instance.dispose as unknown as ReturnType<typeof vi.fn>).mockImplementation(() => {
+        throw new Error("dispose failed");
+      });
+
+      setCachedInstance(element, instance);
+
+      expect(() => releaseCachedInstance(element)).toThrow("dispose failed");
+      expect(getCachedInstance(element)).toBeUndefined();
+      expect(getReferenceCount(element)).toBe(0);
+    });
   });
 
   describe("clearInstanceCache", () => {
