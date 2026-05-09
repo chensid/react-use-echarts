@@ -74,16 +74,11 @@ export function setCachedInstance(element: HTMLElement, instance: ECharts): ECha
  * Centralized so all dispose entry points (releaseCachedInstance,
  * clearInstanceCache) drop group ownership before tearing down — otherwise
  * groupRegistry holds stale references that only get pruned lazily.
- * `try/finally` ensures `instance.dispose()` runs even if leaveGroup throws,
- * since an alive-but-orphaned instance is worse than a stale group entry.
  * 集中表达"离组 + dispose"协议，避免 groupRegistry 残留过期引用。
  */
 function performDispose(instance: ECharts): void {
-  try {
-    leaveGroup(instance);
-  } finally {
-    instance.dispose();
-  }
+  leaveGroup(instance);
+  instance.dispose();
 }
 
 /**
@@ -101,15 +96,9 @@ export function releaseCachedInstance(element: HTMLElement): void {
   entry.refCount -= 1;
 
   if (entry.refCount <= 0) {
-    // Cache bookkeeping must run even if dispose throws — otherwise
-    // trackedElements would carry a stale reference that the next clear
-    // tries to performDispose again.
-    try {
-      performDispose(entry.instance);
-    } finally {
-      instanceCache.delete(element);
-      trackedElements.delete(element);
-    }
+    performDispose(entry.instance);
+    instanceCache.delete(element);
+    trackedElements.delete(element);
   }
 }
 
@@ -128,20 +117,11 @@ export function getReferenceCount(element: HTMLElement): number {
  * 清除所有缓存实例，dispose 所有仍存活的实例。
  */
 export function clearInstanceCache(): void {
-  // Best-effort per instance: a single failure must not strand the rest, and
-  // the outer `finally` guarantees the cache resets so test isolation holds.
-  try {
-    for (const element of trackedElements) {
-      try {
-        // trackedElements and instanceCache are always in sync,
-        // so the entry is guaranteed to exist here.
-        performDispose(instanceCache.get(element)!.instance);
-      } catch {
-        // Swallow per-instance failure; continue disposing remaining entries.
-      }
-    }
-  } finally {
-    trackedElements.clear();
-    instanceCache = new WeakMap<HTMLElement, CacheEntry>();
+  for (const element of trackedElements) {
+    // trackedElements and instanceCache are always in sync,
+    // so the entry is guaranteed to exist here.
+    performDispose(instanceCache.get(element)!.instance);
   }
+  trackedElements.clear();
+  instanceCache = new WeakMap<HTMLElement, CacheEntry>();
 }

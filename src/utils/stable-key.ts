@@ -6,27 +6,11 @@
  * 避免内联对象触发不必要的 effect 重跑。
  */
 
-const CIRCULAR_PREFIX = "__circular_";
-
-// Stable IDs for objects that cannot be JSON-serialized (e.g. circular references).
-// Each object gets a unique string via crypto.randomUUID, stored in a WeakMap so
-// the same object consistently maps to the same id.
-const circularObjectIds = new WeakMap<object, string>();
-
-function getCircularObjectId(obj: object): string {
-  let id = circularObjectIds.get(obj);
-  if (!id) {
-    id = `${CIRCULAR_PREFIX}${crypto.randomUUID()}`;
-    circularObjectIds.set(obj, id);
-  }
-  return id;
-}
-
 /**
  * Compute a stable identity key for a value.
  * Strings pass through; numbers coerce via `String(...)`; objects are
- * JSON-serialized (circular ones fall back to a WeakMap-assigned id);
- * nullish and other unsupported types return null.
+ * JSON-serialized; nullish, unsupported primitives, and values that cannot
+ * be JSON-serialized (circular refs, BigInt) all return null.
  */
 export function computeStableKey(value: unknown): string | null {
   if (value == null) return null;
@@ -36,14 +20,6 @@ export function computeStableKey(value: unknown): string | null {
   try {
     return JSON.stringify(value);
   } catch {
-    return getCircularObjectId(value);
+    return null;
   }
-}
-
-/**
- * Whether `key` is a WeakMap-assigned fallback id produced for a circular object.
- * Callers use this to decide whether the key carries serializable content.
- */
-export function isCircularFallbackKey(key: string): boolean {
-  return key.startsWith(CIRCULAR_PREFIX);
 }
