@@ -452,11 +452,7 @@ export function useChartCore(
       getOption: () => withInstance((instance) => instance.getOption() as EChartsOption, undefined),
       getWidth: () => withInstance((instance) => instance.getWidth(), undefined),
       getHeight: () => withInstance((instance) => instance.getHeight(), undefined),
-      // ECharts' getDom() return is non-nullable, but the post-init contract here
-      // documents `HTMLElement | undefined` (uninit returns undefined). Coerce a
-      // missing return to undefined to keep the type honest if echarts ever
-      // returns something falsy.
-      getDom: () => withInstance((instance) => instance.getDom() ?? undefined, undefined),
+      getDom: () => withInstance((instance) => instance.getDom(), undefined),
       // No instance → semantically disposed. Errors still route via withInstance,
       // falling back to true so consumers don't act on a half-broken instance.
       isDisposed: () => withInstance((instance) => instance.isDisposed(), true),
