@@ -494,12 +494,12 @@ describe("useEcharts", () => {
     });
 
     it("should route loading toggle errors through onError", async () => {
+      // showLoading can throw via user-registered custom loading types
+      // (echarts.registerLoading('name', renderFn) — renderFn under user control).
       const element = document.createElement("div");
       const ref = { current: element };
       const mockInstance = createMockInstance(element);
-      const loadingError = new Error("showLoading failed");
-      // Lifecycle effect's initial showLoading=false won't fire; only the
-      // dynamic toggle in the LOADING-TOGGLE effect reaches the wrapped path.
+      const loadingError = new Error("custom loading renderer threw");
       mockInstance.showLoading.mockImplementation(() => {
         throw loadingError;
       });
@@ -508,9 +508,7 @@ describe("useEcharts", () => {
       const onError = vi.fn();
       const { rerender } = renderHook<ReturnType<typeof useEcharts>, { showLoading: boolean }>(
         ({ showLoading }) => useEcharts(ref, { option: baseOption, showLoading, onError }),
-        {
-          initialProps: { showLoading: false },
-        },
+        { initialProps: { showLoading: false } },
       );
 
       rerender({ showLoading: true });
@@ -535,11 +533,11 @@ describe("useEcharts", () => {
         useEcharts(ref, { option: baseOption, showLoading: true, onError }),
       );
 
-      // Init's bare showLoading would have thrown out of the layout effect —
-      // now it routes through onError, leaving the cleanup return intact.
+      // A bare throw in the lifecycle effect would skip the cleanup return
+      // and leak the cached instance. Routing through onError keeps the
+      // return reachable so unmount can dispose.
       expect(onError).toHaveBeenCalledWith(loadingError);
 
-      // Cleanup must still register: unmount disposes without leaking the instance.
       unmount();
       expect(mockInstance.dispose).toHaveBeenCalled();
     });
@@ -725,111 +723,7 @@ describe("useEcharts", () => {
       expect(mockInstance.off).toHaveBeenCalledWith("click", handler1);
     });
 
-    it("should route dynamic rebind unbind errors through onError and still bind new handlers", async () => {
-      const element = document.createElement("div");
-      const ref = { current: element };
-      const mockInstance = createMockInstance(element);
-      (echarts.init as ReturnType<typeof vi.fn>).mockReturnValue(mockInstance);
-
-      const handler1 = vi.fn();
-      const handler2 = vi.fn();
-      const unbindError = new Error("rebind off() failed");
-
-      mockInstance.off.mockImplementation(() => {
-        throw unbindError;
-      });
-
-      const onError = vi.fn();
-      const { rerender } = renderHook(
-        ({ handler }) =>
-          useEcharts(ref, { option: baseOption, onEvents: { click: { handler } }, onError }),
-        { initialProps: { handler: handler1 } },
-      );
-
-      rerender({ handler: handler2 });
-
-      await waitFor(() => {
-        expect(onError).toHaveBeenCalledWith(unbindError);
-        // Bind path still runs after a unbind throw.
-        expect(mockInstance.on).toHaveBeenCalledWith("click", handler2, undefined);
-      });
-    });
-
-    it("should release cached instance even when cleanup unbind throws", () => {
-      const element = document.createElement("div");
-      const ref = { current: element };
-      const mockInstance = createMockInstance(element);
-      (echarts.init as ReturnType<typeof vi.fn>).mockReturnValue(mockInstance);
-
-      const unbindError = new Error("cleanup off() failed");
-      mockInstance.off.mockImplementation(() => {
-        throw unbindError;
-      });
-
-      const onError = vi.fn();
-      const { unmount } = renderHook(() =>
-        useEcharts(ref, {
-          option: baseOption,
-          onEvents: { click: () => {} },
-          onError,
-        }),
-      );
-
-      unmount();
-
-      expect(onError).toHaveBeenCalledWith(unbindError);
-      // refCount/dispose/group cleanup must all still happen.
-      expect(mockInstance.dispose).toHaveBeenCalled();
-    });
-
-    it("should not double-bind when toggling back to a previously-pending event map", async () => {
-      // Rapid toggle: off(A) throws so A stays in pending; user toggles back to
-      // A (same ref). Re-binding A would register handlers twice — the
-      // alreadyPending check must short-circuit and only off the in-between map.
-      const element = document.createElement("div");
-      const ref = { current: element };
-      const mockInstance = createMockInstance(element);
-      (echarts.init as ReturnType<typeof vi.fn>).mockReturnValue(mockInstance);
-
-      const handlerA = vi.fn();
-      const handlerB = vi.fn();
-      const eventsA = { click: handlerA };
-      const eventsB = { click: handlerB };
-
-      // off throws on the first call (when unbinding A) so A stays pending.
-      let offCallCount = 0;
-      mockInstance.off.mockImplementation(() => {
-        offCallCount += 1;
-        if (offCallCount === 1) throw new Error("first off failed");
-      });
-
-      const onError = vi.fn();
-      const { rerender } = renderHook(
-        ({ events }) => useEcharts(ref, { option: baseOption, onEvents: events, onError }),
-        {
-          initialProps: { events: eventsA },
-        },
-      );
-
-      // Toggle to B: off(A) throws, on(B) succeeds. pending = [A, B].
-      rerender({ events: eventsB });
-      await waitFor(() => {
-        expect(mockInstance.on).toHaveBeenCalledWith("click", handlerB, undefined);
-      });
-
-      mockInstance.on.mockClear();
-      mockInstance.off.mockClear();
-
-      // Toggle back to A (same reference): bind must NOT fire again, and B
-      // gets off()'d cleanly.
-      rerender({ events: eventsA });
-      await waitFor(() => {
-        expect(mockInstance.off).toHaveBeenCalledWith("click", handlerB);
-      });
-      expect(mockInstance.on).not.toHaveBeenCalled();
-    });
-
-    it("should clear pending events when onEvents transitions to undefined", async () => {
+    it("should clear bound events when onEvents transitions to undefined", async () => {
       const element = document.createElement("div");
       const ref = { current: element };
       const mockInstance = createMockInstance(element);
@@ -843,8 +737,8 @@ describe("useEcharts", () => {
         { initialProps: { events: { click: handler } as { click: typeof handler } | undefined } },
       );
 
-      // Drop onEvents — must off the previously-bound handler and leave the
-      // pending list empty so cleanup is a no-op.
+      // Drop onEvents — must off the previously-bound handler so cleanup
+      // becomes a no-op afterward.
       rerender({ events: undefined });
       await waitFor(() => {
         expect(mockInstance.off).toHaveBeenCalledWith("click", handler);
@@ -852,57 +746,8 @@ describe("useEcharts", () => {
 
       mockInstance.off.mockClear();
       unmount();
-      // Cleanup with empty pending list shouldn't make any more off() calls.
+      // Cleanup with nothing bound shouldn't make any more off() calls.
       expect(mockInstance.off).not.toHaveBeenCalled();
-    });
-
-    it("should not double-bind when toggling back to a semantically-equal inline event map", async () => {
-      // Reviewer scenario: rebind unbind throws so the old map stays pending.
-      // User then passes a new inline event map that's structurally equal to
-      // the pending one (same handler/query/context, different reference).
-      // Reference-only includes() would miss this and re-bind, doubling the
-      // handler. Semantic dedup via eventsEqual must short-circuit the bind.
-      const element = document.createElement("div");
-      const ref = { current: element };
-      const mockInstance = createMockInstance(element);
-      (echarts.init as ReturnType<typeof vi.fn>).mockReturnValue(mockInstance);
-
-      const handlerA = vi.fn();
-      const handlerB = vi.fn();
-      const eventsA1 = { click: handlerA };
-
-      // off throws on the first call (when unbinding A1).
-      let offCallCount = 0;
-      mockInstance.off.mockImplementation(() => {
-        offCallCount += 1;
-        if (offCallCount === 1) throw new Error("first off failed");
-      });
-
-      const onError = vi.fn();
-      const { rerender } = renderHook(
-        ({ events }) => useEcharts(ref, { option: baseOption, onEvents: events, onError }),
-        { initialProps: { events: eventsA1 as Record<string, typeof handlerA> } },
-      );
-
-      // Toggle to B: off(A1) throws → A1 stays pending. on(handlerB).
-      rerender({ events: { click: handlerB } });
-      await waitFor(() => {
-        expect(mockInstance.on).toHaveBeenCalledWith("click", handlerB, undefined);
-      });
-
-      mockInstance.on.mockClear();
-
-      // Toggle to a NEW inline event map that's semantically equal to A1
-      // (same handlerA reference, no query/context). Must NOT trigger another
-      // bind — otherwise handlerA would get registered twice.
-      const eventsA2 = { click: handlerA };
-      rerender({ events: eventsA2 });
-
-      await waitFor(() => {
-        // B should still get off()'d cleanly during this rebind.
-        expect(mockInstance.off).toHaveBeenCalledWith("click", handlerB);
-      });
-      expect(mockInstance.on).not.toHaveBeenCalled();
     });
 
     it("should unbind old events before binding when the handler reference is reused", async () => {
@@ -945,50 +790,51 @@ describe("useEcharts", () => {
       expect(mockInstance.on).toHaveBeenLastCalledWith("click", "series1", handler, undefined);
     });
 
-    it("should retry off() on previously-failed unbind targets at cleanup", async () => {
-      // Scenario: rebind unbind throws → cleanup must still try to off the
-      // OLD handler so it doesn't leak. A single "currently-bound" ref would
-      // forget the old map after the rebind; the pending list keeps both alive.
+    it("should still release the cached instance when cleanup unbind throws", () => {
+      // Cleanup correctness: unbind throwing must not skip release. off()
+      // doesn't throw on real ECharts, but the structural try/catch +
+      // try/finally guarantees release happens regardless.
       const element = document.createElement("div");
       const ref = { current: element };
       const mockInstance = createMockInstance(element);
       (echarts.init as ReturnType<typeof vi.fn>).mockReturnValue(mockInstance);
 
-      const oldHandler = vi.fn();
-      const newHandler = vi.fn();
-
-      // off throws once during the rebind, succeeds on subsequent calls.
-      let offCallCount = 0;
-      const rebindError = new Error("rebind off failed");
+      const unbindError = new Error("cleanup off() failed");
       mockInstance.off.mockImplementation(() => {
-        offCallCount += 1;
-        if (offCallCount === 1) throw rebindError;
+        throw unbindError;
       });
 
       const onError = vi.fn();
-      const { rerender, unmount } = renderHook(
-        ({ handler }) =>
-          useEcharts(ref, { option: baseOption, onEvents: { click: handler }, onError }),
-        { initialProps: { handler: oldHandler } },
+      const { unmount } = renderHook(() =>
+        useEcharts(ref, { option: baseOption, onEvents: { click: () => {} }, onError }),
       );
 
-      // Trigger rebind: off(oldHandler) throws, on(newHandler) succeeds.
-      rerender({ handler: newHandler });
-
-      await waitFor(() => {
-        expect(onError).toHaveBeenCalledWith(rebindError);
-      });
-
-      mockInstance.off.mockClear();
-
-      // Cleanup must off both old AND new handlers — old is still pending
-      // because its unbind failed.
-      unmount();
-
-      const offCalls = mockInstance.off.mock.calls;
-      expect(offCalls).toContainEqual(["click", oldHandler]);
-      expect(offCalls).toContainEqual(["click", newHandler]);
+      expect(() => unmount()).not.toThrow();
+      expect(onError).toHaveBeenCalledWith(unbindError);
       expect(mockInstance.dispose).toHaveBeenCalled();
+    });
+
+    it("should route release failures through onError without breaking unmount", () => {
+      // releaseCachedInstance propagates leaveGroup/dispose failures so
+      // callers can route them. Hook cleanup wraps the call so a thrown
+      // error doesn't disrupt React commit at unmount.
+      const element = document.createElement("div");
+      const ref = { current: element };
+      const mockInstance = createMockInstance(element);
+      const disposeError = new Error("dispose failed");
+      mockInstance.dispose.mockImplementation(() => {
+        throw disposeError;
+      });
+      (echarts.init as ReturnType<typeof vi.fn>).mockReturnValue(mockInstance);
+
+      const onError = vi.fn();
+      const { unmount } = renderHook(() => useEcharts(ref, { option: baseOption, onError }));
+
+      expect(() => unmount()).not.toThrow();
+      expect(onError).toHaveBeenCalledWith(disposeError);
+      // Cache bookkeeping ran inside instance-cache's finally even though
+      // dispose threw, so the entry is gone.
+      expect(getCachedInstance(element)).toBeUndefined();
     });
   });
 
@@ -1108,67 +954,6 @@ describe("useEcharts", () => {
       });
 
       globalThis.IntersectionObserver = originalIntersectionObserver;
-    });
-
-    it("should route group switch errors through onError", async () => {
-      // ECharts assigns instance.group via setter under the hood (connect.ts:65/85).
-      // Simulate a throw at that layer by trapping property assignment.
-      const element = document.createElement("div");
-      const ref = { current: element };
-      const mockInstance = createMockInstance(element);
-      const groupError = new Error("group switch failed");
-      const proxied = new Proxy(mockInstance, {
-        set(target, prop, value) {
-          if (prop === "group" && value === "groupB") {
-            throw groupError;
-          }
-          (target as Record<string | symbol, unknown>)[prop as string] = value;
-          return true;
-        },
-      });
-      (echarts.init as ReturnType<typeof vi.fn>).mockReturnValue(proxied);
-
-      const onError = vi.fn();
-      const { rerender } = renderHook(
-        ({ group }) => useEcharts(ref, { option: baseOption, group, onError }),
-        { initialProps: { group: "groupA" } },
-      );
-
-      rerender({ group: "groupB" });
-
-      await waitFor(() => {
-        expect(onError).toHaveBeenCalledWith(groupError);
-      });
-    });
-
-    it("should route initial group assignment errors through onError without breaking cleanup", () => {
-      const element = document.createElement("div");
-      const ref = { current: element };
-      const mockInstance = createMockInstance(element);
-      const groupError = new Error("initial group assign failed");
-      const proxied = new Proxy(mockInstance, {
-        set(target, prop, value) {
-          if (prop === "group" && value === "initialGroup") {
-            throw groupError;
-          }
-          (target as Record<string | symbol, unknown>)[prop as string] = value;
-          return true;
-        },
-      });
-      (echarts.init as ReturnType<typeof vi.fn>).mockReturnValue(proxied);
-
-      const onError = vi.fn();
-      const { unmount } = renderHook(() =>
-        useEcharts(ref, { option: baseOption, group: "initialGroup", onError }),
-      );
-
-      // Init's bare updateGroup would have thrown out of the layout effect —
-      // now it routes through onError, leaving the cleanup return intact.
-      expect(onError).toHaveBeenCalledWith(groupError);
-
-      // Cleanup must still register: unmount disposes without leaking.
-      unmount();
-      expect(mockInstance.dispose).toHaveBeenCalled();
     });
   });
 
@@ -1915,30 +1700,6 @@ describe("useEcharts", () => {
       renderHook(() => useEcharts(ref, { option: baseOption }));
 
       expect(getCachedInstance(element)).toBe(mockInstance);
-    });
-
-    it("should route release failures through onError without breaking unmount", () => {
-      // releaseCachedInstance now propagates leaveGroup/dispose failures so
-      // callers can route them. The hook cleanup runs inside a layout effect,
-      // where a thrown error would disrupt React commit — it must catch and
-      // route the failure like any other effect-side error.
-      const element = document.createElement("div");
-      const ref = { current: element };
-      const mockInstance = createMockInstance(element);
-      const disposeError = new Error("dispose failed");
-      mockInstance.dispose.mockImplementation(() => {
-        throw disposeError;
-      });
-      (echarts.init as ReturnType<typeof vi.fn>).mockReturnValue(mockInstance);
-
-      const onError = vi.fn();
-      const { unmount } = renderHook(() => useEcharts(ref, { option: baseOption, onError }));
-
-      expect(() => unmount()).not.toThrow();
-      expect(onError).toHaveBeenCalledWith(disposeError);
-      // Cache bookkeeping ran inside instance-cache's own finally, so the
-      // entry is gone even though dispose itself threw.
-      expect(getCachedInstance(element)).toBeUndefined();
     });
   });
 

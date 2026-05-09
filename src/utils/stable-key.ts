@@ -6,18 +6,22 @@
  * 避免内联对象触发不必要的 effect 重跑。
  */
 
-const CIRCULAR_PREFIX = "__circular_";
+/**
+ * Per-object IDs for values that JSON.stringify cannot handle (circular
+ * references, BigInt, etc.). Same reference → same ID; distinct references
+ * → distinct IDs, so the documented "object changes recreate instance"
+ * contract still holds for non-serializable values.
+ * 对 JSON 无法序列化的值（循环引用、BigInt 等），以引用为粒度分配唯一 ID，
+ * 保证「对象变化会重建实例」的文档契约在这些值上仍然成立。
+ */
+const nonSerializableIds = new WeakMap<object, string>();
+let nonSerializableIdCounter = 0;
 
-// Stable IDs for objects that cannot be JSON-serialized (e.g. circular references).
-// Each object gets a unique string via crypto.randomUUID, stored in a WeakMap so
-// the same object consistently maps to the same id.
-const circularObjectIds = new WeakMap<object, string>();
-
-function getCircularObjectId(obj: object): string {
-  let id = circularObjectIds.get(obj);
+function getNonSerializableId(obj: object): string {
+  let id = nonSerializableIds.get(obj);
   if (!id) {
-    id = `${CIRCULAR_PREFIX}${crypto.randomUUID()}`;
-    circularObjectIds.set(obj, id);
+    id = `__nonserializable_${nonSerializableIdCounter++}`;
+    nonSerializableIds.set(obj, id);
   }
   return id;
 }
@@ -25,8 +29,8 @@ function getCircularObjectId(obj: object): string {
 /**
  * Compute a stable identity key for a value.
  * Strings pass through; numbers coerce via `String(...)`; objects are
- * JSON-serialized (circular ones fall back to a WeakMap-assigned id);
- * nullish and other unsupported types return null.
+ * JSON-serialized (or assigned a per-reference ID when not serializable);
+ * nullish and unsupported primitives return null.
  */
 export function computeStableKey(value: unknown): string | null {
   if (value == null) return null;
@@ -36,14 +40,6 @@ export function computeStableKey(value: unknown): string | null {
   try {
     return JSON.stringify(value);
   } catch {
-    return getCircularObjectId(value);
+    return getNonSerializableId(value);
   }
-}
-
-/**
- * Whether `key` is a WeakMap-assigned fallback id produced for a circular object.
- * Callers use this to decide whether the key carries serializable content.
- */
-export function isCircularFallbackKey(key: string): boolean {
-  return key.startsWith(CIRCULAR_PREFIX);
 }

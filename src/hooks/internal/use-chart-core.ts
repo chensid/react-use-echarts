@@ -21,7 +21,7 @@ import {
   isKnownTheme,
 } from "../../themes";
 import { shallowEqual } from "../../utils/shallow-equal";
-import { computeStableKey, isCircularFallbackKey } from "../../utils/stable-key";
+import { computeStableKey } from "../../utils/stable-key";
 import { warnedThemeNames, warnedZeroSizeContainers } from "../../utils/dev-warnings";
 import { routeEffectError, routeImperativeError } from "../../utils/error";
 import { bindEvents, unbindEvents, eventsEqual } from "./event-utils";
@@ -33,6 +33,7 @@ import { bindEvents, unbindEvents, eventsEqual } from "./event-utils";
  *
  * @param themeKey Pre-computed key from computeStableKey — passed as contentHash
  *   to avoid redundant JSON.stringify inside getOrRegisterCustomTheme.
+ *   `null` when the value isn't JSON-serializable.
  */
 function resolveThemeName(
   theme: string | object | undefined,
@@ -71,8 +72,9 @@ function resolveThemeName(
     return theme;
   }
   if (typeof theme !== "object") return null;
-  const contentHash = themeKey && !isCircularFallbackKey(themeKey) ? themeKey : undefined;
-  return getOrRegisterCustomTheme(theme, contentHash);
+  // computeStableKey returns non-null for any object (JSON string or per-ref
+  // fallback id), so themeKey is guaranteed populated on this branch.
+  return getOrRegisterCustomTheme(theme, themeKey!);
 }
 
 function warnZeroSizeContainer(element: HTMLElement): void {
@@ -178,49 +180,36 @@ export function useChartCore(
   } = config;
 
   // --- Internal ref: latest values for effects to read without re-triggering.
-  // Adding a field to LatestConfig forces it to appear in both the initializer
-  // and the sync layout effect below — TS catches stale-config drift at compile time.
-  // Lazy-init pattern (`null!` + first-render assign) avoids re-evaluating the
-  // 10-field literal on every render — `useRef`'s argument is only used once.
-  // Constraint: nothing may read `latestRef.current` before the if-block runs.
+  // `buildLatest` is the single source — TS catches stale-config drift at the
+  // return-type boundary. Lazy-init (`null!` + first-render assign) avoids
+  // re-evaluating the literal on every render. Constraint: nothing may read
+  // `latestRef.current` before the if-block runs.
+  const buildLatest = (): LatestConfig => ({
+    option,
+    theme,
+    renderer,
+    initOpts,
+    setOptionOpts,
+    showLoading,
+    loadingOption,
+    onEvents,
+    group,
+    onError,
+  });
+
   const latestRef = useRef<LatestConfig>(null!);
   if (latestRef.current === null) {
-    latestRef.current = {
-      option,
-      theme,
-      renderer,
-      initOpts,
-      setOptionOpts,
-      showLoading,
-      loadingOption,
-      onEvents,
-      group,
-      onError,
-    };
+    latestRef.current = buildLatest();
   }
 
   useLayoutEffect(() => {
-    latestRef.current = {
-      option,
-      theme,
-      renderer,
-      initOpts,
-      setOptionOpts,
-      showLoading,
-      loadingOption,
-      onEvents,
-      group,
-      onError,
-    };
+    latestRef.current = buildLatest();
   });
 
   // --- Internal shared state ---
-  // Event maps for which bindEvents() has been attempted but unbindEvents()
-  // has not yet successfully completed. Typically holds one entry (the
-  // currently bound events), but grows when an unbind attempt fails so
-  // cleanup can retry and avoid leaking handlers. The tail entry is treated
-  // as the current declared intent for dedup against new prop values.
-  const pendingUnbindRef = useRef<EChartsEvents[]>([]);
+  // Event map currently bound to the instance (undefined when none bound).
+  // Used by Event Rebinding effect to dedup and unbind on prop changes.
+  const lastBoundRef = useRef<EChartsEvents | undefined>(undefined);
   const lastAppliedRef = useRef<LastApplied | null>(null);
   const lastLoadingRef = useRef<LastLoading | null>(null);
 
@@ -287,6 +276,7 @@ export function useChartCore(
       routeEffectError(error, "ECharts setOption failed:", latest.onError);
     }
 
+    // showLoading can throw via user-registered custom loading types.
     try {
       if (latest.showLoading) {
         instance.showLoading(latest.loadingOption);
@@ -299,10 +289,9 @@ export function useChartCore(
       routeEffectError(error, "ECharts loading toggle failed:", latest.onError);
     }
 
-    // Track for cleanup regardless of partial bind failure so off() can be
-    // attempted on any handlers that did get bound (off is tolerant of
-    // unknown handlers).
-    pendingUnbindRef.current = latest.onEvents ? [latest.onEvents] : [];
+    // Track for cleanup regardless of partial bind failure so off() can still
+    // be attempted on any handlers that did get bound.
+    lastBoundRef.current = latest.onEvents;
     try {
       bindEvents(instance, latest.onEvents);
     } catch (error) {
@@ -310,11 +299,7 @@ export function useChartCore(
     }
 
     if (latest.group) {
-      try {
-        updateGroup(instance, undefined, latest.group);
-      } catch (error) {
-        routeEffectError(error, "ECharts group switch failed:", latest.onError);
-      }
+      updateGroup(instance, undefined, latest.group);
     }
 
     return () => {
@@ -324,23 +309,19 @@ export function useChartCore(
       const inst = getCachedInstance(element);
       if (!inst) return;
 
-      // releaseCachedInstance must always run (refCount/dispose/group cleanup);
-      // walk every pending entry so handlers from previous failed unbinds
-      // get one more chance, and let `finally` guarantee the release lands
-      // even if the user's onError callback itself throws.
+      // Cleanup correctness is critical: release MUST run on unmount or the
+      // instance leaks. unbind itself doesn't throw on real ECharts (zrender
+      // Eventful.off is a filter loop), and the same is true for dispose, but
+      // try/catch + try/finally guards against either misbehaving and ensures
+      // an effect-cleanup throw never disrupts React commit.
       try {
-        for (const entry of pendingUnbindRef.current) {
-          try {
-            unbindEvents(inst, entry);
-          } catch (error) {
-            routeEffectError(error, "ECharts event unbind failed:", latestRef.current.onError);
-          }
+        try {
+          unbindEvents(inst, lastBoundRef.current);
+        } catch (error) {
+          routeEffectError(error, "ECharts event unbind failed:", latestRef.current.onError);
         }
       } finally {
-        pendingUnbindRef.current = [];
-        // Release can now throw (instance-cache propagates leaveGroup/dispose
-        // failures to the caller). Route it like any other effect-side error
-        // so the React commit isn't disrupted at unmount.
+        lastBoundRef.current = undefined;
         try {
           releaseCachedInstance(element);
         } catch (error) {
@@ -381,51 +362,33 @@ export function useChartCore(
   // EVENT REBINDING
   //
   // When onEvents reference changes, unbind old and bind new handlers.
-  // Uses pendingUnbindRef to track entries pending cleanup; the tail entry
-  // is treated as the current declared intent for dedup.
+  // Uses lastBoundRef to dedup against the currently-bound map.
   // =====================================================================
   useEffect(() => {
     const instance = getInstance();
     if (!instance) return;
 
-    const pending = pendingUnbindRef.current;
-    const lastIntent = pending[pending.length - 1];
-    if (eventsEqual(lastIntent, onEvents)) return;
-
-    // Semantic match — handler/query/context all equal — rather than just
-    // reference identity, so an inline event map that's a fresh object but
-    // describes the same bindings still gets recognized as already-bound.
-    const alreadyPending =
-      onEvents !== undefined && pending.some((entry) => eventsEqual(entry, onEvents));
+    if (eventsEqual(lastBoundRef.current, onEvents)) return;
 
     // Order matters: ECharts `off(name, handler)` matches by handler reference
     // and ignores query/context, so a same-handler rebind (query A → query B)
     // must unbind the old binding BEFORE the new one is registered — otherwise
     // the off call would remove the freshly-bound handler too.
-    const stillPending: EChartsEvents[] = [];
-    for (const prev of pending) {
-      // Skip entries semantically equivalent to onEvents — their handlers
-      // remain bound and are carried forward via the onEvents entry pushed
-      // at the tail below.
-      if (eventsEqual(prev, onEvents)) continue;
-      try {
-        unbindEvents(instance, prev);
-      } catch (error) {
-        routeEffectError(error, "ECharts event unbind failed:", latestRef.current.onError);
-        stillPending.push(prev);
-      }
+    //
+    // off() is bare here (no try/catch): zrender Eventful.off is a filter loop
+    // that cannot throw on a real instance. Adding a single-handler "current"
+    // ref + try/catch route would imply we tracked failed unbinds and retried
+    // them — which we deliberately don't (would require the queue this module
+    // removed). Leaving off() bare keeps the contract honest: if ECharts
+    // somehow broke this invariant, the rebind effect surfaces the throw
+    // instead of silently leaking an old listener.
+    unbindEvents(instance, lastBoundRef.current);
+    try {
+      bindEvents(instance, onEvents);
+    } catch (error) {
+      routeEffectError(error, "ECharts event bind failed:", latestRef.current.onError);
     }
-
-    if (onEvents && !alreadyPending) {
-      try {
-        bindEvents(instance, onEvents);
-      } catch (error) {
-        routeEffectError(error, "ECharts event bind failed:", latestRef.current.onError);
-      }
-    }
-
-    if (onEvents) stillPending.push(onEvents);
-    pendingUnbindRef.current = stillPending;
+    lastBoundRef.current = onEvents;
   }, [getInstance, onEvents]);
 
   // =====================================================================
@@ -469,11 +432,7 @@ export function useChartCore(
     const currentGroup = getInstanceGroup(instance);
     if (currentGroup === group) return;
 
-    try {
-      updateGroup(instance, currentGroup, group);
-    } catch (error) {
-      routeEffectError(error, "ECharts group switch failed:", latestRef.current.onError);
-    }
+    updateGroup(instance, currentGroup, group);
   }, [getInstance, group]);
 
   // =====================================================================
@@ -528,11 +487,7 @@ export function useChartCore(
       getOption: () => withInstance((instance) => instance.getOption() as EChartsOption, undefined),
       getWidth: () => withInstance((instance) => instance.getWidth(), undefined),
       getHeight: () => withInstance((instance) => instance.getHeight(), undefined),
-      // ECharts' getDom() return is non-nullable, but the post-init contract here
-      // documents `HTMLElement | undefined` (uninit returns undefined). Coerce a
-      // missing return to undefined to keep the type honest if echarts ever
-      // returns something falsy.
-      getDom: () => withInstance((instance) => instance.getDom() ?? undefined, undefined),
+      getDom: () => withInstance((instance) => instance.getDom(), undefined),
       // No instance → semantically disposed. Errors still route via withInstance,
       // falling back to true so consumers don't act on a half-broken instance.
       isDisposed: () => withInstance((instance) => instance.isDisposed(), true),

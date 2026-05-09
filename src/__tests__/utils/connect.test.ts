@@ -31,40 +31,24 @@ describe("connect utilities", () => {
   });
 
   describe("addToGroup", () => {
-    it("should add instance to new group", () => {
+    it("should add instance to new group and call connect once", () => {
       const instance = createMockInstance();
       addToGroup(instance, "group1");
 
       expect(getGroupInstances("group1")).toContain(instance);
       expect(instance.group).toBe("group1");
-      // Single instance should not trigger connect
-      expect(echarts.connect).not.toHaveBeenCalled();
+      expect(echarts.connect).toHaveBeenCalledWith("group1");
+      expect(echarts.connect).toHaveBeenCalledTimes(1);
     });
 
-    it("should connect when group has multiple instances", () => {
+    it("should not re-call connect when adding more instances to the same group", () => {
       const instance1 = createMockInstance();
       const instance2 = createMockInstance();
 
       addToGroup(instance1, "group1");
       addToGroup(instance2, "group1");
 
-      expect(echarts.connect).toHaveBeenCalledWith("group1");
-      expect(getGroupInstances("group1")).toHaveLength(2);
-    });
-
-    it("should reconnect when re-adding after the group was disconnected", () => {
-      const instance1 = createMockInstance();
-      const instance2 = createMockInstance();
-      const instance3 = createMockInstance();
-
-      addToGroup(instance1, "group1");
-      addToGroup(instance2, "group1");
-      removeFromGroup(instance1, "group1");
-      vi.clearAllMocks();
-
-      addToGroup(instance3, "group1");
-
-      expect(echarts.connect).toHaveBeenCalledWith("group1");
+      expect(echarts.connect).toHaveBeenCalledTimes(1);
       expect(getGroupInstances("group1")).toHaveLength(2);
     });
 
@@ -79,6 +63,8 @@ describe("connect utilities", () => {
 
       expect(getGroupInstances("groupA")).toHaveLength(2);
       expect(getGroupInstances("groupB")).toHaveLength(1);
+      expect(echarts.connect).toHaveBeenCalledWith("groupA");
+      expect(echarts.connect).toHaveBeenCalledWith("groupB");
     });
   });
 
@@ -98,43 +84,35 @@ describe("connect utilities", () => {
       expect(instance2.group).toBe("group1");
     });
 
-    it("should disconnect when group becomes empty", () => {
+    it("should not disconnect while other members remain", () => {
+      const instance1 = createMockInstance();
+      const instance2 = createMockInstance();
+
+      addToGroup(instance1, "group1");
+      addToGroup(instance2, "group1");
+      vi.clearAllMocks();
+      removeFromGroup(instance1, "group1");
+
+      expect(echarts.disconnect).not.toHaveBeenCalled();
+      expect(getGroupInstances("group1")).toContain(instance2);
+    });
+
+    it("should disconnect and drop bookkeeping when the last member leaves", () => {
+      // Long-lived apps with dynamic group ids would otherwise leak entries
+      // in groupMembers + connectedGroupIds + echarts.connectedGroups[id].
       const instance = createMockInstance();
 
       addToGroup(instance, "group1");
+      vi.clearAllMocks();
       removeFromGroup(instance, "group1");
 
       expect(echarts.disconnect).toHaveBeenCalledWith("group1");
       expect(getGroupInstances("group1")).toHaveLength(0);
-    });
 
-    it("should disconnect when only one instance remains", () => {
-      const instance1 = createMockInstance();
+      // Re-adding to the same id reconnects (the group was fully cleaned up).
       const instance2 = createMockInstance();
-
-      addToGroup(instance1, "group1");
       addToGroup(instance2, "group1");
-      vi.clearAllMocks();
-
-      removeFromGroup(instance1, "group1");
-
-      expect(echarts.disconnect).toHaveBeenCalledWith("group1");
-    });
-
-    it("should reconnect when multiple instances remain", () => {
-      const instance1 = createMockInstance();
-      const instance2 = createMockInstance();
-      const instance3 = createMockInstance();
-
-      addToGroup(instance1, "group1");
-      addToGroup(instance2, "group1");
-      addToGroup(instance3, "group1");
-      vi.clearAllMocks();
-
-      removeFromGroup(instance1, "group1");
-
       expect(echarts.connect).toHaveBeenCalledWith("group1");
-      expect(getGroupInstances("group1")).toHaveLength(2);
     });
 
     it("should handle removing from non-existent group", () => {

@@ -141,30 +141,7 @@ describe("themes utilities", () => {
       expect(name2).toBe(name);
     });
 
-    it("should refresh entry position on access (LRU semantics)", () => {
-      // Fill cache to capacity
-      for (let i = 0; i < 100; i++) {
-        getOrRegisterCustomTheme({ lru: [`#${String(i).padStart(6, "0")}`] });
-      }
-
-      // Touch theme #0 with a new reference → moves it to MRU position
-      getOrRegisterCustomTheme({ lru: [`#${String(0).padStart(6, "0")}`] });
-
-      // Insert one more theme → triggers eviction; LRU should evict #1, not #0
-      getOrRegisterCustomTheme({ lru: ["#extra000"] });
-
-      vi.clearAllMocks();
-
-      // Theme #0 should still be cached (was recently accessed)
-      getOrRegisterCustomTheme({ lru: [`#${String(0).padStart(6, "0")}`] });
-      expect(echarts.registerTheme).not.toHaveBeenCalled();
-
-      // Theme #1 should have been evicted (least recently used)
-      getOrRegisterCustomTheme({ lru: [`#${String(1).padStart(6, "0")}`] });
-      expect(echarts.registerTheme).toHaveBeenCalledTimes(1);
-    });
-
-    it("should evict oldest content cache entry when exceeding max size", () => {
+    it("should evict oldest content cache entry when exceeding max size (FIFO)", () => {
       // Register 101 unique themes to trigger eviction (max is 100)
       for (let i = 0; i < 101; i++) {
         getOrRegisterCustomTheme({ palette: [`#evict_${String(i).padStart(6, "0")}`] });

@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vite-plus/test";
-import { computeStableKey, isCircularFallbackKey } from "../../utils/stable-key";
+import { computeStableKey } from "../../utils/stable-key";
 
 describe("computeStableKey", () => {
   it("returns null for nullish values", () => {
@@ -27,7 +27,7 @@ describe("computeStableKey", () => {
     expect(computeStableKey([0, 0.5, 1])).toBe("[0,0.5,1]");
   });
 
-  it("falls back to a stable id for circular objects", () => {
+  it("falls back to a stable per-reference id when JSON.stringify throws", () => {
     const a: { self?: unknown } = {};
     a.self = a;
 
@@ -36,28 +36,18 @@ describe("computeStableKey", () => {
 
     expect(key1).not.toBeNull();
     expect(key1).toBe(key2);
-    expect(isCircularFallbackKey(key1!)).toBe(true);
+    // Distinct from any JSON-stringify output (which never starts with "_")
+    expect(key1).toMatch(/^__nonserializable_/);
   });
 
-  it("returns distinct fallback ids for distinct circular objects", () => {
+  it("returns distinct fallback ids for distinct non-serializable objects", () => {
     const a: { self?: unknown } = {};
     a.self = a;
     const b: { self?: unknown } = {};
     b.self = b;
 
     expect(computeStableKey(a)).not.toBe(computeStableKey(b));
-  });
-});
-
-describe("isCircularFallbackKey", () => {
-  it("identifies fallback ids", () => {
-    const a: { self?: unknown } = {};
-    a.self = a;
-    expect(isCircularFallbackKey(computeStableKey(a)!)).toBe(true);
-  });
-
-  it("rejects regular keys", () => {
-    expect(isCircularFallbackKey("light")).toBe(false);
-    expect(isCircularFallbackKey('{"a":1}')).toBe(false);
+    // BigInt also routes through the fallback.
+    expect(computeStableKey({ big: 1n })).toMatch(/^__nonserializable_/);
   });
 });

@@ -10,42 +10,29 @@ import type { ECharts } from "echarts";
 type EChartsWithGroup = Omit<ECharts, "group"> & { group?: string };
 
 /**
- * Global registry for chart groups
- * 图表组的全局注册表
- * Key: groupId, Value: Set of chart instances
+ * Per-group membership for `pruneDisposed` and `getGroupInstances`.
+ * 每个组的成员集合，仅用于过滤已 dispose 的实例与 getGroupInstances 查询。
  */
-const groupRegistry = new Map<string, Set<ECharts>>();
+const groupMembers = new Map<string, Set<ECharts>>();
 
 /**
- * Remove disposed instances from group set
- * 从组集合中移除已销毁的实例
+ * Group IDs we've already called `echarts.connect` for, so we don't redundantly
+ * re-connect on every add. Pruned when the last member leaves the group
+ * (see removeFromGroup) and on `clearGroups`.
+ * 已经调用过 echarts.connect 的 group ID 集合，避免重复 connect；
+ * 最后一个成员离开后由 removeFromGroup 清理。
  */
+const connectedGroupIds = new Set<string>();
+
 function pruneDisposed(group: Set<ECharts>): void {
-  const disposedInstances: ECharts[] = [];
+  const disposed: ECharts[] = [];
   for (const inst of group) {
     if (inst.isDisposed()) {
-      disposedInstances.push(inst);
+      disposed.push(inst);
     }
   }
-  for (const inst of disposedInstances) {
+  for (const inst of disposed) {
     group.delete(inst);
-  }
-}
-
-/**
- * Synchronize ECharts connect/disconnect state for a group.
- * Prunes disposed instances first so size decisions reflect live members.
- * 同步组的 ECharts connect/disconnect 状态。先剔除已销毁实例以保证 size 判断准确。
- */
-function syncGroupConnectivity(groupId: string, group: Set<ECharts>): void {
-  pruneDisposed(group);
-  if (group.size === 0) {
-    groupRegistry.delete(groupId);
-    echarts.disconnect(groupId);
-  } else if (group.size === 1) {
-    echarts.disconnect(groupId);
-  } else {
-    echarts.connect(groupId);
   }
 }
 
@@ -56,16 +43,20 @@ function syncGroupConnectivity(groupId: string, group: Set<ECharts>): void {
  * @param groupId Group ID
  */
 export function addToGroup(instance: ECharts, groupId: string): void {
-  let group = groupRegistry.get(groupId);
-  if (!group) {
-    group = new Set();
-    groupRegistry.set(groupId, group);
+  let members = groupMembers.get(groupId);
+  if (!members) {
+    members = new Set();
+    groupMembers.set(groupId, members);
   }
+  pruneDisposed(members);
 
   (instance as EChartsWithGroup).group = groupId;
-  group.add(instance);
+  members.add(instance);
 
-  syncGroupConnectivity(groupId, group);
+  if (!connectedGroupIds.has(groupId)) {
+    echarts.connect(groupId);
+    connectedGroupIds.add(groupId);
+  }
 }
 
 /**
@@ -75,16 +66,24 @@ export function addToGroup(instance: ECharts, groupId: string): void {
  * @param groupId Group ID
  */
 export function removeFromGroup(instance: ECharts, groupId: string): void {
-  const group = groupRegistry.get(groupId);
+  const members = groupMembers.get(groupId);
+  if (!members) return;
 
-  if (!group) {
-    return;
-  }
-  group.delete(instance);
+  pruneDisposed(members);
+  members.delete(instance);
+
   if ((instance as EChartsWithGroup).group === groupId) {
     (instance as EChartsWithGroup).group = undefined;
   }
-  syncGroupConnectivity(groupId, group);
+
+  // When the last member leaves, drop all bookkeeping for this groupId so
+  // long-lived apps with dynamic group values don't leak module state or
+  // a stale `echarts.connectedGroups[id] = true` flag.
+  if (members.size === 0) {
+    groupMembers.delete(groupId);
+    connectedGroupIds.delete(groupId);
+    echarts.disconnect(groupId);
+  }
 }
 
 /**
@@ -108,12 +107,9 @@ export function leaveGroup(instance: ECharts): void {
  * @param newGroupId New group ID (if any)
  */
 export function updateGroup(instance: ECharts, oldGroupId?: string, newGroupId?: string): void {
-  // Remove from old group if exists
   if (oldGroupId) {
     removeFromGroup(instance, oldGroupId);
   }
-
-  // Add to new group if provided
   if (newGroupId) {
     addToGroup(instance, newGroupId);
   }
@@ -126,10 +122,10 @@ export function updateGroup(instance: ECharts, oldGroupId?: string, newGroupId?:
  * @returns Array of chart instances
  */
 export function getGroupInstances(groupId: string): ECharts[] {
-  const group = groupRegistry.get(groupId);
-  if (!group) return [];
-  pruneDisposed(group);
-  return Array.from(group);
+  const members = groupMembers.get(groupId);
+  if (!members) return [];
+  pruneDisposed(members);
+  return Array.from(members);
 }
 
 /**
@@ -157,9 +153,9 @@ export function isInGroup(instance: ECharts): boolean {
  * 清除所有组（用于测试/清理）
  */
 export function clearGroups(): void {
-  // Disconnect all groups
-  for (const groupId of groupRegistry.keys()) {
+  for (const groupId of connectedGroupIds) {
     echarts.disconnect(groupId);
   }
-  groupRegistry.clear();
+  connectedGroupIds.clear();
+  groupMembers.clear();
 }
