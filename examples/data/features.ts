@@ -71,6 +71,15 @@ export const featureItems: readonly FeatureItem[] = [
     sourcePath: "examples/component/ComponentRef.tsx",
   },
   {
+    id: "imperative-export",
+    title: "Export & Stream",
+    description: "Download PNG via getDataURL; grow data via appendData.",
+    icon: "copy",
+    component: React.lazy(() => import("../imperative/ExportStream")),
+    source: () => import("../imperative/ExportStream.tsx?raw"),
+    sourcePath: "examples/imperative/ExportStream.tsx",
+  },
+  {
     id: "lazy",
     title: "Lazy Init",
     description: "IntersectionObserver defers chart creation until visible.",
