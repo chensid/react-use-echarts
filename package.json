@@ -73,7 +73,7 @@
     "@shikijs/themes": "^4.0.2",
     "@size-limit/file": "^12.1.0",
     "@testing-library/react": "^16.3.2",
-    "@types/node": "^25.6.2",
+    "@types/node": "^25.7.0",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^6.0.1",
@@ -81,7 +81,7 @@
     "babel-plugin-react-compiler": "^1.0.0",
     "echarts": "^6.0.0",
     "jsdom": "^29.1.1",
-    "playwright": "^1.59.1",
+    "playwright": "^1.60.0",
     "publint": "^0.3.20",
     "react": "^19.2.6",
     "react-dom": "^19.2.6",
@@ -89,9 +89,9 @@
     "shiki": "^4.0.2",
     "size-limit": "^12.1.0",
     "typescript": "~6.0.3",
-    "vite": "npm:@voidzero-dev/vite-plus-core@^0.1.20",
-    "vite-plus": "^0.1.20",
-    "vitest": "npm:@voidzero-dev/vite-plus-test@^0.1.20"
+    "vite": "npm:@voidzero-dev/vite-plus-core@^0.1.21",
+    "vite-plus": "^0.1.21",
+    "vitest": "npm:@voidzero-dev/vite-plus-test@^0.1.21"
   },
   "peerDependencies": {
     "echarts": "^6.0.0",
