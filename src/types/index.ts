@@ -1,6 +1,6 @@
+import type { ECharts } from "echarts/core";
 import type {
   EChartsOption,
-  ECharts,
   SetOptionOpts,
   EChartsInitOpts as RawEChartsInitOpts,
   Payload,

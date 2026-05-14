@@ -25,6 +25,7 @@ All `useEcharts` options as props + `style` (default `{ width: '100%', height: '
 - `isBuiltinTheme(name)`, `isKnownTheme(name)`, `registerCustomTheme(name, config)` — from `'react-use-echarts'`
 - `registerBuiltinThemes()` — from `'react-use-echarts/themes/registry'` (separate entry, ~20KB theme JSON)
 - `useLazyInit(ref, options)` — standalone lazy init hook
+- `'react-use-echarts/core'` — tree-shakable subpath entry. Same public API as the default, but skips `import "echarts"` so consumers register only the chart types they use via `echarts.use([...])`. Pair with `import * as echarts from "echarts/core"`.
 
 ## Gotchas
 

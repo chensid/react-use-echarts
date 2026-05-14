@@ -7,7 +7,7 @@ import {
   clearInstanceCache,
 } from "../../utils/instance-cache";
 import { addToGroup, clearGroups, getGroupInstances } from "../../utils/connect";
-import type { ECharts } from "echarts";
+import type { ECharts } from "echarts/core";
 import { createMockInstance as createBaseMockInstance } from "../helpers";
 
 function createMockInstance() {

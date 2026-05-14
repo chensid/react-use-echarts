@@ -1,4 +1,4 @@
-import type { ECharts } from "echarts";
+import type { ECharts } from "echarts/core";
 import { leaveGroup } from "./connect";
 
 /**

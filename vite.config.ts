@@ -59,6 +59,15 @@ export default defineConfig({
       plugins: [babel({ presets: [reactCompilerPreset()] })],
     },
     {
+      entry: { core: "src/core.ts" },
+      format: ["esm"],
+      dts: { build: true },
+      publint: true,
+      attw: { profile: "esm-only" },
+      platform: "browser",
+      plugins: [babel({ presets: [reactCompilerPreset()] })],
+    },
+    {
       entry: { "themes/registry": "src/themes/registry.ts" },
       format: ["esm"],
       dts: { build: true },

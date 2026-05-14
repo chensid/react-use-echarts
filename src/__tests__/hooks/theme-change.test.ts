@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vite-plus/test";
 import { renderHook } from "@testing-library/react";
-import * as echarts from "echarts";
+import * as echarts from "echarts/core";
 import useEcharts from "../../hooks/use-echarts";
 import { getCachedInstance, clearInstanceCache } from "../../utils/instance-cache";
 import { clearGroups } from "../../utils/connect";
@@ -9,7 +9,7 @@ import { clearThemeCache } from "../../themes";
 import { createMockInstance, MockResizeObserver, MockIntersectionObserver } from "../helpers";
 
 // Mock ECharts
-vi.mock("echarts", () => ({
+vi.mock("echarts/core", () => ({
   init: vi.fn(),
   connect: vi.fn(),
   disconnect: vi.fn(),

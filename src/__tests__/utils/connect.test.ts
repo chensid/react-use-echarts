@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vite-plus/test";
-import * as echarts from "echarts";
+import * as echarts from "echarts/core";
 import {
   addToGroup,
   removeFromGroup,
@@ -12,7 +12,7 @@ import {
 import { createMockInstance as createBaseMockInstance } from "../helpers";
 
 // Mock ECharts
-vi.mock("echarts", () => ({
+vi.mock("echarts/core", () => ({
   connect: vi.fn(),
   disconnect: vi.fn(),
 }));

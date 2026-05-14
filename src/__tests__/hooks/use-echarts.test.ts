@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vite-plus/test";
 import { renderHook, act, waitFor } from "@testing-library/react";
-import * as echarts from "echarts";
+import * as echarts from "echarts/core";
 import useEcharts from "../../hooks/use-echarts";
 import {
   clearInstanceCache,
@@ -16,7 +16,7 @@ import { __resetVisibilityCoordinatorForTesting__ } from "../../utils/visibility
 import { createMockInstance, MockResizeObserver, MockIntersectionObserver } from "../helpers";
 
 // Mock ECharts
-vi.mock("echarts", () => ({
+vi.mock("echarts/core", () => ({
   init: vi.fn(),
   connect: vi.fn(),
   disconnect: vi.fn(),

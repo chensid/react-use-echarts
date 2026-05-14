@@ -1,4 +1,4 @@
-import * as echarts from "echarts";
+import * as echarts from "echarts/core";
 import type { BuiltinTheme } from "../types";
 import { resetDevWarnings } from "../utils/dev-warnings";
 
