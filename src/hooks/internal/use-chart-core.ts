@@ -1,6 +1,7 @@
 import { useEffect, useRef, useCallback, useLayoutEffect, useMemo } from "react";
-import * as echarts from "echarts";
-import type { ECharts, SetOptionOpts, EChartsOption } from "echarts";
+import * as echarts from "echarts/core";
+import type { ECharts } from "echarts/core";
+import type { SetOptionOpts, EChartsOption } from "echarts";
 import type {
   EChartsEvents,
   EChartsInitOpts,

@@ -161,6 +161,25 @@ useEcharts(chartRef, {
 });
 ```
 
+### 使用 `/core` 子入口做 Tree-shaking
+
+默认入口 `react-use-echarts` 会副作用 import `"echarts"`，自动注册全部图表与组件，新手开箱即用，但会把整个 ECharts（约 290KB gzip）打入产物。生产环境只用到少量图表类型时，推荐使用 `react-use-echarts/core` 子入口——它跳过这一副作用，由你自己按需注册：
+
+```tsx
+import * as echarts from "echarts/core";
+import { LineChart } from "echarts/charts";
+import { GridComponent, TooltipComponent } from "echarts/components";
+import { CanvasRenderer } from "echarts/renderers";
+echarts.use([LineChart, GridComponent, TooltipComponent, CanvasRenderer]);
+
+import { useEcharts, EChart } from "react-use-echarts/core";
+// 公开 API 与默认入口完全一致，只是 import 路径不同。
+```
+
+两个入口共享同一套 API，选择 `/core` 时打包器会把未使用的 ECharts 模块 tree-shake 掉。内置主题仍通过 `react-use-echarts/themes/registry` 注册。
+
+> ECharts 维护单一全局 registry，因此 `echarts.use([...])` 调用会跨模块叠加——每种图表类型在应用中任意位置 `use()` 一次即可。
+
 ### 在 Next.js（App Router）中使用
 
 包入口与 `themes/registry` 已标注 `"use client"`，因此即便在 React
@@ -282,6 +301,7 @@ export default function Page() {
 import { useLazyInit } from "react-use-echarts"; // 独立的懒加载 Hook
 import { isBuiltinTheme, registerCustomTheme } from "react-use-echarts"; // 主题工具（不含 JSON）
 import { registerBuiltinThemes } from "react-use-echarts/themes/registry"; // 内置主题 JSON（~20KB）
+import { useEcharts, EChart } from "react-use-echarts/core"; // tree-shakable 子入口（见使用示例）
 
 // 所有导出类型：UseEchartsOptions, UseEchartsReturn, EChartProps,
 // EChartsEvents, EChartsEventConfig, EChartsEventHandler, EChartsInitOpts,

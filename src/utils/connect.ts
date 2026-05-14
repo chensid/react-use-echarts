@@ -1,5 +1,5 @@
-import * as echarts from "echarts";
-import type { ECharts } from "echarts";
+import * as echarts from "echarts/core";
+import type { ECharts } from "echarts/core";
 
 /**
  * ECharts documents `instance.group = 'xxx'` as the standard pattern for

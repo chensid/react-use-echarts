@@ -97,6 +97,15 @@ export const featureItems: readonly FeatureItem[] = [
     source: () => import("../error/OnErrorDemo.tsx?raw"),
     sourcePath: "examples/error/OnErrorDemo.tsx",
   },
+  {
+    id: "core-entry",
+    title: "Tree-shakable Core Entry",
+    description: "Use react-use-echarts/core with echarts.use([...]) for minimal bundles.",
+    icon: "layers",
+    component: React.lazy(() => import("../core-entry/CoreEntryChart")),
+    source: () => import("../core-entry/CoreEntryChart.tsx?raw"),
+    sourcePath: "examples/core-entry/CoreEntryChart.tsx",
+  },
 ];
 
 export const findFeatureItem = (id: string | undefined): FeatureItem | undefined =>

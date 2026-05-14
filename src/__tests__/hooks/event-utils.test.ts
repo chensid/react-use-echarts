@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from "vite-plus/test";
-import type { ECharts } from "echarts";
+import type { ECharts } from "echarts/core";
 import { bindEvents, unbindEvents, eventsEqual } from "../../hooks/internal/event-utils";
 
 const handler = () => vi.fn<(params: unknown) => void>();

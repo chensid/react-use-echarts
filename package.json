@@ -40,6 +40,10 @@
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
     },
+    "./core": {
+      "types": "./dist/core.d.ts",
+      "default": "./dist/core.js"
+    },
     "./themes/registry": {
       "types": "./dist/themes/registry.d.ts",
       "default": "./dist/themes/registry.js"
@@ -103,6 +107,13 @@
       "name": "dist/index.js (gzip)",
       "path": "dist/index.js",
       "limit": "12 KB",
+      "gzip": true,
+      "brotli": false
+    },
+    {
+      "name": "dist/core.js (gzip)",
+      "path": "dist/core.js",
+      "limit": "11 KB",
       "gzip": true,
       "brotli": false
     },

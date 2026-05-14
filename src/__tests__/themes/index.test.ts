@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vite-plus/test";
-import * as echarts from "echarts";
+import * as echarts from "echarts/core";
 import {
   isBuiltinTheme,
   isBuiltinThemeRegistered,
@@ -10,7 +10,7 @@ import {
 } from "../../themes";
 
 // Mock ECharts
-vi.mock("echarts", () => ({
+vi.mock("echarts/core", () => ({
   registerTheme: vi.fn(),
 }));
 

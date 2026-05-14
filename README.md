@@ -161,6 +161,25 @@ useEcharts(chartRef, {
 });
 ```
 
+### Tree-shaking with the `/core` Entry
+
+The default `react-use-echarts` entry imports `"echarts"` for its side-effect registration of every chart and component, so users get a zero-config experience at the cost of bundling all of ECharts (~290KB gzip). For production apps that only render a handful of chart types, the `react-use-echarts/core` subpath skips that side-effect and lets you register exactly what you need:
+
+```tsx
+import * as echarts from "echarts/core";
+import { LineChart } from "echarts/charts";
+import { GridComponent, TooltipComponent } from "echarts/components";
+import { CanvasRenderer } from "echarts/renderers";
+echarts.use([LineChart, GridComponent, TooltipComponent, CanvasRenderer]);
+
+import { useEcharts, EChart } from "react-use-echarts/core";
+// Same API as the default entry — only the import path differs.
+```
+
+The two entries share the same public API; pick `/core` when you want bundlers to tree-shake unused ECharts modules out of your final build. Built-in themes still work via `react-use-echarts/themes/registry`.
+
+> ECharts maintains a single global registry, so `echarts.use([...])` calls compose across modules — call it once per chart type, anywhere in your app.
+
 ### Use with Next.js (App Router)
 
 The package entry and `themes/registry` are marked with `"use client"`, so
@@ -283,6 +302,7 @@ Declarative component wrapping `useEcharts`. Accepts all hook options as props p
 import { useLazyInit } from "react-use-echarts"; // standalone lazy init hook
 import { isBuiltinTheme, registerCustomTheme } from "react-use-echarts"; // theme utils (no JSON)
 import { registerBuiltinThemes } from "react-use-echarts/themes/registry"; // ~20KB theme JSON
+import { useEcharts, EChart } from "react-use-echarts/core"; // tree-shakable entry (see Recipes)
 
 // All exported types: UseEchartsOptions, UseEchartsReturn, EChartProps,
 // EChartsEvents, EChartsEventConfig, EChartsEventHandler, EChartsInitOpts,

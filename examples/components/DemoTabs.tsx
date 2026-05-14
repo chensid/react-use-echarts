@@ -14,7 +14,9 @@ interface DemoTabsProps {
 type Tab = "preview" | "code";
 
 const fixImports = (src: string): string =>
-  src.replace(/from ["']\.\.\/\.\.\/src["']/g, 'from "react-use-echarts"');
+  src
+    .replace(/from ["']\.\.\/\.\.\/src\/core["']/g, 'from "react-use-echarts/core"')
+    .replace(/from ["']\.\.\/\.\.\/src["']/g, 'from "react-use-echarts"');
 
 const DemoTabs: React.FC<DemoTabsProps> = ({ sourcePath, loadSource, children }) => {
   const [tab, setTab] = useState<Tab>("preview");

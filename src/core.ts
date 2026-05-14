@@ -1,18 +1,26 @@
 "use client";
 
 /**
- * react-use-echarts
- * A React hook library for Apache ECharts with TypeScript support
- * 基于 TypeScript 的 Apache ECharts React Hook 库
+ * react-use-echarts/core
+ * Tree-shakable entry. Identical public API to the default entry, but does
+ * NOT import `"echarts"` for its side-effect registration of every chart and
+ * component. Consumers register only what they need:
+ *
+ * ```ts
+ * import * as echarts from "echarts/core";
+ * import { LineChart } from "echarts/charts";
+ * import { GridComponent } from "echarts/components";
+ * import { CanvasRenderer } from "echarts/renderers";
+ * echarts.use([LineChart, GridComponent, CanvasRenderer]);
+ *
+ * import { useEcharts } from "react-use-echarts/core";
+ * ```
+ *
+ * react-use-echarts 的 tree-shakable 子入口。与默认入口 API 完全一致，但不会
+ * 副作用 import `"echarts"`，由使用方按需 `echarts.use([...])` 注册图表/组件。
  *
  * @packageDocumentation
  */
-
-// Side-effect import: pulls in the full echarts entry, which calls `use([...all charts/components])`
-// against the shared ECharts global registry. Keeps the default entry zero-config.
-// The `/core` subpath entry deliberately omits this import so consumers can
-// register only what they need via `echarts.use([...])`.
-import "echarts";
 
 /**
  * Main hook for using ECharts in React components
