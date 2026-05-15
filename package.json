@@ -86,7 +86,7 @@
     "echarts": "^6.0.0",
     "jsdom": "^29.1.1",
     "playwright": "^1.60.0",
-    "publint": "^0.3.20",
+    "publint": "^0.3.21",
     "react": "^19.2.6",
     "react-dom": "^19.2.6",
     "react-router-dom": "^7.15.0",
