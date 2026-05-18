@@ -35,7 +35,7 @@ src/
 │   ├── use-lazy-init.ts        # IntersectionObserver hook
 │   └── internal/
 │       ├── use-chart-core.ts   # Core: instance lifecycle + option sync + event rebinding + loading + group (6 effects); exposes the imperative API (setOption, dispatchAction, clear, resize, appendData, getOption, getDataURL, convertToPixel, …)
-│       ├── use-resize-observer.ts # ResizeObserver auto-resize + visibilitychange resync (2 effects: onError ref sync + observer)
+│       ├── use-resize-observer.ts # ResizeObserver auto-resize + visibilitychange resync (1 effect; onError reached via useEffectEvent)
 │       ├── use-ref-element.ts  # Track ref.current across DOM-node replacement (re-runs effects when ref swaps)
 │       └── event-utils.ts      # Pure functions: bindEvents / unbindEvents / eventsEqual
 ├── themes/
@@ -60,17 +60,16 @@ All instance-related state lives in `useChartCore`; the orchestrator (`useEchart
 
 **`useChartCore`** — six effects, grouped by what they keep in sync. Initial application is bundled inside the lifecycle effect; the others handle dynamic post-init changes.
 
-- **Ref Sync** (`useLayoutEffect`, no deps) — sync the typed `latestRef` (one `LatestConfig` object holding all 10 latest config fields) every render so the effects below can read fresh values without re-running. A single `buildLatest()` closure produces both the lazy initializer and the sync value; TS catches stale-config drift via the explicit return type.
+- **Ref Sync** (`useLayoutEffect`, no deps) — sync the typed `latestRef` (one `ImperativeLatest` object holding `setOptionOpts` and `onError`) every render. Only the imperative API (`withInstance` inside `useMemo`) reads via this ref, since `useEffectEvent` is forbidden outside effects. Effect-context error routing uses `useEffectEvent` directly (no ref); the 8 other config fields are captured by closure inside the lifecycle effect or flow as deps to their owning sync effect.
 - **Instance Lifecycle** (`useLayoutEffect`) — create/dispose instance, apply initial option, events, loading, group; warns on zero-size container in dev. Re-runs only on structural deps (`element` / `themeKey` / `renderer` / `initOptsKey`).
 - **Option Sync** (`useEffect`) — call `setOption` when option changes (reference-equality fast path → `shallowEqual` + `lastAppliedRef`).
 - **Event Rebinding** (`useEffect`) — unbind old, bind new when `onEvents` changes (via `lastBoundRef` + `eventsEqual`; treats empty/undefined as equivalent).
 - **Loading Toggle** (`useEffect`) — toggle `showLoading` / `hideLoading` on dynamic changes (dedup via `lastLoadingRef` + `shallowEqual` on `loadingOption`).
 - **Group Switch** (`useEffect`) — switch chart group dynamically via `updateGroup`.
 
-**`useResizeObserver`** — two effects.
+**`useResizeObserver`** — one effect.
 
-- **onError Ref Sync** (`useLayoutEffect`, no deps) — keep latest `onError` callback reachable from inside the observer effect.
-- **Resize Observer** (`useEffect`) — create/destroy ResizeObserver with RAF throttle; also listens to `document.visibilitychange` to resync when the tab returns to foreground (RAF is throttled in hidden tabs).
+- **Resize Observer** (`useEffect`) — create/destroy ResizeObserver with RAF throttle; also listens to `document.visibilitychange` to resync when the tab returns to foreground (RAF is throttled in hidden tabs). Latest `onError` is reached via `useEffectEvent` (no separate ref-sync effect).
 
 ### Key Design Patterns
 
@@ -80,7 +79,7 @@ All instance-related state lives in `useChartCore`; the orchestrator (`useEchart
 - WeakMap instance cache + reference counting — safe under StrictMode (instance recreated cleanly; refCount prevents premature disposal when multiple consumers share an element)
 - initOpts / theme serialized to stable keys via `computeStableKey` — JSON.stringify-based; non-serializable inputs return `null` and skip dedup
 - Two-level theme cache — custom theme objects auto-deduplicated; `contentHash` param avoids double JSON.stringify; `contentHashCache` is a FIFO with a 100-entry cap
-- Errors from `init` / `setOption` / `dispatchAction` / `resize` / event-bind route through the shared `onError` callback (or fall back to `console.error` / re-throw); calls that don't throw on real instances (`off`, `dispose`, `connect`, `showLoading`, group assignment) are uninstrumented
+- Errors from `init` / `setOption` / `dispatchAction` / `resize` / event-bind route through the shared `onError` callback (or fall back to `console.error` / re-throw); calls that don't throw on real instances (`off`, `dispose`, `connect`, `showLoading`, group assignment) are uninstrumented. Effect-context errors flow through `useEffectEvent` for always-latest `onError`; imperative-API errors flow through `latestRef.current.onError` because `useEffectEvent` cannot be called outside Effects.
 - `shallowEqual` on option updates — avoids unnecessary `setOption` when top-level keys are identical
 - `eventsEqual` on event rebinding — avoids unnecessary unbind/rebind when inline event objects have identical handlers
 - Memoized return value — `useMemo` ensures referential stability
