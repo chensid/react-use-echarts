@@ -32,7 +32,10 @@
     "dist"
   ],
   "type": "module",
-  "sideEffects": false,
+  "sideEffects": [
+    "./dist/index.js",
+    "./src/index.ts"
+  ],
   "module": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "exports": {
