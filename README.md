@@ -25,7 +25,7 @@ React hooks & component for Apache ECharts — TypeScript, auto-resize, themes, 
 
 ## Requirements
 
-- React 19+ (`react` + `react-dom`)
+- React 19.2+ (`react` + `react-dom`) — `useEffectEvent` is used internally and reached stable in 19.2
 - ECharts 6.x
 - Node.js 22+ (required only for tooling/SSR frameworks — the published bundle is browser ESM)
 

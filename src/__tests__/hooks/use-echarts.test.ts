@@ -2531,4 +2531,145 @@ describe("useEcharts", () => {
       unmount();
     });
   });
+
+  // After migrating effect-context error routing to `useEffectEvent` (and
+  // keeping `latestRef.current.onError` for the imperative API), these tests
+  // ensure that swapping `onError` between renders routes the next failure to
+  // the latest callback — not the mount-time one.
+  describe("onError freshness", () => {
+    it("routes effect-context errors to the latest onError after rerender", async () => {
+      const element = document.createElement("div");
+      const ref = { current: element };
+      const mockInstance = createMockInstance(element);
+      (echarts.init as ReturnType<typeof vi.fn>).mockReturnValue(mockInstance);
+
+      const onError1 = vi.fn();
+      const onError2 = vi.fn();
+      const option1: EChartsOption = { series: [{ type: "line", data: [1] }] };
+      const option2: EChartsOption = { series: [{ type: "bar", data: [2] }] };
+
+      const { rerender } = renderHook(
+        ({ onError, option }: { onError: (e: unknown) => void; option: EChartsOption }) =>
+          useEcharts(ref, { option, onError }),
+        { initialProps: { onError: onError1, option: option1 } },
+      );
+
+      // Swap onError, then trigger an error via the Option-Sync effect.
+      const error = new Error("setOption failed after swap");
+      mockInstance.setOption.mockImplementation(() => {
+        throw error;
+      });
+
+      rerender({ onError: onError2, option: option2 });
+
+      await waitFor(() => {
+        expect(onError2).toHaveBeenCalledWith(error);
+      });
+      expect(onError1).not.toHaveBeenCalled();
+    });
+
+    it("routes cleanup-time errors to the latest onError after rerender", () => {
+      const element = document.createElement("div");
+      const ref = { current: element };
+      const mockInstance = createMockInstance(element);
+      (echarts.init as ReturnType<typeof vi.fn>).mockReturnValue(mockInstance);
+
+      const onError1 = vi.fn();
+      const onError2 = vi.fn();
+
+      const disposeError = new Error("dispose after onError swap");
+      mockInstance.dispose.mockImplementation(() => {
+        throw disposeError;
+      });
+
+      const { rerender, unmount } = renderHook(
+        ({ onError }: { onError: (e: unknown) => void }) =>
+          useEcharts(ref, { option: baseOption, onError }),
+        { initialProps: { onError: onError1 } },
+      );
+
+      rerender({ onError: onError2 });
+
+      expect(() => unmount()).not.toThrow();
+      expect(onError2).toHaveBeenCalledWith(disposeError);
+      expect(onError1).not.toHaveBeenCalled();
+    });
+
+    it("routes imperative-API errors to the latest onError after rerender", () => {
+      const element = document.createElement("div");
+      const ref = { current: element };
+      const mockInstance = createMockInstance(element);
+      (echarts.init as ReturnType<typeof vi.fn>).mockReturnValue(mockInstance);
+
+      const onError1 = vi.fn();
+      const onError2 = vi.fn();
+
+      const { result, rerender } = renderHook(
+        ({ onError }: { onError: (e: unknown) => void }) =>
+          useEcharts(ref, { option: baseOption, onError }),
+        { initialProps: { onError: onError1 } },
+      );
+
+      rerender({ onError: onError2 });
+
+      const error = new Error("imperative setOption after swap");
+      mockInstance.setOption.mockImplementation(() => {
+        throw error;
+      });
+
+      act(() => {
+        result.current.setOption({ series: [] });
+      });
+
+      expect(onError2).toHaveBeenCalledWith(error);
+      expect(onError1).not.toHaveBeenCalled();
+    });
+
+    it("routes resize errors to the latest onError after rerender", () => {
+      const originalDescriptor = Object.getOwnPropertyDescriptor(Document.prototype, "hidden");
+      let hiddenValue = false;
+      Object.defineProperty(Document.prototype, "hidden", {
+        configurable: true,
+        get: () => hiddenValue,
+      });
+
+      try {
+        const element = document.createElement("div");
+        const ref = { current: element };
+        const mockInstance = createMockInstance(element);
+        (echarts.init as ReturnType<typeof vi.fn>).mockReturnValue(mockInstance);
+
+        const onError1 = vi.fn();
+        const onError2 = vi.fn();
+
+        const { rerender } = renderHook(
+          ({ onError }: { onError: (e: unknown) => void }) =>
+            useEcharts(ref, { option: baseOption, onError }),
+          { initialProps: { onError: onError1 } },
+        );
+
+        rerender({ onError: onError2 });
+
+        const resizeError = new Error("resize after onError swap");
+        mockInstance.resize.mockImplementation(() => {
+          throw resizeError;
+        });
+
+        // visibilitychange resume calls safeResize synchronously (no RAF).
+        hiddenValue = true;
+        document.dispatchEvent(new Event("visibilitychange"));
+        hiddenValue = false;
+        document.dispatchEvent(new Event("visibilitychange"));
+
+        expect(onError2).toHaveBeenCalledWith(resizeError);
+        expect(onError1).not.toHaveBeenCalled();
+      } finally {
+        if (originalDescriptor) {
+          Object.defineProperty(Document.prototype, "hidden", originalDescriptor);
+        } else {
+          delete (Document.prototype as unknown as { hidden?: boolean }).hidden;
+        }
+      }
+    });
+  });
 });

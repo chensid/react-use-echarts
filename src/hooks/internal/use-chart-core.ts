@@ -1,4 +1,4 @@
-import { useEffect, useRef, useCallback, useLayoutEffect, useMemo } from "react";
+import { useEffect, useEffectEvent, useRef, useCallback, useLayoutEffect, useMemo } from "react";
 import * as echarts from "echarts/core";
 import type { ECharts } from "echarts/core";
 import type { SetOptionOpts, EChartsOption } from "echarts";
@@ -24,7 +24,7 @@ import {
 import { shallowEqual } from "../../utils/shallow-equal";
 import { computeStableKey } from "../../utils/stable-key";
 import { warnedThemeNames, warnedZeroSizeContainers } from "../../utils/dev-warnings";
-import { routeEffectError, routeImperativeError } from "../../utils/error";
+import { routeImperativeError } from "../../utils/error";
 import { bindEvents, unbindEvents, eventsEqual } from "./event-utils";
 
 /**
@@ -134,20 +134,15 @@ interface ChartCoreConfig {
 }
 
 /**
- * Resolved latest values that must stay current for refs read inside effects
- * without re-triggering them. Defaults applied (renderer, showLoading) so the
- * fields are non-optional from the consumer's perspective.
+ * Fields read by the imperative API (`withInstance` closure inside `useMemo`).
+ * `useEffectEvent` is forbidden outside effects, so the imperative path keeps
+ * a ref-sync bridge for the two values it needs:
+ *   - `onError`: routed via `routeImperativeError` on imperative throws
+ *   - `setOptionOpts`: merged with caller-supplied opts in imperative setOption
+ * Effect-context error routing uses `useEffectEvent` directly — no ref needed.
  */
-interface LatestConfig {
-  option: EChartsOption;
-  theme: UseEchartsOptions["theme"];
-  renderer: "canvas" | "svg";
-  initOpts: EChartsInitOpts | undefined;
+interface ImperativeLatest {
   setOptionOpts: SetOptionOpts | undefined;
-  showLoading: boolean;
-  loadingOption: LoadingOption | undefined;
-  onEvents: EChartsEvents | undefined;
-  group: string | undefined;
   onError: ((e: unknown) => void) | undefined;
 }
 
@@ -180,31 +175,29 @@ export function useChartCore(
     onError,
   } = config;
 
-  // --- Internal ref: latest values for effects to read without re-triggering.
-  // `buildLatest` is the single source — TS catches stale-config drift at the
-  // return-type boundary. Lazy-init (`null!` + first-render assign) avoids
-  // re-evaluating the literal on every render. Constraint: nothing may read
-  // `latestRef.current` before the if-block runs.
-  const buildLatest = (): LatestConfig => ({
-    option,
-    theme,
-    renderer,
-    initOpts,
-    setOptionOpts,
-    showLoading,
-    loadingOption,
-    onEvents,
-    group,
-    onError,
-  });
+  // --- Imperative-only latest ref: 2 fields used by `withInstance` (inside
+  // `useMemo`, NOT an effect). `useEffectEvent` cannot be called outside
+  // effects, so the imperative path still needs a ref-sync bridge. All other
+  // config fields are either reactive deps in their owning effect or captured
+  // via closure inside the lifecycle effect.
+  const buildLatest = (): ImperativeLatest => ({ setOptionOpts, onError });
 
-  const latestRef = useRef<LatestConfig>(null!);
+  const latestRef = useRef<ImperativeLatest>(null!);
   if (latestRef.current === null) {
     latestRef.current = buildLatest();
   }
 
   useLayoutEffect(() => {
     latestRef.current = buildLatest();
+  });
+
+  // --- Effect-context error routing. `useEffectEvent` reads the latest
+  // `onError` at call time without re-triggering enclosing effects, replacing
+  // the React 18-era `latestRef.current.onError` ping-pong. Only callable
+  // from within Effects — imperative API path uses `latestRef` instead.
+  const handleEffectError = useEffectEvent((error: unknown, message: string) => {
+    if (onError) onError(error);
+    else console.error(message, error);
   });
 
   // --- Internal shared state ---
@@ -239,8 +232,7 @@ export function useChartCore(
 
     warnZeroSizeContainer(element);
 
-    const latest = latestRef.current;
-    const resolvedTheme = resolveThemeName(latest.theme, themeKey);
+    const resolvedTheme = resolveThemeName(theme, themeKey);
 
     const existing = getCachedInstance(element);
     let instance: ECharts;
@@ -258,49 +250,43 @@ export function useChartCore(
       try {
         instance = echarts.init(element, resolvedTheme, {
           renderer,
-          ...latest.initOpts,
+          ...initOpts,
         });
       } catch (error) {
-        routeEffectError(error, "ECharts init failed:", latest.onError);
+        handleEffectError(error, "ECharts init failed:");
         return;
       }
       setCachedInstance(element, instance);
     }
 
     try {
-      instance.setOption(latest.option, latest.setOptionOpts);
-      lastAppliedRef.current = {
-        option: latest.option,
-        opts: latest.setOptionOpts,
-      };
+      instance.setOption(option, setOptionOpts);
+      lastAppliedRef.current = { option, opts: setOptionOpts };
     } catch (error) {
-      routeEffectError(error, "ECharts setOption failed:", latest.onError);
+      handleEffectError(error, "ECharts setOption failed:");
     }
 
     // showLoading can throw via user-registered custom loading types.
     try {
-      if (latest.showLoading) {
-        instance.showLoading(latest.loadingOption);
+      if (showLoading) {
+        instance.showLoading(loadingOption);
       }
-      lastLoadingRef.current = {
-        showLoading: latest.showLoading,
-        loadingOption: latest.loadingOption,
-      };
+      lastLoadingRef.current = { showLoading, loadingOption };
     } catch (error) {
-      routeEffectError(error, "ECharts loading toggle failed:", latest.onError);
+      handleEffectError(error, "ECharts loading toggle failed:");
     }
 
     // Track for cleanup regardless of partial bind failure so off() can still
     // be attempted on any handlers that did get bound.
-    lastBoundRef.current = latest.onEvents;
+    lastBoundRef.current = onEvents;
     try {
-      bindEvents(instance, latest.onEvents);
+      bindEvents(instance, onEvents);
     } catch (error) {
-      routeEffectError(error, "ECharts event bind failed:", latest.onError);
+      handleEffectError(error, "ECharts event bind failed:");
     }
 
-    if (latest.group) {
-      updateGroup(instance, undefined, latest.group);
+    if (group) {
+      updateGroup(instance, undefined, group);
     }
 
     return () => {
@@ -319,18 +305,18 @@ export function useChartCore(
         try {
           unbindEvents(inst, lastBoundRef.current);
         } catch (error) {
-          routeEffectError(error, "ECharts event unbind failed:", latestRef.current.onError);
+          handleEffectError(error, "ECharts event unbind failed:");
         }
       } finally {
         lastBoundRef.current = undefined;
         try {
           releaseCachedInstance(element);
         } catch (error) {
-          routeEffectError(error, "ECharts release failed:", latestRef.current.onError);
+          handleEffectError(error, "ECharts release failed:");
         }
       }
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- latest config values are read from refs; only structural deps trigger re-init
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- non-structural deps (option/setOptionOpts/showLoading/loadingOption/onEvents/group) captured at init; updates handled by dedicated sync effects below
   }, [shouldInit, element, themeKey, renderer, initOptsKey]);
 
   // =====================================================================
@@ -355,7 +341,7 @@ export function useChartCore(
       instance.setOption(option, setOptionOpts);
       lastAppliedRef.current = { option, opts: setOptionOpts };
     } catch (error) {
-      routeEffectError(error, "ECharts setOption failed:", latestRef.current.onError);
+      handleEffectError(error, "ECharts setOption failed:");
     }
   }, [getInstance, option, setOptionOpts]);
 
@@ -387,7 +373,7 @@ export function useChartCore(
     try {
       bindEvents(instance, onEvents);
     } catch (error) {
-      routeEffectError(error, "ECharts event bind failed:", latestRef.current.onError);
+      handleEffectError(error, "ECharts event bind failed:");
     }
     lastBoundRef.current = onEvents;
   }, [getInstance, onEvents]);
@@ -416,7 +402,7 @@ export function useChartCore(
       }
       lastLoadingRef.current = { showLoading, loadingOption };
     } catch (error) {
-      routeEffectError(error, "ECharts loading toggle failed:", latestRef.current.onError);
+      handleEffectError(error, "ECharts loading toggle failed:");
     }
   }, [getInstance, showLoading, loadingOption]);
 

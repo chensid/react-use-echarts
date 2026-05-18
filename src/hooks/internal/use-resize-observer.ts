@@ -1,6 +1,5 @@
-import { useEffect, useLayoutEffect, useRef } from "react";
+import { useEffect, useEffectEvent } from "react";
 import { getCachedInstance } from "../../utils/instance-cache";
-import { routeEffectError } from "../../utils/error";
 import { subscribeVisibilityResume } from "../../utils/visibility-coordinator";
 
 /**
@@ -12,9 +11,11 @@ export function useResizeObserver(
   autoResize: boolean,
   onError?: (error: unknown) => void,
 ): void {
-  const onErrorRef = useRef(onError);
-  useLayoutEffect(() => {
-    onErrorRef.current = onError;
+  // `useEffectEvent` reads the latest `onError` at call time without re-triggering
+  // the observer effect, replacing the React 18-era `onErrorRef` ping-pong.
+  const handleResizeError = useEffectEvent((error: unknown, message: string) => {
+    if (onError) onError(error);
+    else console.error(message, error);
   });
 
   useEffect(() => {
@@ -29,7 +30,7 @@ export function useResizeObserver(
       try {
         getCachedInstance(element)?.resize();
       } catch (error) {
-        routeEffectError(error, "ECharts resize failed:", onErrorRef.current);
+        handleResizeError(error, "ECharts resize failed:");
       }
     };
 
@@ -45,7 +46,7 @@ export function useResizeObserver(
       });
       resizeObserver.observe(element);
     } catch (error) {
-      routeEffectError(error, "ResizeObserver not available:", onErrorRef.current);
+      handleResizeError(error, "ResizeObserver not available:");
     }
 
     // Browsers throttle requestAnimationFrame in hidden tabs, so a resize that
