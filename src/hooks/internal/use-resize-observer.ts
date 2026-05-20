@@ -26,6 +26,12 @@ export function useResizeObserver(
     let resizeObserver: ResizeObserver | undefined;
     let rafId: number | undefined;
 
+    const cancelPendingResize = (): void => {
+      if (rafId === undefined) return;
+      cancelAnimationFrame(rafId);
+      rafId = undefined;
+    };
+
     const safeResize = (): void => {
       try {
         getCachedInstance(element)?.resize();
@@ -36,9 +42,7 @@ export function useResizeObserver(
 
     try {
       resizeObserver = new ResizeObserver(() => {
-        if (rafId !== undefined) {
-          cancelAnimationFrame(rafId);
-        }
+        cancelPendingResize();
         rafId = requestAnimationFrame(() => {
           rafId = undefined;
           safeResize();
@@ -56,9 +60,7 @@ export function useResizeObserver(
     const unsubscribeVisibility = subscribeVisibilityResume(safeResize);
 
     return () => {
-      if (rafId !== undefined) {
-        cancelAnimationFrame(rafId);
-      }
+      cancelPendingResize();
       resizeObserver?.disconnect();
       unsubscribeVisibility();
     };

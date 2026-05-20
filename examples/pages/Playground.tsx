@@ -6,7 +6,8 @@ import Icon from "../components/Icon";
 import type { EChartsOption } from "echarts";
 import styles from "./Playground.module.css";
 
-type SeriesType = "bar" | "line" | "scatter";
+const SERIES_TYPES = ["bar", "line", "scatter"] as const;
+type SeriesType = (typeof SERIES_TYPES)[number];
 
 interface State {
   readonly series: SeriesType;
@@ -73,6 +74,33 @@ const buildOption = (s: State): EChartsOption => {
   };
 };
 
+const buildCodeSample = (state: State): string => {
+  const lines = [
+    `import { useEcharts } from "react-use-echarts";`,
+    "",
+    `const ref = useRef<HTMLDivElement>(null);`,
+    `useEcharts(ref, {`,
+    `  option: {`,
+    `    legend: ${state.showLegend ? "{ bottom: 0 }" : "{ show: false }"},`,
+    `    xAxis: ${state.horizontal ? '{ type: "value" }' : '{ type: "category", data: days }'},`,
+    `    yAxis: ${state.horizontal ? '{ type: "category", data: days }' : '{ type: "value" }'},`,
+    `    series: [`,
+    `      {`,
+    `        type: "${state.series}",`,
+    `        data: a,`,
+    state.series === "line" ? `        smooth: ${state.smooth},` : "",
+    state.series === "line" && state.area ? `        areaStyle: { opacity: 0.2 },` : "",
+    state.stack ? `        stack: "total",` : "",
+    state.series !== "bar" ? `        symbolSize: ${state.itemSize},` : "",
+    `      },`,
+    `      // ...Series B`,
+    `    ],`,
+    `  },`,
+    `});`,
+  ];
+  return lines.filter(Boolean).join("\n");
+};
+
 const Playground: React.FC = () => {
   const [state, setState] = useState<State>(DEFAULT);
   const { mode } = useTheme();
@@ -81,35 +109,10 @@ const Playground: React.FC = () => {
   const option = useMemo(() => buildOption(state), [state]);
   useEcharts(chartRef, { option, theme: mode });
 
-  const set = <K extends keyof State>(k: K, v: State[K]) =>
-    setState((prev) => ({ ...prev, [k]: v }));
+  const updateState = <K extends keyof State>(key: K, value: State[K]) =>
+    setState((prev) => ({ ...prev, [key]: value }));
 
-  const codeStr = useMemo(() => {
-    const lines = [
-      `import { useEcharts } from "react-use-echarts";`,
-      "",
-      `const ref = useRef<HTMLDivElement>(null);`,
-      `useEcharts(ref, {`,
-      `  option: {`,
-      `    legend: ${state.showLegend ? "{ bottom: 0 }" : "{ show: false }"},`,
-      `    xAxis: ${state.horizontal ? '{ type: "value" }' : '{ type: "category", data: days }'},`,
-      `    yAxis: ${state.horizontal ? '{ type: "category", data: days }' : '{ type: "value" }'},`,
-      `    series: [`,
-      `      {`,
-      `        type: "${state.series}",`,
-      `        data: a,`,
-      state.series === "line" ? `        smooth: ${state.smooth},` : "",
-      state.series === "line" && state.area ? `        areaStyle: { opacity: 0.2 },` : "",
-      state.stack ? `        stack: "total",` : "",
-      state.series !== "bar" ? `        symbolSize: ${state.itemSize},` : "",
-      `      },`,
-      `      // …Series B`,
-      `    ],`,
-      `  },`,
-      `});`,
-    ];
-    return lines.filter(Boolean).join("\n");
-  }, [state]);
+  const codeStr = useMemo(() => buildCodeSample(state), [state]);
 
   return (
     <>
@@ -125,93 +128,119 @@ const Playground: React.FC = () => {
         }
       />
       <div className={styles.layout}>
-        <aside className={styles.controls}>
-          <div className={styles.group}>
-            <div className={styles.groupTitle}>series.type</div>
-            <div className={styles.segment} role="tablist">
-              {(["bar", "line", "scatter"] as SeriesType[]).map((t) => (
-                <button
-                  key={t}
-                  type="button"
-                  role="tab"
-                  aria-selected={state.series === t}
-                  className={`${styles.segBtn} ${state.series === t ? styles.segBtnActive : ""}`}
-                  onClick={() => set("series", t)}
-                >
-                  {t}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <div className={styles.group}>
-            <div className={styles.groupTitle}>flags</div>
-            <Toggle
-              label="line.smooth"
-              v={state.smooth}
-              on={(v) => set("smooth", v)}
-              disabled={state.series !== "line"}
-            />
-            <Toggle
-              label="series.areaStyle"
-              v={state.area}
-              on={(v) => set("area", v)}
-              disabled={state.series !== "line"}
-            />
-            <Toggle label='series.stack = "total"' v={state.stack} on={(v) => set("stack", v)} />
-            <Toggle label="horizontal axes" v={state.horizontal} on={(v) => set("horizontal", v)} />
-            <Toggle label="legend" v={state.showLegend} on={(v) => set("showLegend", v)} />
-            <Toggle label="splitLine" v={state.showGrid} on={(v) => set("showGrid", v)} />
-          </div>
-
-          <div className={styles.group}>
-            <div className={styles.groupTitle}>symbolSize</div>
-            <input
-              type="range"
-              min={4}
-              max={28}
-              step={1}
-              value={state.itemSize}
-              onChange={(e) => set("itemSize", Number(e.target.value))}
-              className={styles.range}
-              disabled={state.series === "bar"}
-            />
-            <div className={styles.rangeRow}>
-              <span>4</span>
-              <span className={styles.rangeVal}>{state.itemSize}px</span>
-              <span>28</span>
-            </div>
-          </div>
-
-          <button type="button" className={styles.reset} onClick={() => setState(DEFAULT)}>
-            <Icon name="spinner" size={13} />
-            Reset to defaults
-          </button>
-        </aside>
-
-        <div className={styles.right}>
-          <div className={styles.previewCard}>
-            <div className={styles.previewHead}>
-              <span className={styles.windowDot} />
-              <span className={styles.windowDot} />
-              <span className={styles.windowDot} />
-              <span className={styles.windowTitle}>preview · live</span>
-            </div>
-            <div ref={chartRef} className={styles.chart} />
-          </div>
-          <div className={styles.codeCard}>
-            <div className={styles.codeHead}>
-              <span className={styles.codeTab}>generated.tsx</span>
-            </div>
-            <pre className={styles.code}>
-              <code>{codeStr}</code>
-            </pre>
-          </div>
-        </div>
+        <ControlsPanel state={state} onChange={updateState} onReset={() => setState(DEFAULT)} />
+        <PreviewPanel chartRef={chartRef} code={codeStr} />
       </div>
     </>
   );
 };
+
+interface ControlsPanelProps {
+  readonly state: State;
+  readonly onChange: <K extends keyof State>(key: K, value: State[K]) => void;
+  readonly onReset: () => void;
+}
+
+const ControlsPanel: React.FC<ControlsPanelProps> = ({ state, onChange, onReset }) => (
+  <aside className={styles.controls}>
+    <div className={styles.group}>
+      <div className={styles.groupTitle}>series.type</div>
+      <div className={styles.segment} role="tablist">
+        {SERIES_TYPES.map((type) => (
+          <button
+            key={type}
+            type="button"
+            role="tab"
+            aria-selected={state.series === type}
+            className={`${styles.segBtn} ${state.series === type ? styles.segBtnActive : ""}`}
+            onClick={() => onChange("series", type)}
+          >
+            {type}
+          </button>
+        ))}
+      </div>
+    </div>
+
+    <div className={styles.group}>
+      <div className={styles.groupTitle}>flags</div>
+      <Toggle
+        label="line.smooth"
+        v={state.smooth}
+        on={(value) => onChange("smooth", value)}
+        disabled={state.series !== "line"}
+      />
+      <Toggle
+        label="series.areaStyle"
+        v={state.area}
+        on={(value) => onChange("area", value)}
+        disabled={state.series !== "line"}
+      />
+      <Toggle
+        label='series.stack = "total"'
+        v={state.stack}
+        on={(value) => onChange("stack", value)}
+      />
+      <Toggle
+        label="horizontal axes"
+        v={state.horizontal}
+        on={(value) => onChange("horizontal", value)}
+      />
+      <Toggle label="legend" v={state.showLegend} on={(value) => onChange("showLegend", value)} />
+      <Toggle label="splitLine" v={state.showGrid} on={(value) => onChange("showGrid", value)} />
+    </div>
+
+    <div className={styles.group}>
+      <div className={styles.groupTitle}>symbolSize</div>
+      <input
+        type="range"
+        min={4}
+        max={28}
+        step={1}
+        value={state.itemSize}
+        onChange={(event) => onChange("itemSize", Number(event.target.value))}
+        className={styles.range}
+        disabled={state.series === "bar"}
+      />
+      <div className={styles.rangeRow}>
+        <span>4</span>
+        <span className={styles.rangeVal}>{state.itemSize}px</span>
+        <span>28</span>
+      </div>
+    </div>
+
+    <button type="button" className={styles.reset} onClick={onReset}>
+      <Icon name="spinner" size={13} />
+      Reset to defaults
+    </button>
+  </aside>
+);
+
+interface PreviewPanelProps {
+  readonly chartRef: React.RefObject<HTMLDivElement | null>;
+  readonly code: string;
+}
+
+const PreviewPanel: React.FC<PreviewPanelProps> = ({ chartRef, code }) => (
+  <div className={styles.right}>
+    <div className={styles.previewCard}>
+      <div className={styles.previewHead}>
+        <span className={styles.windowDot} />
+        <span className={styles.windowDot} />
+        <span className={styles.windowDot} />
+        <span className={styles.windowTitle}>preview · live</span>
+      </div>
+      <div ref={chartRef} className={styles.chart} />
+    </div>
+    <div className={styles.codeCard}>
+      <div className={styles.codeHead}>
+        <span className={styles.codeTab}>generated.tsx</span>
+      </div>
+      <pre className={styles.code}>
+        <code>{code}</code>
+      </pre>
+    </div>
+  </div>
+);
 
 const Toggle: React.FC<{
   readonly label: string;
