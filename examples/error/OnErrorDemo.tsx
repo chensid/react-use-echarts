@@ -22,7 +22,7 @@ const validOption: EChartsOption = {
 // before the throw site, and that flag stays stuck if the throw escapes,
 // permanently jamming subsequent setOption calls. dispatchAction has no
 // such side effect, so Reset still works.
-const cursedPayload = new Proxy({} as Record<string, unknown>, {
+const throwingPayload = new Proxy({} as Record<string, unknown>, {
   get(_target, prop) {
     throw new Error(`demo: payload.${String(prop)} accessor threw on purpose`);
   },
@@ -49,7 +49,7 @@ const OnErrorDemo: React.FC = () => {
     // proxy's get trap fires when ECharts reads `payload.type`, the throw
     // escapes setOption's call frame, and the hook hands the error to
     // onError instead of re-throwing.
-    dispatchAction(cursedPayload);
+    dispatchAction(throwingPayload);
   };
 
   const reset = (): void => {

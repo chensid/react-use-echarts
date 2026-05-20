@@ -180,15 +180,13 @@ export function useChartCore(
   // effects, so the imperative path still needs a ref-sync bridge. All other
   // config fields are either reactive deps in their owning effect or captured
   // via closure inside the lifecycle effect.
-  const buildLatest = (): ImperativeLatest => ({ setOptionOpts, onError });
-
   const latestRef = useRef<ImperativeLatest>(null!);
   if (latestRef.current === null) {
-    latestRef.current = buildLatest();
+    latestRef.current = { setOptionOpts, onError };
   }
 
   useLayoutEffect(() => {
-    latestRef.current = buildLatest();
+    latestRef.current = { setOptionOpts, onError };
   });
 
   // --- Effect-context error routing. `useEffectEvent` reads the latest
