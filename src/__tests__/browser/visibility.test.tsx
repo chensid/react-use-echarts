@@ -9,7 +9,7 @@
  * file is a placeholder skipped by default and documents the gap so it can be
  * upgraded with a Playwright tab-toggle helper later.
  */
-import { describe, it } from "vitest";
+import { describe, it } from "vite-plus/test";
 
 describe("visibilitychange resync in real browser", () => {
   it.skip("resyncs chart size after tab returns to foreground", () => {

@@ -7,7 +7,7 @@
  * `getInstance()` to transition from undefined → defined. Not asserting exact
  * timing or layout numbers.
  */
-import { describe, it, expect } from "vitest";
+import { describe, it, expect } from "vite-plus/test";
 import { render, act } from "@testing-library/react";
 import { useRef } from "react";
 import * as echarts from "echarts/core";

@@ -7,7 +7,7 @@
  * Smoke-level: width changes are observable on the ECharts instance after a
  * container resize. Does NOT assert exact frame coalescing counts.
  */
-import { describe, it, expect } from "vitest";
+import { describe, it, expect } from "vite-plus/test";
 import { render } from "@testing-library/react";
 import { useRef } from "react";
 import * as echarts from "echarts/core";
