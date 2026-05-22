@@ -1,11 +1,9 @@
 import { defineConfig } from "vite-plus";
 import babel from "@rolldown/plugin-babel";
 import react, { reactCompilerPreset } from "@vitejs/plugin-react";
-// Use the bundled provider from vite-plus-test (vitest is aliased to it in
-// package.json). Importing @vitest/browser-playwright as an external dep would
-// pull a separate copy that mismatches vite-plus-test's bundled Vitest core
-// version, triggering the "Running mixed versions" warning at test start.
-import { playwright } from "vitest/browser/providers/playwright";
+// Use the provider bundled with vite-plus-test so the browser runner and
+// Vitest core stay on the same Vite+ managed version.
+import { playwright } from "vite-plus/test/browser/providers/playwright";
 
 const repositoryName = process.env.GITHUB_REPOSITORY?.split("/")[1];
 const base = process.env.GITHUB_ACTIONS === "true" && repositoryName ? `/${repositoryName}/` : "/";

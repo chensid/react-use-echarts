@@ -1,0 +1,4 @@
+{
+  "oxc.fmt.configPath": "./vite.config.ts",
+  "typescript.tsdk": "node_modules/typescript/lib"
+}

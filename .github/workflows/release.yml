@@ -43,6 +43,7 @@ jobs:
           node-version: "24"
           cache: true
 
+      # `vp pack` shells out to pnpm while creating the package tarball.
       - name: Setup pnpm
         uses: pnpm/action-setup@v6
 
