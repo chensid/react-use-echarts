@@ -99,10 +99,10 @@ export const LineChart = () => {
   return <div ref={ref} style={{ height: 320 }} />;
 };`,
   component: `import { useRef } from "react";
-import { EChart, type UseEchartsReturn } from "react-use-echarts";
+import { EChart, type EChartHandle } from "react-use-echarts";
 
 export const Pie = () => {
-  const ref = useRef<UseEchartsReturn>(null);
+  const ref = useRef<EChartHandle>(null);
 
   return (
     <EChart

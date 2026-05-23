@@ -5,7 +5,7 @@ import * as echarts from "echarts/core";
 import { EChart } from "../../components/EChart";
 import { clearInstanceCache, getCachedInstance } from "../../utils/instance-cache";
 import { clearGroups } from "../../utils/connect";
-import type { UseEchartsReturn } from "../../types";
+import type { EChartHandle } from "../../types";
 import { createMockInstance, MockResizeObserver, MockIntersectionObserver } from "../helpers";
 
 // Mock ECharts
@@ -92,7 +92,7 @@ describe("EChart component", () => {
       createMockInstance(el),
     );
 
-    const ref = createRef<UseEchartsReturn>();
+    const ref = createRef<EChartHandle>();
 
     render(<EChart ref={ref} option={{ series: [{ type: "line", data: [1, 2, 3] }] }} />);
 
@@ -104,6 +104,23 @@ describe("EChart component", () => {
     expect(typeof ref.current!.clear).toBe("function");
   });
 
+  // Regression: the imperative handle must NOT carry the container `ref`
+  // field — exposing it would let external callers reassign the chart's
+  // DOM element via `ref.current?.ref(otherNode)` and strand the EChart
+  // component's own container.
+  it("does not expose the container ref field on the imperative handle", () => {
+    (echarts.init as ReturnType<typeof vi.fn>).mockImplementation((el: HTMLElement) =>
+      createMockInstance(el),
+    );
+
+    const ref = createRef<EChartHandle>();
+
+    render(<EChart ref={ref} option={{ series: [{ type: "line", data: [1, 2, 3] }] }} />);
+
+    expect(ref.current).toBeDefined();
+    expect("ref" in (ref.current as object)).toBe(false);
+  });
+
   it("should forward dispatchAction and clear via ref", () => {
     let captured: ReturnType<typeof createMockInstance> | null = null;
     (echarts.init as ReturnType<typeof vi.fn>).mockImplementation((el: HTMLElement) => {
@@ -111,7 +128,7 @@ describe("EChart component", () => {
       return captured;
     });
 
-    const ref = createRef<UseEchartsReturn>();
+    const ref = createRef<EChartHandle>();
 
     render(<EChart ref={ref} option={{ series: [{ type: "line", data: [1, 2, 3] }] }} />);
 

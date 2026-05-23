@@ -1,6 +1,6 @@
 import React, { useRef, useState } from "react";
 import { EChart } from "../../src";
-import type { UseEchartsReturn } from "../../src";
+import type { EChartHandle } from "../../src";
 import { useTheme } from "../components/theme-context";
 import type { EChartsOption } from "echarts";
 
@@ -26,7 +26,7 @@ const baseOption: EChartsOption = {
 };
 
 const ComponentRef: React.FC = () => {
-  const chartRef = useRef<UseEchartsReturn>(null);
+  const chartRef = useRef<EChartHandle>(null);
   const { mode } = useTheme();
   const [highlighted, setHighlighted] = useState(false);
   const [cleared, setCleared] = useState(false);

@@ -46,6 +46,7 @@ export type {
   EChartsEventPayloadMap,
   EChartsInitOpts,
   EChartProps,
+  EChartHandle,
   BuiltinTheme,
   LoadingOption,
   ChartFinder,

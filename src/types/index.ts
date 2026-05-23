@@ -482,6 +482,16 @@ export interface UseEchartsReturn {
 }
 
 /**
+ * Imperative handle exposed by `<EChart ref={…} />`.
+ * Mirrors `UseEchartsReturn` without the `ref` field — the component
+ * manages its own container ref internally, so consumers should not be
+ * able to reassign the chart's DOM element through the imperative handle.
+ * EChart 组件 imperative handle 的类型：与 useEcharts 返回值一致，但不包含 `ref` 字段
+ *（组件内部自管容器 ref，外部不应通过 handle 重定向 DOM 元素）。
+ */
+export type EChartHandle = Omit<UseEchartsReturn, "ref">;
+
+/**
  * Props for the EChart declarative component
  * EChart 声明式组件的属性
  */
