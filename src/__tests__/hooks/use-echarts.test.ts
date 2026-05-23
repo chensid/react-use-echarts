@@ -2091,22 +2091,24 @@ describe("useEcharts", () => {
     });
 
     describe("visibilitychange resume", () => {
-      const originalDescriptor = Object.getOwnPropertyDescriptor(Document.prototype, "hidden");
+      // Mock on the instance — happy-dom defines `hidden` as an own property on
+      // `document`, which shadows any Document.prototype getter we'd install.
+      const ownDescriptor = Object.getOwnPropertyDescriptor(document, "hidden");
       let hiddenValue = false;
 
       beforeEach(() => {
         hiddenValue = false;
-        Object.defineProperty(Document.prototype, "hidden", {
+        Object.defineProperty(document, "hidden", {
           configurable: true,
           get: () => hiddenValue,
         });
       });
 
       afterEach(() => {
-        if (originalDescriptor) {
-          Object.defineProperty(Document.prototype, "hidden", originalDescriptor);
+        if (ownDescriptor) {
+          Object.defineProperty(document, "hidden", ownDescriptor);
         } else {
-          delete (Document.prototype as unknown as { hidden?: boolean }).hidden;
+          delete (document as unknown as { hidden?: boolean }).hidden;
         }
       });
 

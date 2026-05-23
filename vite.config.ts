@@ -96,21 +96,21 @@ export default defineConfig({
     restoreMocks: true,
     projects: [
       {
-        // Default unit-test project: jsdom + ECharts mocked.
+        // Default unit-test project: happy-dom + ECharts mocked.
         // Excludes browser smoke tests so they only run via the browser project.
         extends: true,
         test: {
           name: "unit",
           pool: "threads",
           globals: true,
-          environment: "jsdom",
+          environment: "happy-dom",
           include: ["src/__tests__/**/*.test.{ts,tsx}"],
           exclude: ["src/__tests__/browser/**"],
         },
       },
       {
         // Browser smoke tests: real chromium via playwright provider.
-        // Covers what jsdom can't simulate — IntersectionObserver in a real
+        // Covers what happy-dom can't simulate — IntersectionObserver in a real
         // viewport, ResizeObserver + RAF interactions, real DOM layout.
         // Smoke level: assert effects are observable, not exact frame counts.
         extends: true,

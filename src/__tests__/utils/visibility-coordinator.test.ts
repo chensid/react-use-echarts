@@ -43,9 +43,11 @@ describe("visibility-coordinator", () => {
   });
 
   it("fires subscribers only when the tab becomes visible", () => {
-    const originalDescriptor = Object.getOwnPropertyDescriptor(Document.prototype, "hidden");
+    // Mock on the instance — happy-dom defines `hidden` as an own property on
+    // `document`, which shadows any Document.prototype getter we'd install.
+    const ownDescriptor = Object.getOwnPropertyDescriptor(document, "hidden");
     let hidden = false;
-    Object.defineProperty(Document.prototype, "hidden", {
+    Object.defineProperty(document, "hidden", {
       configurable: true,
       get: () => hidden,
     });
@@ -62,10 +64,10 @@ describe("visibility-coordinator", () => {
       document.dispatchEvent(new Event("visibilitychange"));
       expect(cb).toHaveBeenCalledTimes(1);
     } finally {
-      if (originalDescriptor) {
-        Object.defineProperty(Document.prototype, "hidden", originalDescriptor);
+      if (ownDescriptor) {
+        Object.defineProperty(document, "hidden", ownDescriptor);
       } else {
-        delete (Document.prototype as unknown as { hidden?: boolean }).hidden;
+        delete (document as unknown as { hidden?: boolean }).hidden;
       }
     }
   });
