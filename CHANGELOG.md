@@ -1,5 +1,38 @@
 # react-use-echarts
 
+## 2.1.0
+
+### ⚠️ Breaking change
+
+- The default `react-use-echarts` entry no longer side-effect-imports `"echarts"`. Production minifiers (Rolldown/Oxc, Rollup) drop ECharts' ~36 top-level `use([...])` registrations as pure because the upstream package's `sideEffects` field is non-conforming — the bundled output ends up with an empty zrender painter registry and `new ECharts(…)` throws `TypeError: ka[a] is not a constructor` on first init. The library is now fully modular, matching `vue-echarts` / `nuxt-echarts` / `react-chartjs-2`. Consumers must register the modules they need **before** the first `useEcharts()` render.
+
+  **Quickest migration** — equivalent to v2.0's automatic full-set registration, one line at app entry:
+
+  ```ts
+  import { registerEchartsFull } from "react-use-echarts/preset-full";
+  registerEchartsFull();
+  ```
+
+  **Tree-shake-friendly migration** — selective registration, recommended for production:
+
+  ```ts
+  import * as echarts from "echarts/core";
+  import { LineChart } from "echarts/charts";
+  import { GridComponent, TooltipComponent } from "echarts/components";
+  import { CanvasRenderer } from "echarts/renderers";
+  echarts.use([LineChart, GridComponent, TooltipComponent, CanvasRenderer]);
+  ```
+
+  Hook / component / type API is unchanged.
+
+### Minor Changes
+
+- New subpath entry `react-use-echarts/preset-full` exporting `registerEchartsFull()` — a one-line registrar that calls `echarts.use(...)` with every built-in chart, component, renderer and feature. Drop-in replacement for v2.0's implicit `import "echarts"`, but as an explicit call so production minifiers preserve the registration chain.
+
+- `react-use-echarts/core` is now a deprecated alias of the default entry. Both entries are identical (fully modular) since v2.1; `/core` will be removed in v4. Migrate `from "react-use-echarts/core"` imports to `from "react-use-echarts"` at your convenience.
+
+- `package.json` `sideEffects` flipped from `["./dist/index.js"]` to `false`. The library is now fully tree-shakable — bundlers will no longer pull `dist/index.js` into the graph unless something is actually imported from it.
+
 ## 2.0.0
 
 ### Major Changes

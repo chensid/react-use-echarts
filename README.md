@@ -43,6 +43,20 @@ yarn add react-use-echarts echarts
 pnpm add react-use-echarts echarts
 ```
 
+## Register ECharts modules
+
+Since v2.1 `react-use-echarts` is fully modular — it does not auto-register any ECharts chart, component, renderer or feature. Call one of the registrars below **once at your application entry**, before the first chart renders:
+
+```ts
+// Simplest — registers everything ECharts ships with (~290KB gzip).
+import { registerEchartsFull } from "react-use-echarts/preset-full";
+registerEchartsFull();
+```
+
+Or, for tree-shake-friendly production builds, register only what you actually render — see [Tree-shaking](#tree-shaking) for the recipe.
+
+> **Why?** Production minifiers (Rolldown/Oxc, Rollup) drop ECharts' top-level `use([...])` side-effect registrations as pure because the upstream package's `sideEffects` field is non-conforming. Moving registration to the consumer side mirrors what `vue-echarts`, `nuxt-echarts` and `react-chartjs-2` do, and keeps `react-use-echarts` reliable across every modern bundler.
+
 ## Quick Start
 
 ### `<EChart />` Component
@@ -174,24 +188,32 @@ useEcharts({
 });
 ```
 
-### Tree-shaking with the `/core` Entry
+### Tree-shaking
 
-The default `react-use-echarts` entry imports `"echarts"` for its side-effect registration of every chart and component, so users get a zero-config experience at the cost of bundling all of ECharts (~290KB gzip). For production apps that only render a handful of chart types, the `react-use-echarts/core` subpath skips that side-effect and lets you register exactly what you need:
+The library is fully modular — pick the registration tier that matches your build target:
 
-```tsx
+**Tier 1 — All-in-one (development / prototyping).** One line, ~290KB gzip:
+
+```ts
+import { registerEchartsFull } from "react-use-echarts/preset-full";
+registerEchartsFull();
+```
+
+**Tier 2 — Selective (recommended for production).** Register only what you render — bundlers tree-shake the rest of ECharts away:
+
+```ts
 import * as echarts from "echarts/core";
 import { LineChart } from "echarts/charts";
 import { GridComponent, TooltipComponent } from "echarts/components";
 import { CanvasRenderer } from "echarts/renderers";
 echarts.use([LineChart, GridComponent, TooltipComponent, CanvasRenderer]);
-
-import { useEcharts, EChart } from "react-use-echarts/core";
-// Same API as the default entry — only the import path differs.
 ```
 
-The two entries share the same public API; pick `/core` when you want bundlers to tree-shake unused ECharts modules out of your final build. Built-in themes still work via `react-use-echarts/themes/registry`.
+See [`examples/core-entry/CoreEntryChart.tsx`](./examples/core-entry/CoreEntryChart.tsx) for a runnable demo.
 
-> ECharts maintains a single global registry, so `echarts.use([...])` calls compose across modules — call it once per chart type, anywhere in your app.
+**Tier 3 — Webpack-only legacy.** Webpack tolerates ECharts' non-conforming `sideEffects` field, so plain `import "echarts";` still works in webpack apps but **fails silently under Rolldown/Vite/Rollup** (chart never paints, console shows `TypeError` from zrender's empty painter registry). Prefer Tier 1 or Tier 2 instead.
+
+> ECharts maintains a single global registry — `echarts.use([...])` and `registerEchartsFull()` compose freely. You can call them in any order, anywhere in your app, but they must run **before** the first `useEcharts()` render.
 
 ### Use with Next.js (App Router)
 
@@ -228,6 +250,7 @@ export default function Page() {
 ## Gotchas
 
 - **Container needs explicit size** — the chart won't render in a zero-height div; give the container `height` (and `width` if not 100%).
+- **Forgetting to register ECharts modules** — `useEcharts()` initializes a chart against ECharts' shared global registry, so charts/components/renderers/features must be registered (via `registerEchartsFull()` or `echarts.use([...])`) **before** the first render. A missing registration usually shows up as `Renderer 'undefined' is not imported` or a chart that silently never paints; see [Register ECharts modules](#register-echarts-modules).
 - **Keep `onEvents` reference stable** — a new `onEvents` object on each render triggers a full rebind. Memoize it with `useMemo` (or hoist) when handlers don't change.
 - **Don't share one DOM element across multiple `useEcharts` hooks** — the instance cache reuses a single ECharts instance and emits a dev warning; updates from different hooks will overwrite each other.
 - **`initOpts` and custom `theme` objects recreate the instance on reference change** — pass memoized or module-level constants unless recreation is intended.
@@ -322,7 +345,7 @@ import { useLazyInit } from "react-use-echarts"; // standalone lazy init hook ->
 import { mergeRefs } from "react-use-echarts"; // compose multiple refs into one callback ref
 import { isBuiltinTheme, registerCustomTheme } from "react-use-echarts"; // theme utils (no JSON)
 import { registerBuiltinThemes } from "react-use-echarts/themes/registry"; // ~20KB theme JSON
-import { useEcharts, EChart } from "react-use-echarts/core"; // tree-shakable entry (see Recipes)
+import { registerEchartsFull } from "react-use-echarts/preset-full"; // one-line full-set registrar (see Register ECharts modules)
 
 // All exported types: UseEchartsOptions, UseEchartsReturn, UseLazyInitReturn,
 // EChartProps, EChartHandle, EChartsEvents, EChartsEventConfig, EChartsEventHandler,
@@ -330,6 +353,8 @@ import { useEcharts, EChart } from "react-use-echarts/core"; // tree-shakable en
 // ChartFinder, ChartScaleValue, Payload.
 // EChartsOption, SetOptionOpts, ResizeOpts come from the "echarts" package directly.
 ```
+
+> `react-use-echarts/core` is a deprecated alias of the default entry as of v2.1 — both are now identical modular entries. The `/core` alias will be removed in v4; migrate any `from "react-use-echarts/core"` imports to `from "react-use-echarts"`.
 
 `mergeRefs` returns a callback ref that fans the node out to every input — `RefObject`, legacy callback ref, or React 19 callback ref with cleanup — and isolates each invocation so a throwing 3rd-party ref can't strand the chart. Reach for it when you need both the hook-provided ref and your own:
 
@@ -391,6 +416,20 @@ Side-by-side example:
 />
 // chartRef.current?.instance replaces onChartReady
 ```
+
+## Migrating from v2.0
+
+v2.1 stops side-effect-importing `"echarts"` from the default entry — the library is now fully modular, matching `vue-echarts` / `nuxt-echarts` / `react-chartjs-2`. The hook/component API is unchanged; you only need to add **one line** at your application entry:
+
+```ts
+// app entry (e.g. main.tsx, index.tsx)
+import { registerEchartsFull } from "react-use-echarts/preset-full";
+registerEchartsFull();
+```
+
+That call is equivalent to v2.0's automatic `import "echarts"` and gives you the same ~290KB-gzip everything-included experience. For production builds that only render a few chart types, replace it with a selective `echarts.use([...])` — see [Tree-shaking](#tree-shaking).
+
+The `react-use-echarts/core` subpath is deprecated as of v2.1 and now behaves identically to the default entry (both are modular). Existing `from "react-use-echarts/core"` imports keep working but will be removed in v4; migrate to the default entry at your convenience.
 
 ## Migrating from v1
 
