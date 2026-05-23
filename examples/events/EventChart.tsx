@@ -1,7 +1,7 @@
 import React, { useMemo, useRef, useState } from "react";
 import { useEcharts, type EChartsEvents } from "../../src";
 import { useTheme } from "../components/theme-context";
-import type { EChartsOption } from "echarts";
+import type { ECElementEvent, EChartsOption } from "echarts";
 
 const option: EChartsOption = {
   backgroundColor: "transparent",
@@ -29,9 +29,11 @@ const option: EChartsOption = {
   ],
 };
 
-const describePointEvent = (name: string, params: unknown): string => {
-  const point = (params as { value: number[] }).value;
-  return `${name}: [${point[0]}, ${point[1]}]`;
+const describePointEvent = (name: string, params: ECElementEvent): string => {
+  // `params` is inferred as ECElementEvent thanks to the typed
+  // EChartsEvents map; only narrow `value` to a number tuple here.
+  const [x = 0, y = 0] = params.value as number[];
+  return `${name}: [${x}, ${y}]`;
 };
 
 const EventChart: React.FC = () => {
