@@ -1304,6 +1304,52 @@ describe("useEcharts", () => {
     });
   });
 
+  describe("method identity stability", () => {
+    // Regression: useChartCore wraps its imperative API in useMemo([element]),
+    // and useEcharts spreads it into a Compiler-cached return literal. The net
+    // effect is that consumers can place `setOption` (and friends) into effect
+    // dependency arrays without thrashing — for example,
+    // `useEffect(() => { setInterval(setOption, …) }, [running, setOption])`
+    // must not recreate the interval on every parent render.
+    it("keeps imperative method identities stable across unrelated rerenders", () => {
+      const element = document.createElement("div");
+      const mockInstance = createMockInstance(element);
+      (echarts.init as ReturnType<typeof vi.fn>).mockReturnValue(mockInstance);
+
+      const { result, rerender } = renderHook(
+        ({ tick }) => {
+          // `tick` is unrelated to the chart — just forces a rerender.
+          void tick;
+          return useEcharts({ option: baseOption });
+        },
+        {
+          initialProps: { tick: 0 },
+        },
+      );
+      act(() => {
+        result.current.ref(element);
+      });
+
+      const beforeSetOption = result.current.setOption;
+      const beforeResize = result.current.resize;
+      const beforeDispatchAction = result.current.dispatchAction;
+      const beforeClear = result.current.clear;
+      const beforeAppendData = result.current.appendData;
+      const beforeRef = result.current.ref;
+
+      rerender({ tick: 1 });
+      rerender({ tick: 2 });
+      rerender({ tick: 3 });
+
+      expect(result.current.setOption).toBe(beforeSetOption);
+      expect(result.current.resize).toBe(beforeResize);
+      expect(result.current.dispatchAction).toBe(beforeDispatchAction);
+      expect(result.current.clear).toBe(beforeClear);
+      expect(result.current.appendData).toBe(beforeAppendData);
+      expect(result.current.ref).toBe(beforeRef);
+    });
+  });
+
   describe("resize", () => {
     it("should call resize on instance", () => {
       const element = document.createElement("div");
@@ -1611,9 +1657,11 @@ describe("useEcharts", () => {
 
     it("should not throw when instance is not initialized", () => {
       const { result } = renderHook(() => useEcharts({ option: baseOption }));
-      act(() => {
-        result.current.appendData({ seriesIndex: 0, data: [] });
-      });
+      expect(() => {
+        act(() => {
+          result.current.appendData({ seriesIndex: 0, data: [] });
+        });
+      }).not.toThrow();
     });
 
     it("should reset dedup memory so a shallow-equal-new-ref rerender re-applies setOption", async () => {
@@ -2642,6 +2690,36 @@ describe("useEcharts", () => {
 
       expect(onError).toHaveBeenCalledTimes(1);
       expect(onError).toHaveBeenCalledWith(setOptionError);
+    });
+
+    // Regression: lifecycle setOption and Option-Sync setOption both fire on
+    // mount. Before the try/finally fix, a throw in the lifecycle path left
+    // `lastAppliedRef` null, so Option-Sync (running on the same render)
+    // would re-invoke setOption with the SAME args, throw again, and report
+    // the same failure twice via onError. The fix records the attempt
+    // unconditionally so Option-Sync dedups against it.
+    it("does not double-fire onError when setOption keeps throwing for the same option", () => {
+      const element = document.createElement("div");
+      const mockInstance = createMockInstance(element);
+      const setOptionError = new Error("malformed option");
+      // Persistent throw (no mockImplementationOnce): both the lifecycle and
+      // the Option-Sync path would attempt the same setOption call.
+      mockInstance.setOption.mockImplementation(() => {
+        throw setOptionError;
+      });
+      (echarts.init as ReturnType<typeof vi.fn>).mockReturnValue(mockInstance);
+
+      const onError = vi.fn();
+      const { result } = renderHook(() => useEcharts({ option: baseOption, onError }));
+      act(() => {
+        result.current.ref(element);
+      });
+
+      expect(onError).toHaveBeenCalledTimes(1);
+      expect(onError).toHaveBeenCalledWith(setOptionError);
+      // Only the lifecycle attempt fires setOption; Option-Sync's same-render
+      // re-attempt is suppressed by the recorded lastAppliedRef.
+      expect(mockInstance.setOption).toHaveBeenCalledTimes(1);
     });
 
     it("should console.error when initial setOption throws without onError", () => {

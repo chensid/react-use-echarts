@@ -1,4 +1,4 @@
-import { useEffect, useEffectEvent, useRef, useState, useLayoutEffect } from "react";
+import { useEffect, useEffectEvent, useMemo, useRef, useState, useLayoutEffect } from "react";
 import * as echarts from "echarts/core";
 import type { ECharts } from "echarts/core";
 import type { SetOptionOpts, EChartsOption } from "echarts";
@@ -134,8 +134,9 @@ interface ChartCoreConfig {
 }
 
 /**
- * Fields read by the imperative API (`withInstance` closure inside `useMemo`).
- * `useEffectEvent` is forbidden outside effects, so the imperative path keeps
+ * Fields read by the imperative API (`withInstance` closure, created inside
+ * the `useMemo([element])` block that produces the API surface).
+ * `useEffectEvent` is forbidden outside Effects, so the imperative path keeps
  * a ref-sync bridge for the two values it needs:
  *   - `onError`: routed via `routeImperativeError` on imperative throws
  *   - `setOptionOpts`: merged with caller-supplied opts in imperative setOption
@@ -177,11 +178,11 @@ export function useChartCore(
     onError,
   } = config;
 
-  // --- Imperative-only latest ref: 2 fields used by `withInstance` (inside
-  // `useMemo`, NOT an effect). `useEffectEvent` cannot be called outside
-  // effects, so the imperative path still needs a ref-sync bridge. All other
-  // config fields are either reactive deps in their owning effect or captured
-  // via closure inside the lifecycle effect.
+  // --- Imperative-only latest ref: 2 fields used by `withInstance` (created
+  // inside the `useMemo([element])` API block, NOT an effect). `useEffectEvent`
+  // cannot be called outside Effects, so the imperative path still needs a
+  // ref-sync bridge. All other config fields are either reactive deps in
+  // their owning effect or captured via closure inside the lifecycle effect.
   const latestRef = useRef<ImperativeLatest>(null!);
   if (latestRef.current === null) {
     latestRef.current = { setOptionOpts, onError };
@@ -221,7 +222,7 @@ export function useChartCore(
 
   // --- Public API ---
 
-  const getInstance = (): ECharts | undefined => {
+  const lookupInstance = (): ECharts | undefined => {
     if (!element) return undefined;
     return getCachedInstance(element);
   };
@@ -269,9 +270,16 @@ export function useChartCore(
 
     try {
       instance.setOption(option, setOptionOpts);
-      lastAppliedRef.current = { option, opts: setOptionOpts };
     } catch (error) {
       handleEffectError(error, "ECharts setOption failed:");
+    } finally {
+      // Record the attempt regardless of success: a throw here means the
+      // option is malformed. Option-Sync's useEffect runs immediately after
+      // this layout effect on the SAME mount, and without a recorded "last
+      // attempt" it would re-invoke setOption with the same args and fire
+      // onError a second time. The user can still recover by passing a new
+      // option reference (Option-Sync sees the changed ref and retries).
+      lastAppliedRef.current = { option, opts: setOptionOpts };
     }
 
     // showLoading can throw via user-registered custom loading types.
@@ -279,9 +287,14 @@ export function useChartCore(
       if (showLoading) {
         instance.showLoading(loadingOption);
       }
-      lastLoadingRef.current = { showLoading, loadingOption };
     } catch (error) {
       handleEffectError(error, "ECharts loading toggle failed:");
+    } finally {
+      // Mirror the setOption pattern above: record the attempt unconditionally
+      // so Loading-Toggle's useEffect (also fires on the same mount) dedups
+      // against this attempt instead of re-invoking showLoading and
+      // double-reporting the failure.
+      lastLoadingRef.current = { showLoading, loadingOption };
     }
 
     // Track for cleanup regardless of partial bind failure so off() can still
@@ -351,9 +364,13 @@ export function useChartCore(
 
     try {
       instance.setOption(option, setOptionOpts);
-      lastAppliedRef.current = { option, opts: setOptionOpts };
     } catch (error) {
       handleEffectError(error, "ECharts setOption failed:");
+    } finally {
+      // Record the attempt even on failure so a subsequent rerender with
+      // the same option ref dedups via the fast path above instead of
+      // re-throwing identically.
+      lastAppliedRef.current = { option, opts: setOptionOpts };
     }
   }, [element, option, setOptionOpts]);
 
@@ -414,9 +431,12 @@ export function useChartCore(
       } else {
         instance.hideLoading();
       }
-      lastLoadingRef.current = { showLoading, loadingOption };
     } catch (error) {
       handleEffectError(error, "ECharts loading toggle failed:");
+    } finally {
+      // Record the attempt even on failure so a rerender with the same
+      // (showLoading, loadingOption) pair dedups instead of re-firing.
+      lastLoadingRef.current = { showLoading, loadingOption };
     }
   }, [element, showLoading, loadingOption]);
 
@@ -447,79 +467,109 @@ export function useChartCore(
   // and appendData() additionally drop lastAppliedRef so a subsequent
   // shallow-equal prop rerender re-applies setOption (the instance state
   // has drifted from props).
+  //
+  // Wrapped in `useMemo([element])` so method identities stay stable across
+  // renders for a given container. Mutables (lastAppliedRef, latestRef) are
+  // read live; only `element` changes invalidate the closures. Without this
+  // memo, consumer effects with `[chart.setOption]` deps would thrash on
+  // every render (React Compiler does not memoize this hook's return).
   // =====================================================================
-  const withInstance = <T>(fn: (instance: ECharts) => T, fallback: T): T => {
-    const instance = getInstance();
-    if (!instance) return fallback;
-    try {
-      return fn(instance);
-    } catch (error) {
-      routeImperativeError(error, latestRef.current.onError);
-      return fallback;
-    }
-  };
+  const api = useMemo(() => {
+    const withInstance = <T>(fn: (instance: ECharts) => T, fallback: T): T => {
+      const instance = lookupInstance();
+      if (!instance) return fallback;
+      try {
+        return fn(instance);
+      } catch (error) {
+        routeImperativeError(error, latestRef.current.onError);
+        return fallback;
+      }
+    };
 
-  return {
-    instance: liveInstance,
+    return {
+      setOption: (newOption: EChartsOption, opts?: SetOptionOpts) =>
+        withInstance((instance) => {
+          const finalOpts = { ...latestRef.current.setOptionOpts, ...opts };
+          instance.setOption(newOption, finalOpts);
+          // Keep lastAppliedRef in sync so prop-driven Option-Sync Effect dedup
+          // reflects what's actually on the instance, not what props last sent.
+          lastAppliedRef.current = { option: newOption, opts: finalOpts };
+        }, undefined),
 
-    setOption: (newOption, opts) =>
-      withInstance((instance) => {
-        const finalOpts = { ...latestRef.current.setOptionOpts, ...opts };
-        instance.setOption(newOption, finalOpts);
-        // Keep lastAppliedRef in sync so prop-driven Option-Sync Effect dedup
-        // reflects what's actually on the instance, not what props last sent.
-        lastAppliedRef.current = { option: newOption, opts: finalOpts };
-      }, undefined),
+      dispatchAction: ((payload, opt) =>
+        withInstance(
+          (instance) => instance.dispatchAction(payload, opt),
+          undefined,
+        )) as ChartCoreReturn["dispatchAction"],
 
-    dispatchAction: (payload, opt) =>
-      withInstance((instance) => instance.dispatchAction(payload, opt), undefined),
+      clear: () =>
+        withInstance((instance) => {
+          instance.clear();
+          // Drop dedup memory: instance is now blank, so a subsequent prop
+          // rerender with a shallow-equal-but-new option ref must re-apply
+          // it instead of being skipped by Option-Sync Effect's fast path.
+          lastAppliedRef.current = null;
+        }, undefined),
 
-    clear: () =>
-      withInstance((instance) => {
-        instance.clear();
-        // Drop dedup memory: instance is now blank, so a subsequent prop
-        // rerender with a shallow-equal-but-new option ref must re-apply
-        // it instead of being skipped by Option-Sync Effect's fast path.
-        lastAppliedRef.current = null;
-      }, undefined),
+      resize: ((opts) =>
+        withInstance((instance) => instance.resize(opts), undefined)) as ChartCoreReturn["resize"],
 
-    resize: (opts) => withInstance((instance) => instance.resize(opts), undefined),
+      getOption: () => withInstance((instance) => instance.getOption() as EChartsOption, undefined),
+      getWidth: () => withInstance((instance) => instance.getWidth(), undefined),
+      getHeight: () => withInstance((instance) => instance.getHeight(), undefined),
+      getDom: () => withInstance((instance) => instance.getDom(), undefined),
+      // No instance → semantically disposed. Errors still route via withInstance,
+      // falling back to true so consumers don't act on a half-broken instance.
+      isDisposed: () => withInstance((instance) => instance.isDisposed(), true),
+      getDataURL: ((opts) =>
+        withInstance(
+          (instance) => instance.getDataURL(opts),
+          undefined,
+        )) as ChartCoreReturn["getDataURL"],
+      getConnectedDataURL: ((opts) =>
+        withInstance(
+          (instance) => instance.getConnectedDataURL(opts),
+          undefined,
+        )) as ChartCoreReturn["getConnectedDataURL"],
+      renderToSVGString: ((opts) =>
+        withInstance(
+          (instance) => instance.renderToSVGString(opts),
+          undefined,
+        )) as ChartCoreReturn["renderToSVGString"],
+      getSvgDataURL: () => withInstance((instance) => instance.getSvgDataURL(), undefined),
+      // ECharts' convertToPixel/convertFromPixel are overloaded; passing through
+      // the public widened signature requires `as never` to satisfy the
+      // last-overload-only inference TypeScript performs on overloaded methods.
+      convertToPixel: ((finder, value) =>
+        withInstance(
+          (instance) => instance.convertToPixel(finder as never, value as never),
+          undefined,
+        )) as ChartCoreReturn["convertToPixel"],
+      convertFromPixel: ((finder, value) =>
+        withInstance(
+          (instance) => instance.convertFromPixel(finder as never, value as never),
+          undefined,
+        )) as ChartCoreReturn["convertFromPixel"],
+      containPixel: ((finder, value) =>
+        withInstance(
+          (instance) => instance.containPixel(finder, value),
+          false,
+        )) as ChartCoreReturn["containPixel"],
+      appendData: ((params) =>
+        withInstance((instance) => {
+          instance.appendData(params);
+          // appendData drifts the instance from declarative `option`, same as
+          // clear(): drop dedup memory so the next shallow-equal-new-ref
+          // option prop re-applies setOption to resync.
+          lastAppliedRef.current = null;
+        }, undefined)) as ChartCoreReturn["appendData"],
+    } satisfies Omit<ChartCoreReturn, "instance">;
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- lastAppliedRef / latestRef are refs; closures read them live. lookupInstance closes over `element`, so [element] is the full dep set.
+  }, [element]);
 
-    getOption: () => withInstance((instance) => instance.getOption() as EChartsOption, undefined),
-    getWidth: () => withInstance((instance) => instance.getWidth(), undefined),
-    getHeight: () => withInstance((instance) => instance.getHeight(), undefined),
-    getDom: () => withInstance((instance) => instance.getDom(), undefined),
-    // No instance → semantically disposed. Errors still route via withInstance,
-    // falling back to true so consumers don't act on a half-broken instance.
-    isDisposed: () => withInstance((instance) => instance.isDisposed(), true),
-    getDataURL: (opts) => withInstance((instance) => instance.getDataURL(opts), undefined),
-    getConnectedDataURL: (opts) =>
-      withInstance((instance) => instance.getConnectedDataURL(opts), undefined),
-    renderToSVGString: (opts) =>
-      withInstance((instance) => instance.renderToSVGString(opts), undefined),
-    getSvgDataURL: () => withInstance((instance) => instance.getSvgDataURL(), undefined),
-    // ECharts' convertToPixel/convertFromPixel are overloaded; passing through
-    // the public widened signature requires `as never` to satisfy the
-    // last-overload-only inference TypeScript performs on overloaded methods.
-    convertToPixel: (finder, value) =>
-      withInstance(
-        (instance) => instance.convertToPixel(finder as never, value as never),
-        undefined,
-      ),
-    convertFromPixel: (finder, value) =>
-      withInstance(
-        (instance) => instance.convertFromPixel(finder as never, value as never),
-        undefined,
-      ),
-    containPixel: (finder, value) =>
-      withInstance((instance) => instance.containPixel(finder, value), false),
-    appendData: (params) =>
-      withInstance((instance) => {
-        instance.appendData(params);
-        // appendData drifts the instance from declarative `option`, same as
-        // clear(): drop dedup memory so the next shallow-equal-new-ref
-        // option prop re-applies setOption to resync.
-        lastAppliedRef.current = null;
-      }, undefined),
-  };
+  // Merge reactive `instance` into the stable api block. The wrapping object
+  // identity is re-cached only when liveInstance or api changes (i.e. on init,
+  // dispose, or element swap), so consumers spreading the hook result keep
+  // stable method identities across unrelated renders.
+  return useMemo<ChartCoreReturn>(() => ({ instance: liveInstance, ...api }), [liveInstance, api]);
 }
