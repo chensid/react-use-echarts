@@ -8,15 +8,19 @@
  * @packageDocumentation
  */
 
-// Side-effect import: pulls in the full echarts entry, which calls `use([...all charts/components])`
-// against the shared ECharts global registry. Keeps the default entry zero-config.
-// The `/core` subpath entry deliberately omits this import so consumers can
-// register only what they need via `echarts.use([...])`.
-import "echarts";
-
 /**
  * Main hook for using ECharts in React components
  * 在 React 组件中使用 ECharts 的主要 Hook
+ *
+ * Note: this entry is fully modular — it does not auto-register any echarts
+ * chart/component/renderer/feature. Call `registerEchartsFull()` from the
+ * `react-use-echarts/preset-full` subpath at your app entry for a zero-config
+ * "everything" experience, or call `echarts.use([...])` selectively for
+ * tree-shake-friendly production builds.
+ *
+ * 注意：此入口完全 modular，不会自动注册任何 echarts 图表/组件/渲染器/特性。
+ * 应用入口可调用 `react-use-echarts/preset-full` 的 `registerEchartsFull()`
+ * 获得开箱即用体验，或显式 `echarts.use([...])` 按需注册以利于 tree-shake。
  */
 export { useEcharts } from "./hooks/use-echarts";
 
