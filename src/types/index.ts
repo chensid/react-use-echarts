@@ -14,7 +14,7 @@ import type {
   ExpandAxisBreakPayload,
   ToggleAxisBreakPayload,
 } from "echarts";
-import type { CSSProperties } from "react";
+import type { CSSProperties, RefCallback } from "react";
 
 /**
  * Model finder accepted by `convertToPixel` / `convertFromPixel` / `containPixel`.
@@ -142,6 +142,25 @@ export interface EChartsEvents extends KnownEChartsEvents {
   // narrow per-event with an explicit handler parameter type.
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   [eventName: string]: EChartsEventConfig<any> | undefined;
+}
+
+/**
+ * Return type for `useLazyInit` — a callback ref plus a reactive
+ * visibility flag. Attach `ref` to the element you want to lazy-init,
+ * then gate work on `isInView`.
+ * `useLazyInit` 返回类型：callback ref + 响应式可见性标志。
+ *
+ * @example
+ * ```tsx
+ * const { ref, isInView } = useLazyInit({ rootMargin: "100px" });
+ * return <div ref={ref}>{isInView ? <Chart /> : null}</div>;
+ * ```
+ */
+export interface UseLazyInitReturn {
+  /** Callback ref to attach to the element you want to lazily initialize. */
+  ref: RefCallback<Element>;
+  /** Whether the element is currently in (or past) the viewport. */
+  isInView: boolean;
 }
 
 /**
@@ -309,17 +328,31 @@ export interface UseEchartsOptions {
  */
 export interface UseEchartsReturn {
   /**
+   * Callback ref to attach to the chart container element.
+   * 用于挂载到图表容器元素上的 callback ref。
+   * @example
+   * ```tsx
+   * const { ref } = useEcharts({ option });
+   * return <div ref={ref} style={{ width: "100%", height: 400 }} />;
+   * ```
+   */
+  ref: RefCallback<HTMLDivElement>;
+
+  /**
+   * The live ECharts instance, or `undefined` before initialization
+   * completes / after disposal. Reactive — components re-render when the
+   * instance is created or torn down, so downstream effects can subscribe
+   * via `useEffect([instance])`.
+   * 当前 ECharts 实例；初始化未完成或已销毁时为 undefined。响应式 —
+   * 实例创建/销毁会触发 re-render，下游 effect 可通过 `useEffect([instance])` 订阅。
+   */
+  instance: ECharts | undefined;
+
+  /**
    * Function to update chart options
    * 动态更新配置
    */
   setOption: (option: EChartsOption, opts?: SetOptionOpts) => void;
-
-  /**
-   * Function to get the ECharts instance
-   * 获取实例
-   * @returns Returns the current ECharts instance, or undefined if not initialized
-   */
-  getInstance: () => ECharts | undefined;
 
   /**
    * Manually trigger resize. When opts is provided, ECharts uses it to override

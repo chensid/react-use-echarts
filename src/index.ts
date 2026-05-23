@@ -39,6 +39,7 @@ export { useLazyInit } from "./hooks/use-lazy-init";
 export type {
   UseEchartsOptions,
   UseEchartsReturn,
+  UseLazyInitReturn,
   EChartsEvents,
   EChartsEventConfig,
   EChartsEventHandler,
