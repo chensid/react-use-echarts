@@ -32,9 +32,18 @@ export function mergeRefs<T>(...refs: ReadonlyArray<Ref<T> | undefined | null>):
     for (const ref of refs) {
       if (ref == null) continue;
       if (typeof ref === "function") {
-        const result = ref(node);
+        // Isolate each ref invocation: a misbehaving 3rd-party logger ref must
+        // not prevent the chart's own ref from receiving the node, otherwise
+        // the chart silently never initializes.
+        let result: unknown;
+        try {
+          result = ref(node);
+        } catch (error) {
+          console.error("react-use-echarts: merged ref callback threw on attach", error);
+          continue;
+        }
         if (typeof result === "function") {
-          cleanups.push(result);
+          cleanups.push(result as () => void);
         } else {
           // Legacy callback ref — emulate cleanup by re-invoking with null.
           cleanups.push(() => {
@@ -49,7 +58,16 @@ export function mergeRefs<T>(...refs: ReadonlyArray<Ref<T> | undefined | null>):
       }
     }
     return () => {
-      for (const cleanup of cleanups) cleanup();
+      // Isolate each cleanup: a thrown cleanup must not skip subsequent ones
+      // (including the chart's setElement(null), which is what disposes the
+      // ECharts instance — skipping it leaks the WeakMap entry).
+      for (const cleanup of cleanups) {
+        try {
+          cleanup();
+        } catch (error) {
+          console.error("react-use-echarts: merged ref cleanup threw on detach", error);
+        }
+      }
     };
   };
 }

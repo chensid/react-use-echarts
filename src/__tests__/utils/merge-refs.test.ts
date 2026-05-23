@@ -90,4 +90,61 @@ describe("mergeRefs", () => {
     expect(typeof cleanup).toBe("function");
     expect(() => cleanup?.()).not.toThrow();
   });
+
+  it("isolates a throwing ref callback so later refs still receive the node", () => {
+    const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+    try {
+      const angry: RefCallback<HTMLDivElement> = () => {
+        throw new Error("angry ref");
+      };
+      const objRef: MutableRefObject<HTMLDivElement | null> = { current: null };
+      const calmCb = vi.fn();
+      const node = document.createElement("div");
+
+      const merged = mergeRefs(angry, objRef, calmCb as RefCallback<HTMLDivElement>);
+      const cleanup = merged(node);
+
+      // The throw must not break the chain — refs registered after the
+      // angry one still attach to the node.
+      expect(objRef.current).toBe(node);
+      expect(calmCb).toHaveBeenCalledExactlyOnceWith(node);
+      expect(errorSpy).toHaveBeenCalled();
+
+      cleanup?.();
+      expect(objRef.current).toBeNull();
+      expect(calmCb).toHaveBeenLastCalledWith(null);
+    } finally {
+      errorSpy.mockRestore();
+    }
+  });
+
+  it("isolates a throwing cleanup so later cleanups still run", () => {
+    const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+    try {
+      const angryCleanup = vi.fn(() => {
+        throw new Error("angry cleanup");
+      });
+      const angryCb: RefCallback<HTMLDivElement> = () => angryCleanup;
+      const objRef: MutableRefObject<HTMLDivElement | null> = { current: null };
+      const tailCleanup = vi.fn();
+      const tailCb: RefCallback<HTMLDivElement> = () => tailCleanup;
+      const node = document.createElement("div");
+
+      const merged = mergeRefs(angryCb, objRef, tailCb);
+      const cleanup = merged(node);
+
+      expect(objRef.current).toBe(node);
+      cleanup?.();
+
+      // Even after angryCleanup throws, the chart-style cleanups behind it
+      // must still run — otherwise the ECharts instance and the WeakMap
+      // entry leak.
+      expect(angryCleanup).toHaveBeenCalledOnce();
+      expect(objRef.current).toBeNull();
+      expect(tailCleanup).toHaveBeenCalledOnce();
+      expect(errorSpy).toHaveBeenCalled();
+    } finally {
+      errorSpy.mockRestore();
+    }
+  });
 });
