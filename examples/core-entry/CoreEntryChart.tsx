@@ -1,22 +1,27 @@
 /**
- * Demonstrates the `react-use-echarts/core` subpath entry.
+ * Demonstrates selective ECharts registration as an alternative to the
+ * all-in-one `registerEchartsFull()` sugar from
+ * `react-use-echarts/preset-full`.
  *
- * The default `react-use-echarts` entry pulls in `"echarts"` for its
- * side-effect registration of every chart and component. The `/core` entry
- * skips that import, letting the consumer register only what's actually
- * rendered — bundlers then tree-shake away the rest of ECharts.
+ * Since v2.1 the library is fully modular: neither the default
+ * `react-use-echarts` entry nor the (now deprecated) `/core` alias auto-
+ * registers any chart/component. Production apps that only render a handful
+ * of chart types can skip `registerEchartsFull()` and instead call
+ * `echarts.use([...])` with just the modules they need — bundlers then
+ * tree-shake the rest of ECharts away.
  *
- * Note: inside this example app every demo lives in the same bundle, so the
- * default entry's full echarts is already loaded by other routes. The
- * tree-shaking benefit is realized in a standalone consumer project that
- * imports ONLY from `react-use-echarts/core`.
+ * Note: inside this example app the gallery routes already pull in the full
+ * ECharts surface via `examples/main.tsx`'s `registerEchartsFull()` call, so
+ * this demo's slimmer registration list does not actually shrink the bundle
+ * here. The tree-shaking benefit is realized in a standalone consumer
+ * project that omits `registerEchartsFull()` entirely.
  */
 import React from "react";
 import * as echarts from "echarts/core";
 import { LineChart } from "echarts/charts";
 import { GridComponent, TooltipComponent, TitleComponent } from "echarts/components";
 import { CanvasRenderer } from "echarts/renderers";
-import { useEcharts } from "../../src/core";
+import { useEcharts } from "../../src";
 import { useTheme } from "../components/theme-context";
 import type { EChartsOption } from "echarts";
 
