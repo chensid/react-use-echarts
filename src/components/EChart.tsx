@@ -1,4 +1,4 @@
-import { useRef, useImperativeHandle, type Ref } from "react";
+import { useImperativeHandle, type Ref } from "react";
 import { useEcharts } from "../hooks/use-echarts";
 import type { EChartProps, UseEchartsReturn } from "../types";
 
@@ -20,12 +20,11 @@ export function EChart({
   className,
   ...options
 }: EChartProps & { ref?: Ref<UseEchartsReturn> }) {
-  const containerRef = useRef<HTMLDivElement>(null);
-  const chart = useEcharts(containerRef, options);
+  const chart = useEcharts(options);
   useImperativeHandle(ref, () => chart, [chart]);
   return (
     <div
-      ref={containerRef}
+      ref={chart.ref}
       style={{ width: "100%", height: "100%", ...style }}
       className={className}
     />
