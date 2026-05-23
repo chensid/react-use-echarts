@@ -50,6 +50,7 @@ export type {
   EChartsEvents,
   EChartsEventConfig,
   EChartsEventHandler,
+  EChartsEventPayloadMap,
   EChartsInitOpts,
   EChartProps,
   BuiltinTheme,

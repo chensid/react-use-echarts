@@ -5,6 +5,14 @@ import type {
   EChartsInitOpts as RawEChartsInitOpts,
   Payload,
   ResizeOpts,
+  ECElementEvent,
+  SelectChangedPayload,
+  HighlightPayload,
+  DownplayPayload,
+  AxisBreakChangedEvent,
+  CollapseAxisBreakPayload,
+  ExpandAxisBreakPayload,
+  ToggleAxisBreakPayload,
 } from "echarts";
 import type { CSSProperties } from "react";
 
@@ -35,54 +43,105 @@ export type ChartScaleValue = number | string | Date;
 export type BuiltinTheme = "light" | "dark" | "macarons";
 
 /**
- * Event handler signature. Params defaults to `any` so consumers can annotate
- * concrete ECharts event types (e.g. `ECElementEvent`) without casting.
- * 事件处理函数签名。参数默认为 `any`，便于使用方直接标注具体的 ECharts 事件类型。
+ * Event handler signature. Default param type is `unknown`; known echarts
+ * events (see `EChartsEventPayloadMap`) get their concrete payload type
+ * inferred automatically via the `EChartsEvents` mapped type.
+ * 事件处理函数签名。默认参数类型为 `unknown`；已知 echarts 事件的具体 payload 类型
+ * 通过 `EChartsEvents` 自动推导，详见 `EChartsEventPayloadMap`。
  */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any -- see docstring
-export type EChartsEventHandler<TParams = any> = (params: TParams) => void;
+export type EChartsEventHandler<TParams = unknown> = (params: TParams) => void;
 
 /**
- * Event configuration: shorthand function or full config object
- * 事件配置：简写函数或完整配置对象
+ * Event configuration: shorthand function or full config object.
+ * 事件配置：简写函数或完整配置对象。
  * @example
  * ```typescript
- * // Shorthand 简写
- * onEvents={{ click: (params) => console.log(params) }}
- * // Typed params 明确参数类型
- * onEvents={{ click: (params: ECElementEvent) => console.log(params.data) }}
- * // Full config 完整写法
+ * // Shorthand — `params` is auto-typed for known events:
+ * onEvents={{ click: (params) => console.log(params.data) }}    // params: ECElementEvent
+ * // Full config 完整写法:
  * onEvents={{ click: { handler: fn, query: 'series' } }}
  * ```
  */
-export type EChartsEventConfig =
-  | EChartsEventHandler
+export type EChartsEventConfig<TParams = unknown> =
+  | EChartsEventHandler<TParams>
   | {
-      handler: EChartsEventHandler;
+      handler: EChartsEventHandler<TParams>;
       query?: string | object;
       context?: object;
     };
 
 /**
- * Event configuration interface for ECharts
- * ECharts 事件配置接口
- * @example
+ * Map known echarts event names to their payload types.
+ * 将已知 echarts 事件名映射到对应的 payload 类型。
+ *
+ * Used by `EChartsEvents` to give handlers a concrete payload type at the
+ * call site without consumers having to import echarts internal types.
+ * Unlisted events fall through to the open index-signature fallback in
+ * `EChartsEvents` (typed as `any`).
+ *
+ * Augmentable from consumer code:
+ * 可由使用方进行 module augmentation 扩展：
  * ```typescript
- * const events: EChartsEvents = {
- *   'click': (params) => console.log('clicked', params),
- *   'mouseover': {
- *     handler: (params) => console.log('hovered', params),
- *     query: 'series',
+ * declare module "react-use-echarts" {
+ *   interface EChartsEventPayloadMap {
+ *     "my-custom-action": { foo: number };
  *   }
  * }
  * ```
  */
-export interface EChartsEvents {
-  /**
-   * Event name as key, value can be a handler function or full config
-   * 事件名称作为键，值可以是处理函数或完整配置
-   */
-  [eventName: string]: EChartsEventConfig;
+export interface EChartsEventPayloadMap {
+  // Mouse events (ZRElementEventName from zrender)
+  click: ECElementEvent;
+  dblclick: ECElementEvent;
+  mousedown: ECElementEvent;
+  mousemove: ECElementEvent;
+  mouseup: ECElementEvent;
+  mouseover: ECElementEvent;
+  mouseout: ECElementEvent;
+  globalout: ECElementEvent;
+  contextmenu: ECElementEvent;
+
+  // Selection lifecycle
+  selectchanged: SelectChangedPayload;
+  highlight: HighlightPayload;
+  downplay: DownplayPayload;
+
+  // Axis break
+  axisbreakchanged: AxisBreakChangedEvent;
+  collapseAxisBreak: CollapseAxisBreakPayload;
+  expandAxisBreak: ExpandAxisBreakPayload;
+  toggleAxisBreak: ToggleAxisBreakPayload;
+}
+
+type KnownEChartsEvents = {
+  [K in keyof EChartsEventPayloadMap]?: EChartsEventConfig<EChartsEventPayloadMap[K]>;
+};
+
+/**
+ * Event configuration map for ECharts.
+ * ECharts 事件配置映射。
+ *
+ * Known event names (see `EChartsEventPayloadMap`) get their payload type
+ * inferred automatically; unlisted names (custom events from
+ * `echarts.registerAction`) fall back to the open index signature.
+ * 已知事件名（见 `EChartsEventPayloadMap`）的 payload 类型自动推导；
+ * 自定义事件（如通过 `echarts.registerAction` 注册）回退到开放索引签名。
+ *
+ * @example
+ * ```typescript
+ * const events: EChartsEvents = {
+ *   click: (params) => console.log(params.data),                  // params: ECElementEvent
+ *   selectchanged: (params) => console.log(params.fromAction),    // params: SelectChangedPayload
+ *   mouseover: { handler: (e) => console.log(e), query: "series" },
+ * };
+ * ```
+ */
+export interface EChartsEvents extends KnownEChartsEvents {
+  // Open fallback for custom event names. `any` keeps the index-signature
+  // variance compatible with the typed known events above; consumers can
+  // narrow per-event with an explicit handler parameter type.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  [eventName: string]: EChartsEventConfig<any> | undefined;
 }
 
 /**

@@ -8,6 +8,7 @@ import type { EChartsEvents, EChartsEventConfig } from "../../types";
 export function bindEvents(instance: ECharts, events: EChartsEvents | undefined): void {
   if (!events) return;
   for (const [eventName, config] of Object.entries(events)) {
+    if (config === undefined) continue;
     if (typeof config === "function") {
       instance.on(eventName, config, undefined);
       continue;
@@ -53,7 +54,9 @@ export function eventsEqual(a: EChartsEvents | undefined, b: EChartsEvents | und
   if (keysA.length === 0) return true;
   for (const key of keysA) {
     if (!Object.prototype.hasOwnProperty.call(b!, key)) return false;
-    if (!eventConfigEqual(a![key], b![key])) return false;
+    const aConfig = a![key]!;
+    const bConfig = b![key]!;
+    if (!eventConfigEqual(aConfig, bConfig)) return false;
   }
   return true;
 }
@@ -69,6 +72,7 @@ export function eventsEqual(a: EChartsEvents | undefined, b: EChartsEvents | und
 export function unbindEvents(instance: ECharts, events: EChartsEvents | undefined): void {
   if (!events) return;
   for (const [eventName, config] of Object.entries(events)) {
+    if (config === undefined) continue;
     const handler = typeof config === "function" ? config : config.handler;
     instance.off(eventName, handler);
   }
