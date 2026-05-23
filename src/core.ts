@@ -2,22 +2,20 @@
 
 /**
  * react-use-echarts/core
- * Tree-shakable entry. Identical public API to the default entry, but does
- * NOT import `"echarts"` for its side-effect registration of every chart and
- * component. Consumers register only what they need:
  *
- * ```ts
- * import * as echarts from "echarts/core";
- * import { LineChart } from "echarts/charts";
- * import { GridComponent } from "echarts/components";
- * import { CanvasRenderer } from "echarts/renderers";
- * echarts.use([LineChart, GridComponent, CanvasRenderer]);
+ * @deprecated Since v2.1 this entry is a plain alias of the default
+ * `react-use-echarts` entry — both are now fully modular. Migrate to the
+ * default entry. This alias will be removed in v4.
  *
- * import { useEcharts } from "react-use-echarts/core";
- * ```
+ * Background: in v2.0 the default entry side-effect-imported `"echarts"` and
+ * `/core` was the opt-out. In v2.1 the default entry stopped doing that
+ * (because production minifiers like Rolldown/Oxc drop echarts' top-level
+ * registrations as pure), so `/core` and the default entry now have identical
+ * behavior. Register the modules you need either via `echarts.use([...])` or
+ * via `registerEchartsFull()` from `react-use-echarts/preset-full`.
  *
- * react-use-echarts 的 tree-shakable 子入口。与默认入口 API 完全一致，但不会
- * 副作用 import `"echarts"`，由使用方按需 `echarts.use([...])` 注册图表/组件。
+ * @deprecated v2.1 起此入口与默认 `react-use-echarts` 入口完全等价（默认入口
+ * 也已 modular 化）。请改用默认入口，本别名将在 v4 移除。
  *
  * @packageDocumentation
  */
