@@ -20,7 +20,7 @@ Options: `option` (required), `theme`, `renderer` (`'canvas'`|`'svg'`), `lazyIni
 
 ### `<EChart />` Component
 
-All `useEcharts` options as props + `style` (default `{ width: '100%', height: '100%' }`), `className`, `ref` (exposes the same `UseEchartsReturn` object as the hook)
+All `useEcharts` options as props + `style` (default `{ width: '100%', height: '100%' }`), `className`, `ref` (typed `Ref<EChartHandle>` — same imperative surface as `UseEchartsReturn` minus the container `ref` field, which `<EChart>` owns)
 
 ### Other Exports
 

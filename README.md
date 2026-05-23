@@ -239,11 +239,11 @@ export default function Page() {
 
 Declarative component wrapping `useEcharts`. Accepts all hook options as props plus:
 
-| Prop        | Type                    | Default                             | Description                                               |
-| ----------- | ----------------------- | ----------------------------------- | --------------------------------------------------------- |
-| `style`     | `React.CSSProperties`   | `{ width: '100%', height: '100%' }` | Container style (merged with defaults)                    |
-| `className` | `string`                | —                                   | Container CSS class                                       |
-| `ref`       | `Ref<UseEchartsReturn>` | —                                   | Exposes the full imperative API (see [Returns](#returns)) |
+| Prop        | Type                  | Default                             | Description                                                                                                                      |
+| ----------- | --------------------- | ----------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| `style`     | `React.CSSProperties` | `{ width: '100%', height: '100%' }` | Container style (merged with defaults)                                                                                           |
+| `className` | `string`              | —                                   | Container CSS class                                                                                                              |
+| `ref`       | `Ref<EChartHandle>`   | —                                   | Exposes the imperative API as `EChartHandle` (`Omit<UseEchartsReturn, 'ref'>` — the container ref is owned by `<EChart>` itself) |
 
 ### `useEcharts(options)`
 
@@ -325,7 +325,7 @@ import { registerBuiltinThemes } from "react-use-echarts/themes/registry"; // ~2
 import { useEcharts, EChart } from "react-use-echarts/core"; // tree-shakable entry (see Recipes)
 
 // All exported types: UseEchartsOptions, UseEchartsReturn, UseLazyInitReturn,
-// EChartProps, EChartsEvents, EChartsEventConfig, EChartsEventHandler,
+// EChartProps, EChartHandle, EChartsEvents, EChartsEventConfig, EChartsEventHandler,
 // EChartsEventPayloadMap, EChartsInitOpts, BuiltinTheme, LoadingOption,
 // ChartFinder, ChartScaleValue, Payload.
 // EChartsOption, SetOptionOpts, ResizeOpts come from the "echarts" package directly.
@@ -394,15 +394,16 @@ Side-by-side example:
 
 ## Migrating from v1
 
-v2.0 flips the hook to return a callback ref + reactive `instance`, aligning with the modern community convention used by `floating-ui/react`, `react-aria`, `downshift`, and `react-hook-form`. `<EChart />` component external API is unchanged — only direct hook consumers migrate.
+v2.0 flips the hook to return a callback ref + reactive `instance`, aligning with the modern community convention used by `floating-ui/react`, `react-aria`, `downshift`, and `react-hook-form`. `<EChart />` external props are unchanged — only direct hook consumers and `<EChart ref>` typings migrate.
 
-| v1                                               | v2                                                   | Notes                                                                                       |
-| ------------------------------------------------ | ---------------------------------------------------- | ------------------------------------------------------------------------------------------- |
-| `const ref = useRef(); useEcharts(ref, options)` | `const { ref } = useEcharts(options)`                | Hook owns the callback ref; attach it to your container                                     |
-| `getInstance()` method on the hook return        | `instance` field on the same return                  | Reactive — re-renders when init/dispose completes; use `useEffect([instance])` to subscribe |
-| `useLazyInit(ref, options)` returning `boolean`  | `useLazyInit(options)` returning `{ ref, isInView }` | Same callback-ref pattern                                                                   |
-| Compose refs by hand                             | `mergeRefs(chartRef, myRef)`                         | New public utility (see [Other Exports](#other-exports))                                    |
-| `engines.node >=20`                              | `engines.node >=22`                                  | Tooling requirement only — published bundle is unaffected                                   |
+| v1                                               | v2                                                   | Notes                                                                                                                    |
+| ------------------------------------------------ | ---------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| `const ref = useRef(); useEcharts(ref, options)` | `const { ref } = useEcharts(options)`                | Hook owns the callback ref; attach it to your container                                                                  |
+| `getInstance()` method on the hook return        | `instance` field on the same return                  | Reactive — re-renders when init/dispose completes; use `useEffect([instance])` to subscribe                              |
+| `useLazyInit(ref, options)` returning `boolean`  | `useLazyInit(options)` returning `{ ref, isInView }` | Same callback-ref pattern                                                                                                |
+| `useRef<UseEchartsReturn>(null)` for `<EChart>`  | `useRef<EChartHandle>(null)` for `<EChart>`          | `EChartHandle = Omit<UseEchartsReturn, 'ref'>` — the container ref is intentionally not exposed on the imperative handle |
+| Compose refs by hand                             | `mergeRefs(chartRef, myRef)`                         | New public utility (see [Other Exports](#other-exports))                                                                 |
+| `engines.node >=20`                              | `engines.node >=22`                                  | Tooling requirement only — published bundle is unaffected                                                                |
 
 Side-by-side hook example:
 
