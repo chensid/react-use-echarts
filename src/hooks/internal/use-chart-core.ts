@@ -1,4 +1,4 @@
-import { useEffect, useEffectEvent, useRef, useCallback, useLayoutEffect, useMemo } from "react";
+import { useEffect, useEffectEvent, useRef, useLayoutEffect } from "react";
 import * as echarts from "echarts/core";
 import type { ECharts } from "echarts/core";
 import type { SetOptionOpts, EChartsOption } from "echarts";
@@ -205,16 +205,16 @@ export function useChartCore(
   const lastAppliedRef = useRef<LastApplied | null>(null);
   const lastLoadingRef = useRef<LastLoading | null>(null);
 
-  // --- Stable dependency keys ---
-  const themeKey = useMemo(() => computeStableKey(theme), [theme]);
-  const initOptsKey = useMemo(() => computeStableKey(initOpts), [initOpts]);
+  // --- Stable dependency keys (plain calls; React Compiler memoizes) ---
+  const themeKey = computeStableKey(theme);
+  const initOptsKey = computeStableKey(initOpts);
 
   // --- Public API ---
 
-  const getInstance = useCallback((): ECharts | undefined => {
+  const getInstance = (): ECharts | undefined => {
     if (!element) return undefined;
     return getCachedInstance(element);
-  }, [element]);
+  };
 
   // =====================================================================
   // INSTANCE LIFECYCLE (init / recreate / cleanup)
@@ -325,7 +325,8 @@ export function useChartCore(
   // unnecessary setOption when user creates new wrapper objects.
   // =====================================================================
   useEffect(() => {
-    const instance = getInstance();
+    if (!element) return;
+    const instance = getCachedInstance(element);
     if (!instance) return;
 
     const last = lastAppliedRef.current;
@@ -341,7 +342,7 @@ export function useChartCore(
     } catch (error) {
       handleEffectError(error, "ECharts setOption failed:");
     }
-  }, [getInstance, option, setOptionOpts]);
+  }, [element, option, setOptionOpts]);
 
   // =====================================================================
   // EVENT REBINDING
@@ -350,7 +351,8 @@ export function useChartCore(
   // Uses lastBoundRef to dedup against the currently-bound map.
   // =====================================================================
   useEffect(() => {
-    const instance = getInstance();
+    if (!element) return;
+    const instance = getCachedInstance(element);
     if (!instance) return;
 
     if (eventsEqual(lastBoundRef.current, onEvents)) return;
@@ -374,7 +376,7 @@ export function useChartCore(
       handleEffectError(error, "ECharts event bind failed:");
     }
     lastBoundRef.current = onEvents;
-  }, [getInstance, onEvents]);
+  }, [element, onEvents]);
 
   // =====================================================================
   // LOADING TOGGLE
@@ -385,7 +387,8 @@ export function useChartCore(
   // loadingOption objects with identical content.
   // =====================================================================
   useEffect(() => {
-    const instance = getInstance();
+    if (!element) return;
+    const instance = getCachedInstance(element);
     if (!instance) return;
 
     const last = lastLoadingRef.current;
@@ -402,7 +405,7 @@ export function useChartCore(
     } catch (error) {
       handleEffectError(error, "ECharts loading toggle failed:");
     }
-  }, [getInstance, showLoading, loadingOption]);
+  }, [element, showLoading, loadingOption]);
 
   // =====================================================================
   // GROUP SWITCH
@@ -411,14 +414,15 @@ export function useChartCore(
   // Lifecycle effect handles initial group assignment on instance creation.
   // =====================================================================
   useEffect(() => {
-    const instance = getInstance();
+    if (!element) return;
+    const instance = getCachedInstance(element);
     if (!instance) return;
 
     const currentGroup = getInstanceGroup(instance);
     if (currentGroup === group) return;
 
     updateGroup(instance, currentGroup, group);
-  }, [getInstance, group]);
+  }, [element, group]);
 
   // =====================================================================
   // Imperative API surface
@@ -431,80 +435,78 @@ export function useChartCore(
   // shallow-equal prop rerender re-applies setOption (the instance state
   // has drifted from props).
   // =====================================================================
-  return useMemo<ChartCoreReturn>(() => {
-    const withInstance = <T>(fn: (instance: ECharts) => T, fallback: T): T => {
-      const instance = getInstance();
-      if (!instance) return fallback;
-      try {
-        return fn(instance);
-      } catch (error) {
-        routeImperativeError(error, latestRef.current.onError);
-        return fallback;
-      }
-    };
+  const withInstance = <T>(fn: (instance: ECharts) => T, fallback: T): T => {
+    const instance = getInstance();
+    if (!instance) return fallback;
+    try {
+      return fn(instance);
+    } catch (error) {
+      routeImperativeError(error, latestRef.current.onError);
+      return fallback;
+    }
+  };
 
-    return {
-      getInstance,
+  return {
+    getInstance,
 
-      setOption: (newOption, opts) =>
-        withInstance((instance) => {
-          const finalOpts = { ...latestRef.current.setOptionOpts, ...opts };
-          instance.setOption(newOption, finalOpts);
-          // Keep lastAppliedRef in sync so prop-driven Option-Sync Effect dedup
-          // reflects what's actually on the instance, not what props last sent.
-          lastAppliedRef.current = { option: newOption, opts: finalOpts };
-        }, undefined),
+    setOption: (newOption, opts) =>
+      withInstance((instance) => {
+        const finalOpts = { ...latestRef.current.setOptionOpts, ...opts };
+        instance.setOption(newOption, finalOpts);
+        // Keep lastAppliedRef in sync so prop-driven Option-Sync Effect dedup
+        // reflects what's actually on the instance, not what props last sent.
+        lastAppliedRef.current = { option: newOption, opts: finalOpts };
+      }, undefined),
 
-      dispatchAction: (payload, opt) =>
-        withInstance((instance) => instance.dispatchAction(payload, opt), undefined),
+    dispatchAction: (payload, opt) =>
+      withInstance((instance) => instance.dispatchAction(payload, opt), undefined),
 
-      clear: () =>
-        withInstance((instance) => {
-          instance.clear();
-          // Drop dedup memory: instance is now blank, so a subsequent prop
-          // rerender with a shallow-equal-but-new option ref must re-apply
-          // it instead of being skipped by Option-Sync Effect's fast path.
-          lastAppliedRef.current = null;
-        }, undefined),
+    clear: () =>
+      withInstance((instance) => {
+        instance.clear();
+        // Drop dedup memory: instance is now blank, so a subsequent prop
+        // rerender with a shallow-equal-but-new option ref must re-apply
+        // it instead of being skipped by Option-Sync Effect's fast path.
+        lastAppliedRef.current = null;
+      }, undefined),
 
-      resize: (opts) => withInstance((instance) => instance.resize(opts), undefined),
+    resize: (opts) => withInstance((instance) => instance.resize(opts), undefined),
 
-      getOption: () => withInstance((instance) => instance.getOption() as EChartsOption, undefined),
-      getWidth: () => withInstance((instance) => instance.getWidth(), undefined),
-      getHeight: () => withInstance((instance) => instance.getHeight(), undefined),
-      getDom: () => withInstance((instance) => instance.getDom(), undefined),
-      // No instance → semantically disposed. Errors still route via withInstance,
-      // falling back to true so consumers don't act on a half-broken instance.
-      isDisposed: () => withInstance((instance) => instance.isDisposed(), true),
-      getDataURL: (opts) => withInstance((instance) => instance.getDataURL(opts), undefined),
-      getConnectedDataURL: (opts) =>
-        withInstance((instance) => instance.getConnectedDataURL(opts), undefined),
-      renderToSVGString: (opts) =>
-        withInstance((instance) => instance.renderToSVGString(opts), undefined),
-      getSvgDataURL: () => withInstance((instance) => instance.getSvgDataURL(), undefined),
-      // ECharts' convertToPixel/convertFromPixel are overloaded; passing through
-      // the public widened signature requires `as never` to satisfy the
-      // last-overload-only inference TypeScript performs on overloaded methods.
-      convertToPixel: (finder, value) =>
-        withInstance(
-          (instance) => instance.convertToPixel(finder as never, value as never),
-          undefined,
-        ),
-      convertFromPixel: (finder, value) =>
-        withInstance(
-          (instance) => instance.convertFromPixel(finder as never, value as never),
-          undefined,
-        ),
-      containPixel: (finder, value) =>
-        withInstance((instance) => instance.containPixel(finder, value), false),
-      appendData: (params) =>
-        withInstance((instance) => {
-          instance.appendData(params);
-          // appendData drifts the instance from declarative `option`, same as
-          // clear(): drop dedup memory so the next shallow-equal-new-ref
-          // option prop re-applies setOption to resync.
-          lastAppliedRef.current = null;
-        }, undefined),
-    };
-  }, [getInstance]);
+    getOption: () => withInstance((instance) => instance.getOption() as EChartsOption, undefined),
+    getWidth: () => withInstance((instance) => instance.getWidth(), undefined),
+    getHeight: () => withInstance((instance) => instance.getHeight(), undefined),
+    getDom: () => withInstance((instance) => instance.getDom(), undefined),
+    // No instance → semantically disposed. Errors still route via withInstance,
+    // falling back to true so consumers don't act on a half-broken instance.
+    isDisposed: () => withInstance((instance) => instance.isDisposed(), true),
+    getDataURL: (opts) => withInstance((instance) => instance.getDataURL(opts), undefined),
+    getConnectedDataURL: (opts) =>
+      withInstance((instance) => instance.getConnectedDataURL(opts), undefined),
+    renderToSVGString: (opts) =>
+      withInstance((instance) => instance.renderToSVGString(opts), undefined),
+    getSvgDataURL: () => withInstance((instance) => instance.getSvgDataURL(), undefined),
+    // ECharts' convertToPixel/convertFromPixel are overloaded; passing through
+    // the public widened signature requires `as never` to satisfy the
+    // last-overload-only inference TypeScript performs on overloaded methods.
+    convertToPixel: (finder, value) =>
+      withInstance(
+        (instance) => instance.convertToPixel(finder as never, value as never),
+        undefined,
+      ),
+    convertFromPixel: (finder, value) =>
+      withInstance(
+        (instance) => instance.convertFromPixel(finder as never, value as never),
+        undefined,
+      ),
+    containPixel: (finder, value) =>
+      withInstance((instance) => instance.containPixel(finder, value), false),
+    appendData: (params) =>
+      withInstance((instance) => {
+        instance.appendData(params);
+        // appendData drifts the instance from declarative `option`, same as
+        // clear(): drop dedup memory so the next shallow-equal-new-ref
+        // option prop re-applies setOption to resync.
+        lastAppliedRef.current = null;
+      }, undefined),
+  };
 }
