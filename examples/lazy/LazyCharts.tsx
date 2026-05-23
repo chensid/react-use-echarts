@@ -1,4 +1,4 @@
-import React, { useRef } from "react";
+import React from "react";
 import { useEcharts } from "../../src";
 import { useTheme } from "../components/theme-context";
 import type { EChartsOption } from "echarts";
@@ -126,13 +126,12 @@ function randArray(len: number, max: number) {
 }
 
 function LazyChart({ index }: { index: number }) {
-  const chartRef = useRef<HTMLDivElement>(null);
   const { mode } = useTheme();
   const option = CHART_CONFIGS[index]!();
 
-  useEcharts(chartRef, { option, lazyInit: true, theme: mode });
+  const { ref } = useEcharts({ option, lazyInit: true, theme: mode });
 
-  return <div ref={chartRef} className="chart-container-sm" />;
+  return <div ref={ref} className="chart-container-sm" />;
 }
 
 const LazyCharts: React.FC = () => {

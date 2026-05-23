@@ -1,10 +1,9 @@
-import React, { useRef, useState } from "react";
+import React, { useState } from "react";
 import { useEcharts } from "../../src";
 import { useTheme } from "../components/theme-context";
 import type { EChartsOption } from "echarts";
 
 const LoadingChart: React.FC = () => {
-  const chartRef = useRef<HTMLDivElement>(null);
   const { mode } = useTheme();
   const [loading, setLoading] = useState(true);
 
@@ -17,7 +16,7 @@ const LoadingChart: React.FC = () => {
     series: [{ type: "bar", data: [300, 450, 380, 520] }],
   };
 
-  useEcharts(chartRef, {
+  const { ref } = useEcharts({
     option,
     theme: mode,
     showLoading: loading,
@@ -29,7 +28,7 @@ const LoadingChart: React.FC = () => {
       <button type="button" className="btn" onClick={() => setLoading((prev) => !prev)}>
         {loading ? "Hide Loading" : "Show Loading"}
       </button>
-      <div ref={chartRef} className="chart-container" style={{ marginTop: 10 }} />
+      <div ref={ref} className="chart-container" style={{ marginTop: 10 }} />
     </div>
   );
 };

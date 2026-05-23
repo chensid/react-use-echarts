@@ -1,4 +1,4 @@
-import React, { useMemo, useRef, useState } from "react";
+import React, { useMemo, useState } from "react";
 import { useEcharts, type EChartsEvents } from "../../src";
 import { useTheme } from "../components/theme-context";
 import type { ECElementEvent, EChartsOption } from "echarts";
@@ -37,7 +37,6 @@ const describePointEvent = (name: string, params: ECElementEvent): string => {
 };
 
 const EventChart: React.FC = () => {
-  const chartRef = useRef<HTMLDivElement>(null);
   const { mode } = useTheme();
   const [lastEvent, setLastEvent] = useState<string>("(click on chart)");
 
@@ -52,7 +51,7 @@ const EventChart: React.FC = () => {
     [],
   );
 
-  useEcharts(chartRef, {
+  const { ref } = useEcharts({
     option,
     theme: mode,
     onEvents,
@@ -63,7 +62,7 @@ const EventChart: React.FC = () => {
       <div className="note-box" style={{ marginBottom: 10 }}>
         Last event: {lastEvent}
       </div>
-      <div ref={chartRef} className="chart-container" />
+      <div ref={ref} className="chart-container" />
     </div>
   );
 };

@@ -1,4 +1,4 @@
-import React, { useCallback, useRef, useState } from "react";
+import React, { useCallback, useState } from "react";
 import { useEcharts } from "../../src";
 import { useTheme } from "../components/theme-context";
 import type { EChartsOption, Payload } from "echarts";
@@ -29,7 +29,6 @@ const throwingPayload = new Proxy({} as Record<string, unknown>, {
 }) as unknown as Payload;
 
 const OnErrorDemo: React.FC = () => {
-  const chartRef = useRef<HTMLDivElement>(null);
   const { mode } = useTheme();
   const [lastError, setLastError] = useState<string | null>(null);
 
@@ -37,7 +36,7 @@ const OnErrorDemo: React.FC = () => {
     setLastError(error instanceof Error ? error.message : String(error));
   }, []);
 
-  const { dispatchAction } = useEcharts(chartRef, {
+  const { ref, dispatchAction } = useEcharts({
     option: validOption,
     theme: mode,
     onError,
@@ -66,7 +65,7 @@ const OnErrorDemo: React.FC = () => {
           Reset
         </button>
       </div>
-      <div ref={chartRef} className="chart-container" />
+      <div ref={ref} className="chart-container" />
       {lastError ? (
         <pre
           role="alert"

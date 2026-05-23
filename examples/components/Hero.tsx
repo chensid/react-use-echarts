@@ -1,4 +1,4 @@
-import React, { useRef, useState } from "react";
+import React, { useState } from "react";
 import { Link } from "react-router-dom";
 import { useEcharts } from "../../src";
 import { useTheme } from "./theme-context";
@@ -77,8 +77,7 @@ const codeSnippets: Record<DemoTab, string> = {
   bar: `import { useEcharts } from "react-use-echarts";
 
 export const BarChart = () => {
-  const ref = useRef<HTMLDivElement>(null);
-  useEcharts(ref, {
+  const { ref } = useEcharts({
     option: {
       xAxis: { data: days },
       yAxis: {},
@@ -90,8 +89,7 @@ export const BarChart = () => {
   line: `import { useEcharts } from "react-use-echarts";
 
 export const LineChart = () => {
-  const ref = useRef<HTMLDivElement>(null);
-  useEcharts(ref, {
+  const { ref } = useEcharts({
     option: {
       xAxis: { type: "category", data: days },
       yAxis: { type: "value" },
@@ -118,11 +116,10 @@ export const Pie = () => {
 const Hero: React.FC = () => {
   const [copied, setCopied] = useState(false);
   const [tab, setTab] = useState<DemoTab>("bar");
-  const chartRef = useRef<HTMLDivElement>(null);
   const { mode } = useTheme();
 
   const option = heroOptions[tab];
-  useEcharts(chartRef, { option, theme: mode });
+  const { ref } = useEcharts({ option, theme: mode });
 
   const handleCopy = async () => {
     try {
@@ -231,7 +228,7 @@ const Hero: React.FC = () => {
             </pre>
             <div className={styles.divider} />
             <div className={styles.preview}>
-              <div ref={chartRef} className={styles.chart} />
+              <div ref={ref} className={styles.chart} />
             </div>
           </div>
           <div className={styles.panelFoot}>

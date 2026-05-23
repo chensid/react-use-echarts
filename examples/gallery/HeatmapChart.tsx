@@ -1,4 +1,4 @@
-import React, { useMemo, useRef } from "react";
+import React, { useMemo } from "react";
 import { useEcharts } from "../../src";
 import { useTheme } from "../components/theme-context";
 import type { EChartsOption } from "echarts";
@@ -17,7 +17,6 @@ function generateData() {
 }
 
 const HeatmapChart: React.FC = () => {
-  const chartRef = useRef<HTMLDivElement>(null);
   const { mode } = useTheme();
   const heatmapData = useMemo(() => generateData(), []);
 
@@ -54,9 +53,9 @@ const HeatmapChart: React.FC = () => {
     ],
   };
 
-  useEcharts(chartRef, { option, theme: mode });
+  const { ref } = useEcharts({ option, theme: mode });
 
-  return <div ref={chartRef} className="chart-container-sm" />;
+  return <div ref={ref} className="chart-container-sm" />;
 };
 
 export default HeatmapChart;
