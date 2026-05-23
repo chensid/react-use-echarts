@@ -1,4 +1,4 @@
-import { useEffect, useEffectEvent, useRef, useLayoutEffect } from "react";
+import { useEffect, useEffectEvent, useRef, useState, useLayoutEffect } from "react";
 import * as echarts from "echarts/core";
 import type { ECharts } from "echarts/core";
 import type { SetOptionOpts, EChartsOption } from "echarts";
@@ -146,7 +146,9 @@ interface ImperativeLatest {
   onError: ((e: unknown) => void) | undefined;
 }
 
-type ChartCoreReturn = UseEchartsReturn;
+// `ref` is owned by the outer `useEcharts` (callback-ref + cleanup lives
+// there); useChartCore returns everything else from the public surface.
+type ChartCoreReturn = Omit<UseEchartsReturn, "ref">;
 
 // --- Hook ---
 
@@ -204,6 +206,14 @@ export function useChartCore(
   const lastBoundRef = useRef<EChartsEvents | undefined>(undefined);
   const lastAppliedRef = useRef<LastApplied | null>(null);
   const lastLoadingRef = useRef<LastLoading | null>(null);
+
+  // Reactive view of the current instance. Set inside the lifecycle effect
+  // after init/share succeeds and cleared on cleanup, so downstream consumers
+  // can subscribe via `useEffect([instance])`. Imperative methods do NOT
+  // depend on this state — they read from `getCachedInstance(element)` so
+  // they remain callable in the layout-effect → render-commit gap before
+  // React reconciles this state update.
+  const [liveInstance, setLiveInstance] = useState<ECharts | undefined>(undefined);
 
   // --- Stable dependency keys (plain calls; React Compiler memoizes) ---
   const themeKey = computeStableKey(theme);
@@ -287,9 +297,12 @@ export function useChartCore(
       updateGroup(instance, undefined, group);
     }
 
+    setLiveInstance(instance);
+
     return () => {
       lastAppliedRef.current = null;
       lastLoadingRef.current = null;
+      setLiveInstance(undefined);
 
       const inst = getCachedInstance(element);
       if (!inst) return;
@@ -447,7 +460,7 @@ export function useChartCore(
   };
 
   return {
-    getInstance,
+    instance: liveInstance,
 
     setOption: (newOption, opts) =>
       withInstance((instance) => {

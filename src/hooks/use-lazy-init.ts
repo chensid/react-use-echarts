@@ -1,20 +1,31 @@
-import { useEffect, useState, type RefObject } from "react";
-import { useRefElement } from "./internal/use-ref-element";
+import { useCallback, useEffect, useState } from "react";
 import { computeStableKey } from "../utils/stable-key";
+import type { UseLazyInitReturn } from "../types";
 
 /**
  * Hook for lazy initialization using IntersectionObserver
  * 使用 IntersectionObserver 的懒加载 Hook
- * @param elementRef Element reference to observe
- * @param options IntersectionObserver options or false to disable lazy init
- * @returns Whether the element is in viewport (or true if lazy init is disabled)
+ *
+ * Returns a callback `ref` to attach to the target element and a
+ * reactive `isInView` boolean. Pass `false` (default) to disable
+ * lazy mode — `isInView` is then always `true`.
+ *
+ * @example
+ * ```tsx
+ * const { ref, isInView } = useLazyInit({ rootMargin: "100px" });
+ * return <div ref={ref}>{isInView ? <Chart /> : null}</div>;
+ * ```
  */
 export function useLazyInit(
-  elementRef: RefObject<Element | null>,
   options: boolean | IntersectionObserverInit = false,
-): boolean {
-  const element = useRefElement(elementRef);
-  return useLazyInitForElement(element, options);
+): UseLazyInitReturn {
+  const [element, setElement] = useState<Element | null>(null);
+  const ref = useCallback((node: Element | null) => {
+    setElement(node);
+    return () => setElement(null);
+  }, []);
+  const isInView = useLazyInitForElement(element, options);
+  return { ref, isInView };
 }
 
 export function useLazyInitForElement(
