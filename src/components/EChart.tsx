@@ -1,5 +1,5 @@
 import { useRef, useImperativeHandle, type Ref } from "react";
-import useEcharts from "../hooks/use-echarts";
+import { useEcharts } from "../hooks/use-echarts";
 import type { EChartProps, UseEchartsReturn } from "../types";
 
 /**
@@ -14,7 +14,7 @@ import type { EChartProps, UseEchartsReturn } from "../types";
  * <EChart option={{ series: [{ type: 'line', data: [1,2,3] }] }} />
  * ```
  */
-function EChart({
+export function EChart({
   ref,
   style,
   className,
@@ -31,5 +31,3 @@ function EChart({
     />
   );
 }
-
-export default EChart;

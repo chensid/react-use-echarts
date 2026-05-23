@@ -13,7 +13,7 @@ import { useRefElement } from "./internal/use-ref-element";
  * @param options Configuration options
  * @returns Chart control methods
  */
-function useEcharts(
+export function useEcharts(
   ref: RefObject<HTMLDivElement | null>,
   options: UseEchartsOptions,
 ): UseEchartsReturn {
@@ -54,5 +54,3 @@ function useEcharts(
 
   return chart;
 }
-
-export default useEcharts;

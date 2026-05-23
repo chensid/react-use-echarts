@@ -38,6 +38,14 @@ jobs:
       - name: Build library
         run: vp pack
 
+      # `vp pack` already runs publint + attw, but surfacing them as a dedicated
+      # step keeps package-export regressions out of the pack log and visible in
+      # the PR checks UI.
+      - name: Verify published package (publint + attw)
+        run: |
+          pnpm exec publint
+          pnpm exec attw --pack .
+
       - name: Test with coverage (unit project)
         run: vp test run --coverage --project unit
 

@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vite-plus/test";
 import { renderHook, act, waitFor } from "@testing-library/react";
 import * as echarts from "echarts/core";
-import useEcharts from "../../hooks/use-echarts";
+import { useEcharts } from "../../hooks/use-echarts";
 import {
   clearInstanceCache,
   getCachedInstance,
@@ -10,7 +10,7 @@ import {
 import { clearGroups, getGroupInstances } from "../../utils/connect";
 import type { EChartsOption } from "echarts";
 import type { BuiltinTheme } from "../../types";
-import { clearThemeCache } from "../../themes";
+import { __clearThemeCacheForTesting__ } from "../../themes";
 import { registerBuiltinThemes } from "../../themes/registry";
 import { __resetVisibilityCoordinatorForTesting__ } from "../../utils/visibility-coordinator";
 import { createMockInstance, MockResizeObserver, MockIntersectionObserver } from "../helpers";
@@ -40,7 +40,7 @@ describe("useEcharts", () => {
   beforeEach(() => {
     clearInstanceCache();
     clearGroups();
-    clearThemeCache();
+    __clearThemeCacheForTesting__();
     __resetVisibilityCoordinatorForTesting__();
     resizeObserverInstances = [];
     vi.clearAllMocks();

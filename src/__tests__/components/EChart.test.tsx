@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from "vite-plus/test";
 import { render } from "@testing-library/react";
 import { createRef } from "react";
 import * as echarts from "echarts/core";
-import EChart from "../../components/EChart";
+import { EChart } from "../../components/EChart";
 import { clearInstanceCache, getCachedInstance } from "../../utils/instance-cache";
 import { clearGroups } from "../../utils/connect";
 import type { UseEchartsReturn } from "../../types";

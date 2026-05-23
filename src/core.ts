@@ -26,13 +26,13 @@
  * Main hook for using ECharts in React components
  * 在 React 组件中使用 ECharts 的主要 Hook
  */
-export { default as useEcharts } from "./hooks/use-echarts";
+export { useEcharts } from "./hooks/use-echarts";
 
 /**
  * Declarative EChart component
  * 声明式 EChart 组件
  */
-export { default as EChart } from "./components/EChart";
+export { EChart } from "./components/EChart";
 
 /**
  * Lazy initialization hook

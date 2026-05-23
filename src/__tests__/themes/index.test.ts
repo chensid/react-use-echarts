@@ -6,7 +6,7 @@ import {
   markBuiltinThemeRegistered,
   registerCustomTheme,
   getOrRegisterCustomTheme,
-  clearThemeCache,
+  __clearThemeCacheForTesting__,
 } from "../../themes";
 
 // Mock ECharts
@@ -16,7 +16,7 @@ vi.mock("echarts/core", () => ({
 
 describe("themes utilities", () => {
   beforeEach(() => {
-    clearThemeCache();
+    __clearThemeCacheForTesting__();
     vi.clearAllMocks();
   });
 
@@ -54,7 +54,7 @@ describe("themes utilities", () => {
 
     it("should clear registered builtin theme state", () => {
       markBuiltinThemeRegistered("dark");
-      clearThemeCache();
+      __clearThemeCacheForTesting__();
 
       expect(isBuiltinThemeRegistered("dark")).toBe(false);
     });
@@ -172,17 +172,17 @@ describe("themes utilities", () => {
     });
   });
 
-  describe("clearThemeCache", () => {
+  describe("__clearThemeCacheForTesting__", () => {
     it("should reset counter so next theme gets __custom_theme_0", () => {
       getOrRegisterCustomTheme({ reset: ["#000"] });
-      clearThemeCache();
+      __clearThemeCacheForTesting__();
       const name = getOrRegisterCustomTheme({ fresh: ["#111"] });
       expect(name).toBe("__custom_theme_0");
     });
 
     it("should clear content hash cache so identical content re-registers", () => {
       getOrRegisterCustomTheme({ dup: ["#aaa"] });
-      clearThemeCache();
+      __clearThemeCacheForTesting__();
       vi.clearAllMocks();
       // New object with same content should register again after cache clear
       getOrRegisterCustomTheme({ dup: ["#aaa"] });

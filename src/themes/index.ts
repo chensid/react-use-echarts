@@ -157,13 +157,15 @@ export function getOrRegisterCustomTheme(themeConfig: object, precomputedHash?: 
 }
 
 /**
- * Reset theme caches and counter (for testing/cleanup).
- * 重置主题缓存和计数器（用于测试/清理）。
+ * Reset theme caches and counter — test-only.
+ * 重置主题缓存和计数器，仅用于测试。
  *
  * WeakMap (customThemeCache) is not cleared — object-keyed entries
  * are garbage collected naturally when test objects go out of scope.
+ *
+ * @internal Test hook; not part of the public API.
  */
-export function clearThemeCache(): void {
+export function __clearThemeCacheForTesting__(): void {
   contentHashCache.clear();
   knownThemeNames.clear();
   registeredBuiltinThemeNames.clear();

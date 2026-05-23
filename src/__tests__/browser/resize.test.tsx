@@ -14,7 +14,7 @@ import * as echarts from "echarts/core";
 import { LineChart } from "echarts/charts";
 import { GridComponent } from "echarts/components";
 import { CanvasRenderer } from "echarts/renderers";
-import useEcharts from "../../hooks/use-echarts";
+import { useEcharts } from "../../hooks/use-echarts";
 import type { UseEchartsReturn } from "../../types";
 
 // Browser tests import the hook directly, bypassing the default entry's

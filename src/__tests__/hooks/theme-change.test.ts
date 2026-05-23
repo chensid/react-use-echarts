@@ -1,11 +1,11 @@
 import { describe, it, expect, vi, beforeEach } from "vite-plus/test";
 import { renderHook } from "@testing-library/react";
 import * as echarts from "echarts/core";
-import useEcharts from "../../hooks/use-echarts";
+import { useEcharts } from "../../hooks/use-echarts";
 import { getCachedInstance, clearInstanceCache } from "../../utils/instance-cache";
 import { clearGroups } from "../../utils/connect";
 import type { BuiltinTheme } from "../../types";
-import { clearThemeCache } from "../../themes";
+import { __clearThemeCacheForTesting__ } from "../../themes";
 import { createMockInstance, MockResizeObserver, MockIntersectionObserver } from "../helpers";
 
 // Mock ECharts
@@ -24,7 +24,7 @@ describe("Theme change behavior", () => {
   beforeEach(() => {
     clearInstanceCache();
     clearGroups();
-    clearThemeCache();
+    __clearThemeCacheForTesting__();
     vi.clearAllMocks();
   });
 

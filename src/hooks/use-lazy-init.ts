@@ -43,7 +43,7 @@ export function useLazyInitForElement(
     const observer = new IntersectionObserver(
       (entries) => {
         const [entry] = entries;
-        if (entry.isIntersecting) {
+        if (entry?.isIntersecting) {
           setIsInView(true);
           // Once visible, stop observing
           // 一旦可见，就停止观察
