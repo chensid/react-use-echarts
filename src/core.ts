@@ -72,3 +72,9 @@ export type { Payload } from "echarts";
  * 主题工具函数（轻量，不含 JSON）
  */
 export { isBuiltinTheme, isKnownTheme, registerCustomTheme } from "./themes";
+
+/**
+ * Merge multiple React refs into one callback ref
+ * 将多个 React ref 合并为单一 callback ref
+ */
+export { mergeRefs } from "./utils/merge-refs";
