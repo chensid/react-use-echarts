@@ -98,7 +98,7 @@ describe("EChart component", () => {
 
     expect(ref.current).toBeDefined();
     expect(typeof ref.current!.setOption).toBe("function");
-    expect(typeof ref.current!.getInstance).toBe("function");
+    expect(ref.current!.instance).toBeDefined();
     expect(typeof ref.current!.resize).toBe("function");
     expect(typeof ref.current!.dispatchAction).toBe("function");
     expect(typeof ref.current!.clear).toBe("function");

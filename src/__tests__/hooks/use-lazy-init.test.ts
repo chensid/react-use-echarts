@@ -34,43 +34,51 @@ describe("useLazyInit", () => {
 
   it("should return true immediately when lazy mode is disabled (false)", () => {
     const element = document.createElement("div");
-    const ref = { current: element };
 
-    const { result } = renderHook(() => useLazyInit(ref, false));
+    const { result } = renderHook(() => useLazyInit(false));
+    act(() => {
+      result.current.ref(element);
+    });
 
-    expect(result.current).toBe(true);
+    expect(result.current.isInView).toBe(true);
     // Should not observe when lazy mode is disabled
     expect(mockObserve).not.toHaveBeenCalled();
   });
 
   it("should default to lazy mode disabled when options argument is omitted", () => {
     const element = document.createElement("div");
-    const ref = { current: element };
 
-    const { result } = renderHook(() => useLazyInit(ref));
+    const { result } = renderHook(() => useLazyInit());
+    act(() => {
+      result.current.ref(element);
+    });
 
-    expect(result.current).toBe(true);
+    expect(result.current.isInView).toBe(true);
     expect(mockObserve).not.toHaveBeenCalled();
   });
 
   it("should return false initially when lazy mode is enabled", () => {
     const element = document.createElement("div");
-    const ref = { current: element };
 
-    const { result } = renderHook(() => useLazyInit(ref, true));
+    const { result } = renderHook(() => useLazyInit(true));
+    act(() => {
+      result.current.ref(element);
+    });
 
     // Initially false before intersection
-    expect(result.current).toBe(false);
+    expect(result.current.isInView).toBe(false);
     expect(mockObserve).toHaveBeenCalledWith(element);
   });
 
   it("should return true when element intersects", async () => {
     const element = document.createElement("div");
-    const ref = { current: element };
 
-    const { result } = renderHook(() => useLazyInit(ref, true));
+    const { result } = renderHook(() => useLazyInit(true));
+    act(() => {
+      result.current.ref(element);
+    });
 
-    expect(result.current).toBe(false);
+    expect(result.current.isInView).toBe(false);
 
     // Simulate intersection
     act(() => {
@@ -78,7 +86,7 @@ describe("useLazyInit", () => {
     });
 
     await waitFor(() => {
-      expect(result.current).toBe(true);
+      expect(result.current.isInView).toBe(true);
     });
 
     // Should disconnect after becoming visible
@@ -87,24 +95,28 @@ describe("useLazyInit", () => {
 
   it("should not change state when element does not intersect", () => {
     const element = document.createElement("div");
-    const ref = { current: element };
 
-    const { result } = renderHook(() => useLazyInit(ref, true));
+    const { result } = renderHook(() => useLazyInit(true));
+    act(() => {
+      result.current.ref(element);
+    });
 
     // Simulate non-intersection
     act(() => {
       intersectionCallback([{ isIntersecting: false }]);
     });
 
-    expect(result.current).toBe(false);
+    expect(result.current.isInView).toBe(false);
     expect(mockDisconnect).not.toHaveBeenCalled();
   });
 
   it("should use default IntersectionObserver options", () => {
     const element = document.createElement("div");
-    const ref = { current: element };
 
-    renderHook(() => useLazyInit(ref, true));
+    const { result } = renderHook(() => useLazyInit(true));
+    act(() => {
+      result.current.ref(element);
+    });
 
     expect(mockObserve).toHaveBeenCalledWith(element);
     expect(lastConstructorOptions).toEqual({
@@ -116,9 +128,11 @@ describe("useLazyInit", () => {
 
   it("should merge custom IntersectionObserver options", () => {
     const element = document.createElement("div");
-    const ref = { current: element };
 
-    renderHook(() => useLazyInit(ref, { rootMargin: "100px", threshold: 0.5 }));
+    const { result } = renderHook(() => useLazyInit({ rootMargin: "100px", threshold: 0.5 }));
+    act(() => {
+      result.current.ref(element);
+    });
 
     expect(mockObserve).toHaveBeenCalledWith(element);
     expect(lastConstructorOptions).toEqual({
@@ -130,7 +144,6 @@ describe("useLazyInit", () => {
 
   it("should not recreate observer when threshold is an inline array across rerenders", () => {
     const element = document.createElement("div");
-    const ref = { current: element };
 
     let constructorCount = 0;
     class CountingObserver {
@@ -144,10 +157,13 @@ describe("useLazyInit", () => {
     }
     globalThis.IntersectionObserver = CountingObserver as unknown as typeof IntersectionObserver;
 
-    const { rerender } = renderHook(
+    const { result, rerender } = renderHook(
       // Inline array literal — different reference every render
-      () => useLazyInit(ref, { threshold: [0, 0.5, 1] }),
+      () => useLazyInit({ threshold: [0, 0.5, 1] }),
     );
+    act(() => {
+      result.current.ref(element);
+    });
 
     expect(constructorCount).toBe(1);
     expect(lastConstructorOptions?.threshold).toEqual([0, 0.5, 1]);
@@ -159,26 +175,27 @@ describe("useLazyInit", () => {
   });
 
   it("should handle null ref", () => {
-    const ref = { current: null };
+    const { result } = renderHook(() => useLazyInit(true));
 
-    const { result } = renderHook(() => useLazyInit(ref, true));
-
-    // Should not throw
-    expect(result.current).toBe(false);
+    // Should not throw — without attaching the ref, no element is observed.
+    expect(result.current.isInView).toBe(false);
     expect(mockObserve).not.toHaveBeenCalled();
   });
 
   it("should observe a replacement ref element before it is visible", async () => {
     const element1 = document.createElement("div");
     const element2 = document.createElement("div");
-    const ref = { current: element1 };
 
-    const { rerender } = renderHook(() => useLazyInit(ref, true));
+    const { result } = renderHook(() => useLazyInit(true));
+    act(() => {
+      result.current.ref(element1);
+    });
 
     expect(mockObserve).toHaveBeenCalledWith(element1);
 
-    ref.current = element2;
-    rerender();
+    act(() => {
+      result.current.ref(element2);
+    });
 
     await waitFor(() => {
       expect(mockObserve).toHaveBeenCalledWith(element2);
@@ -188,9 +205,11 @@ describe("useLazyInit", () => {
 
   it("should cleanup on unmount", () => {
     const element = document.createElement("div");
-    const ref = { current: element };
 
-    const { unmount } = renderHook(() => useLazyInit(ref, true));
+    const { result, unmount } = renderHook(() => useLazyInit(true));
+    act(() => {
+      result.current.ref(element);
+    });
 
     unmount();
 
@@ -199,19 +218,23 @@ describe("useLazyInit", () => {
 
   it("should handle empty object options as lazy mode enabled", () => {
     const element = document.createElement("div");
-    const ref = { current: element };
 
-    const { result } = renderHook(() => useLazyInit(ref, {}));
+    const { result } = renderHook(() => useLazyInit({}));
+    act(() => {
+      result.current.ref(element);
+    });
 
-    expect(result.current).toBe(false);
+    expect(result.current.isInView).toBe(false);
     expect(mockObserve).toHaveBeenCalled();
   });
 
   it("should not re-observe once visible", async () => {
     const element = document.createElement("div");
-    const ref = { current: element };
 
-    const { result, rerender } = renderHook(() => useLazyInit(ref, true));
+    const { result, rerender } = renderHook(() => useLazyInit(true));
+    act(() => {
+      result.current.ref(element);
+    });
 
     // Simulate intersection
     act(() => {
@@ -219,7 +242,7 @@ describe("useLazyInit", () => {
     });
 
     await waitFor(() => {
-      expect(result.current).toBe(true);
+      expect(result.current.isInView).toBe(true);
     });
 
     // Clear mocks and rerender
@@ -232,19 +255,21 @@ describe("useLazyInit", () => {
 
   it("should become visible immediately when lazy mode is disabled after mount", async () => {
     const element = document.createElement("div");
-    const ref = { current: element };
 
     const { result, rerender } = renderHook(
-      ({ lazyInit }: { lazyInit: boolean }) => useLazyInit(ref, lazyInit),
+      ({ lazyInit }: { lazyInit: boolean }) => useLazyInit(lazyInit),
       { initialProps: { lazyInit: true } },
     );
+    act(() => {
+      result.current.ref(element);
+    });
 
-    expect(result.current).toBe(false);
+    expect(result.current.isInView).toBe(false);
 
     rerender({ lazyInit: false });
 
     await waitFor(() => {
-      expect(result.current).toBe(true);
+      expect(result.current.isInView).toBe(true);
     });
   });
 });

@@ -53,11 +53,13 @@ describe("useEcharts", () => {
   describe("initialization", () => {
     it("should initialize chart instance", () => {
       const element = document.createElement("div");
-      const ref = { current: element };
       const mockInstance = createMockInstance(element);
       (echarts.init as ReturnType<typeof vi.fn>).mockReturnValue(mockInstance);
 
-      renderHook(() => useEcharts(ref, { option: baseOption }));
+      const { result } = renderHook(() => useEcharts({ option: baseOption }));
+      act(() => {
+        result.current.ref(element);
+      });
 
       expect(echarts.init).toHaveBeenCalledWith(element, null, { renderer: "canvas" });
       expect(mockInstance.setOption).toHaveBeenCalledWith(baseOption, undefined);
@@ -70,11 +72,13 @@ describe("useEcharts", () => {
       const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
       try {
         const element = document.createElement("div");
-        const ref = { current: element };
         const mockInstance = createMockInstance(element);
         (echarts.init as ReturnType<typeof vi.fn>).mockReturnValue(mockInstance);
 
-        renderHook(() => useEcharts(ref, { option: baseOption }));
+        const { result } = renderHook(() => useEcharts({ option: baseOption }));
+        act(() => {
+          result.current.ref(element);
+        });
 
         expect(warnSpy).toHaveBeenCalledWith(
           expect.stringContaining("chart container has zero width or height during initialization"),
@@ -105,11 +109,13 @@ describe("useEcharts", () => {
             toJSON: () => ({}),
           })),
         });
-        const ref = { current: element };
         const mockInstance = createMockInstance(element);
         (echarts.init as ReturnType<typeof vi.fn>).mockReturnValue(mockInstance);
 
-        renderHook(() => useEcharts(ref, { option: baseOption }));
+        const { result } = renderHook(() => useEcharts({ option: baseOption }));
+        act(() => {
+          result.current.ref(element);
+        });
 
         expect(warnSpy).not.toHaveBeenCalled();
       } finally {
@@ -130,11 +136,15 @@ describe("useEcharts", () => {
             throw new Error("detached element");
           }),
         });
-        const ref = { current: element };
         const mockInstance = createMockInstance(element);
         (echarts.init as ReturnType<typeof vi.fn>).mockReturnValue(mockInstance);
 
-        expect(() => renderHook(() => useEcharts(ref, { option: baseOption }))).not.toThrow();
+        const { result } = renderHook(() => useEcharts({ option: baseOption }));
+        expect(() => {
+          act(() => {
+            result.current.ref(element);
+          });
+        }).not.toThrow();
         expect(warnSpy).not.toHaveBeenCalledWith(
           expect.stringContaining("chart container has zero width or height during initialization"),
         );
@@ -146,21 +156,46 @@ describe("useEcharts", () => {
 
     it("should use svg renderer when specified", () => {
       const element = document.createElement("div");
-      const ref = { current: element };
       const mockInstance = createMockInstance(element);
       (echarts.init as ReturnType<typeof vi.fn>).mockReturnValue(mockInstance);
 
-      renderHook(() => useEcharts(ref, { option: baseOption, renderer: "svg" }));
+      const { result } = renderHook(() => useEcharts({ option: baseOption, renderer: "svg" }));
+      act(() => {
+        result.current.ref(element);
+      });
 
       expect(echarts.init).toHaveBeenCalledWith(element, null, { renderer: "svg" });
     });
 
     it("should not initialize when ref is null", () => {
-      const ref = { current: null };
-
-      renderHook(() => useEcharts(ref, { option: baseOption }));
+      renderHook(() => useEcharts({ option: baseOption }));
 
       expect(echarts.init).not.toHaveBeenCalled();
+    });
+
+    it("should expose a reactive instance field", () => {
+      const element = document.createElement("div");
+      const mockInstance = createMockInstance(element);
+      (echarts.init as ReturnType<typeof vi.fn>).mockReturnValue(mockInstance);
+
+      const { result } = renderHook(() => useEcharts({ option: baseOption }));
+
+      // Before any ref attachment, no instance exists.
+      expect(result.current.instance).toBeUndefined();
+
+      // Attaching the callback ref creates the instance reactively — the
+      // field flips to the live ECharts instance after the next commit.
+      act(() => {
+        result.current.ref(element);
+      });
+      expect(result.current.instance).toBe(mockInstance);
+
+      // Clearing the ref (e.g. when the container unmounts) tears the
+      // instance down and the field flips back to undefined.
+      act(() => {
+        result.current.ref(null);
+      });
+      expect(result.current.instance).toBeUndefined();
     });
 
     it("should not initialize when lazyInit is true and not visible", () => {
@@ -175,9 +210,11 @@ describe("useEcharts", () => {
         NonTriggeringIntersectionObserver as unknown as typeof IntersectionObserver;
 
       const element = document.createElement("div");
-      const ref = { current: element };
 
-      renderHook(() => useEcharts(ref, { option: baseOption, lazyInit: true }));
+      const { result } = renderHook(() => useEcharts({ option: baseOption, lazyInit: true }));
+      act(() => {
+        result.current.ref(element);
+      });
 
       expect(echarts.init).not.toHaveBeenCalled();
 
@@ -189,7 +226,6 @@ describe("useEcharts", () => {
     it("should recreate the instance when ref.current changes to a new element", async () => {
       const element1 = document.createElement("div");
       const element2 = document.createElement("div");
-      const ref = { current: element1 };
       const option1: EChartsOption = { series: [{ type: "line", data: [1, 2, 3] }] };
       const option2: EChartsOption = { series: [{ type: "bar", data: [4, 5, 6] }] };
       const onClick = vi.fn();
@@ -201,7 +237,7 @@ describe("useEcharts", () => {
 
       const { result, rerender } = renderHook(
         ({ option }) =>
-          useEcharts(ref, {
+          useEcharts({
             option,
             group: "swapGroup",
             showLoading: true,
@@ -209,12 +245,17 @@ describe("useEcharts", () => {
           }),
         { initialProps: { option: option1 } },
       );
+      act(() => {
+        result.current.ref(element1);
+      });
 
       await waitFor(() => {
         expect(getCachedInstance(element1)).toBe(mockInstance1);
       });
 
-      ref.current = element2;
+      act(() => {
+        result.current.ref(element2);
+      });
       rerender({ option: option2 });
 
       await waitFor(() => {
@@ -223,7 +264,7 @@ describe("useEcharts", () => {
 
       expect(mockInstance1.dispose).toHaveBeenCalledTimes(1);
       expect(getCachedInstance(element1)).toBeUndefined();
-      expect(result.current.getInstance()).toBe(mockInstance2);
+      expect(result.current.instance).toBe(mockInstance2);
       expect(mockInstance2.setOption).toHaveBeenCalledWith(option2, undefined);
       expect(mockInstance2.showLoading).toHaveBeenCalled();
       expect(mockInstance2.on).toHaveBeenCalledWith("click", onClick, undefined);
@@ -235,22 +276,26 @@ describe("useEcharts", () => {
   describe("theme handling", () => {
     it("should use null theme by default", () => {
       const element = document.createElement("div");
-      const ref = { current: element };
       const mockInstance = createMockInstance(element);
       (echarts.init as ReturnType<typeof vi.fn>).mockReturnValue(mockInstance);
 
-      renderHook(() => useEcharts(ref, { option: baseOption }));
+      const { result } = renderHook(() => useEcharts({ option: baseOption }));
+      act(() => {
+        result.current.ref(element);
+      });
 
       expect(echarts.init).toHaveBeenCalledWith(element, null, expect.any(Object));
     });
 
     it("should use builtin theme when specified", () => {
       const element = document.createElement("div");
-      const ref = { current: element };
       const mockInstance = createMockInstance(element);
       (echarts.init as ReturnType<typeof vi.fn>).mockReturnValue(mockInstance);
 
-      renderHook(() => useEcharts(ref, { option: baseOption, theme: "dark" }));
+      const { result } = renderHook(() => useEcharts({ option: baseOption, theme: "dark" }));
+      act(() => {
+        result.current.ref(element);
+      });
 
       expect(echarts.init).toHaveBeenCalledWith(element, "dark", expect.any(Object));
     });
@@ -262,11 +307,13 @@ describe("useEcharts", () => {
 
       try {
         const element = document.createElement("div");
-        const ref = { current: element };
         const mockInstance = createMockInstance(element);
         (echarts.init as ReturnType<typeof vi.fn>).mockReturnValue(mockInstance);
 
-        renderHook(() => useEcharts(ref, { option: baseOption, theme: "dark" }));
+        const { result } = renderHook(() => useEcharts({ option: baseOption, theme: "dark" }));
+        act(() => {
+          result.current.ref(element);
+        });
 
         expect(warnSpy).toHaveBeenCalledWith(
           expect.stringContaining('built-in theme "dark" was not registered'),
@@ -284,12 +331,14 @@ describe("useEcharts", () => {
 
       try {
         const element = document.createElement("div");
-        const ref = { current: element };
         const mockInstance = createMockInstance(element);
         (echarts.init as ReturnType<typeof vi.fn>).mockReturnValue(mockInstance);
 
         registerBuiltinThemes();
-        renderHook(() => useEcharts(ref, { option: baseOption, theme: "dark" }));
+        const { result } = renderHook(() => useEcharts({ option: baseOption, theme: "dark" }));
+        act(() => {
+          result.current.ref(element);
+        });
 
         expect(warnSpy).not.toHaveBeenCalledWith(
           expect.stringContaining('built-in theme "dark" was not registered'),
@@ -302,13 +351,15 @@ describe("useEcharts", () => {
 
     it("should register and use custom theme object", () => {
       const element = document.createElement("div");
-      const ref = { current: element };
       const mockInstance = createMockInstance(element);
       (echarts.init as ReturnType<typeof vi.fn>).mockReturnValue(mockInstance);
 
       const customTheme = { color: ["#ff0000", "#00ff00"] };
 
-      renderHook(() => useEcharts(ref, { option: baseOption, theme: customTheme }));
+      const { result } = renderHook(() => useEcharts({ option: baseOption, theme: customTheme }));
+      act(() => {
+        result.current.ref(element);
+      });
 
       expect(echarts.registerTheme).toHaveBeenCalledWith(
         expect.stringContaining("__custom_"),
@@ -321,20 +372,22 @@ describe("useEcharts", () => {
       // pass it. typeof null === "object", so without the nullish guard
       // resolveThemeName would route into the custom-theme path and crash.
       const element = document.createElement("div");
-      const ref = { current: element };
       const mockInstance = createMockInstance(element);
       (echarts.init as ReturnType<typeof vi.fn>).mockReturnValue(mockInstance);
 
       const onError = vi.fn();
       expect(() => {
-        renderHook(() =>
-          useEcharts(ref, {
+        const { result } = renderHook(() =>
+          useEcharts({
             option: baseOption,
             // Bypass TS type to simulate a JS caller passing null.
             theme: null as unknown as undefined,
             onError,
           }),
         );
+        act(() => {
+          result.current.ref(element);
+        });
       }).not.toThrow();
 
       expect(echarts.init).toHaveBeenCalledWith(element, null, expect.any(Object));
@@ -346,35 +399,43 @@ describe("useEcharts", () => {
   describe("loading state", () => {
     it("should show loading when showLoading is true", () => {
       const element = document.createElement("div");
-      const ref = { current: element };
       const mockInstance = createMockInstance(element);
       (echarts.init as ReturnType<typeof vi.fn>).mockReturnValue(mockInstance);
 
-      renderHook(() => useEcharts(ref, { option: baseOption, showLoading: true }));
+      const { result } = renderHook(() => useEcharts({ option: baseOption, showLoading: true }));
+      act(() => {
+        result.current.ref(element);
+      });
 
       expect(mockInstance.showLoading).toHaveBeenCalled();
     });
 
     it("should pass loading options", () => {
       const element = document.createElement("div");
-      const ref = { current: element };
       const mockInstance = createMockInstance(element);
       (echarts.init as ReturnType<typeof vi.fn>).mockReturnValue(mockInstance);
 
       const loadingOption = { text: "Loading..." };
 
-      renderHook(() => useEcharts(ref, { option: baseOption, showLoading: true, loadingOption }));
+      const { result } = renderHook(() =>
+        useEcharts({ option: baseOption, showLoading: true, loadingOption }),
+      );
+      act(() => {
+        result.current.ref(element);
+      });
 
       expect(mockInstance.showLoading).toHaveBeenCalledWith(loadingOption);
     });
 
     it("should not call hideLoading on initial mount when showLoading is false", () => {
       const element = document.createElement("div");
-      const ref = { current: element };
       const mockInstance = createMockInstance(element);
       (echarts.init as ReturnType<typeof vi.fn>).mockReturnValue(mockInstance);
 
-      renderHook(() => useEcharts(ref, { option: baseOption, showLoading: false }));
+      const { result } = renderHook(() => useEcharts({ option: baseOption, showLoading: false }));
+      act(() => {
+        result.current.ref(element);
+      });
 
       expect(mockInstance.hideLoading).not.toHaveBeenCalled();
       expect(mockInstance.showLoading).not.toHaveBeenCalled();
@@ -382,14 +443,18 @@ describe("useEcharts", () => {
 
     it("should hide loading when showLoading transitions from true to false", () => {
       const element = document.createElement("div");
-      const ref = { current: element };
       const mockInstance = createMockInstance(element);
       (echarts.init as ReturnType<typeof vi.fn>).mockReturnValue(mockInstance);
 
-      const { rerender } = renderHook<ReturnType<typeof useEcharts>, { showLoading: boolean }>(
-        ({ showLoading }) => useEcharts(ref, { option: baseOption, showLoading }),
-        { initialProps: { showLoading: true } },
-      );
+      const { rerender, result } = renderHook<
+        ReturnType<typeof useEcharts>,
+        { showLoading: boolean }
+      >(({ showLoading }) => useEcharts({ option: baseOption, showLoading }), {
+        initialProps: { showLoading: true },
+      });
+      act(() => {
+        result.current.ref(element);
+      });
 
       expect(mockInstance.showLoading).toHaveBeenCalledTimes(1);
       expect(mockInstance.hideLoading).not.toHaveBeenCalled();
@@ -400,17 +465,19 @@ describe("useEcharts", () => {
 
     it("should not re-call showLoading for inline loadingOption with identical content", () => {
       const element = document.createElement("div");
-      const ref = { current: element };
       const mockInstance = createMockInstance(element);
       (echarts.init as ReturnType<typeof vi.fn>).mockReturnValue(mockInstance);
 
-      const { rerender } = renderHook(() =>
-        useEcharts(ref, {
+      const { rerender, result } = renderHook(() =>
+        useEcharts({
           option: baseOption,
           showLoading: true,
           loadingOption: { text: "Loading..." },
         }),
       );
+      act(() => {
+        result.current.ref(element);
+      });
 
       expect(mockInstance.showLoading).toHaveBeenCalledTimes(1);
       rerender();
@@ -420,16 +487,18 @@ describe("useEcharts", () => {
 
     it("should keep loading state after theme change", async () => {
       const element = document.createElement("div");
-      const ref = { current: element };
       const mockInstance1 = createMockInstance(element);
       const mockInstance2 = createMockInstance(element);
       (echarts.init as ReturnType<typeof vi.fn>)
         .mockReturnValueOnce(mockInstance1)
         .mockReturnValueOnce(mockInstance2);
 
-      const { rerender } = renderHook<ReturnType<typeof useEcharts>, { theme: BuiltinTheme }>(
+      const { rerender, result } = renderHook<
+        ReturnType<typeof useEcharts>,
+        { theme: BuiltinTheme }
+      >(
         ({ theme }) =>
-          useEcharts(ref, {
+          useEcharts({
             option: baseOption,
             theme,
             showLoading: true,
@@ -437,6 +506,9 @@ describe("useEcharts", () => {
           }),
         { initialProps: { theme: "light" } },
       );
+      act(() => {
+        result.current.ref(element);
+      });
 
       rerender({ theme: "dark" });
 
@@ -447,22 +519,27 @@ describe("useEcharts", () => {
 
     it("should keep loading state after theme change without loadingOption", async () => {
       const element = document.createElement("div");
-      const ref = { current: element };
       const mockInstance1 = createMockInstance(element);
       const mockInstance2 = createMockInstance(element);
       (echarts.init as ReturnType<typeof vi.fn>)
         .mockReturnValueOnce(mockInstance1)
         .mockReturnValueOnce(mockInstance2);
 
-      const { rerender } = renderHook<ReturnType<typeof useEcharts>, { theme: BuiltinTheme }>(
+      const { rerender, result } = renderHook<
+        ReturnType<typeof useEcharts>,
+        { theme: BuiltinTheme }
+      >(
         ({ theme }) =>
-          useEcharts(ref, {
+          useEcharts({
             option: baseOption,
             theme,
             showLoading: true,
           }),
         { initialProps: { theme: "light" } },
       );
+      act(() => {
+        result.current.ref(element);
+      });
 
       rerender({ theme: "dark" });
 
@@ -473,18 +550,19 @@ describe("useEcharts", () => {
 
     it("should update loadingOption when showLoading remains true", async () => {
       const element = document.createElement("div");
-      const ref = { current: element };
       const mockInstance = createMockInstance(element);
       (echarts.init as ReturnType<typeof vi.fn>).mockReturnValue(mockInstance);
 
       const optionA = { text: "Loading A" };
       const optionB = { text: "Loading B" };
 
-      const { rerender } = renderHook(
-        ({ loadingOption }) =>
-          useEcharts(ref, { option: baseOption, showLoading: true, loadingOption }),
+      const { rerender, result } = renderHook(
+        ({ loadingOption }) => useEcharts({ option: baseOption, showLoading: true, loadingOption }),
         { initialProps: { loadingOption: optionA } },
       );
+      act(() => {
+        result.current.ref(element);
+      });
 
       rerender({ loadingOption: optionB });
 
@@ -497,7 +575,6 @@ describe("useEcharts", () => {
       // showLoading can throw via user-registered custom loading types
       // (echarts.registerLoading('name', renderFn) — renderFn under user control).
       const element = document.createElement("div");
-      const ref = { current: element };
       const mockInstance = createMockInstance(element);
       const loadingError = new Error("custom loading renderer threw");
       mockInstance.showLoading.mockImplementation(() => {
@@ -506,10 +583,15 @@ describe("useEcharts", () => {
       (echarts.init as ReturnType<typeof vi.fn>).mockReturnValue(mockInstance);
 
       const onError = vi.fn();
-      const { rerender } = renderHook<ReturnType<typeof useEcharts>, { showLoading: boolean }>(
-        ({ showLoading }) => useEcharts(ref, { option: baseOption, showLoading, onError }),
-        { initialProps: { showLoading: false } },
-      );
+      const { rerender, result } = renderHook<
+        ReturnType<typeof useEcharts>,
+        { showLoading: boolean }
+      >(({ showLoading }) => useEcharts({ option: baseOption, showLoading, onError }), {
+        initialProps: { showLoading: false },
+      });
+      act(() => {
+        result.current.ref(element);
+      });
 
       rerender({ showLoading: true });
 
@@ -520,7 +602,6 @@ describe("useEcharts", () => {
 
     it("should route initial showLoading errors through onError without breaking cleanup", () => {
       const element = document.createElement("div");
-      const ref = { current: element };
       const mockInstance = createMockInstance(element);
       const loadingError = new Error("initial showLoading failed");
       mockInstance.showLoading.mockImplementation(() => {
@@ -529,9 +610,12 @@ describe("useEcharts", () => {
       (echarts.init as ReturnType<typeof vi.fn>).mockReturnValue(mockInstance);
 
       const onError = vi.fn();
-      const { unmount } = renderHook(() =>
-        useEcharts(ref, { option: baseOption, showLoading: true, onError }),
+      const { unmount, result } = renderHook(() =>
+        useEcharts({ option: baseOption, showLoading: true, onError }),
       );
+      act(() => {
+        result.current.ref(element);
+      });
 
       // A bare throw in the lifecycle effect would skip the cleanup return
       // and leak the cached instance. Routing through onError keeps the
@@ -546,7 +630,6 @@ describe("useEcharts", () => {
   describe("event handling", () => {
     it("should bind events on initialization", () => {
       const element = document.createElement("div");
-      const ref = { current: element };
       const mockInstance = createMockInstance(element);
       (echarts.init as ReturnType<typeof vi.fn>).mockReturnValue(mockInstance);
 
@@ -555,14 +638,16 @@ describe("useEcharts", () => {
         click: { handler: clickHandler },
       };
 
-      renderHook(() => useEcharts(ref, { option: baseOption, onEvents }));
+      const { result } = renderHook(() => useEcharts({ option: baseOption, onEvents }));
+      act(() => {
+        result.current.ref(element);
+      });
 
       expect(mockInstance.on).toHaveBeenCalledWith("click", clickHandler, undefined);
     });
 
     it("should bind events with query", () => {
       const element = document.createElement("div");
-      const ref = { current: element };
       const mockInstance = createMockInstance(element);
       (echarts.init as ReturnType<typeof vi.fn>).mockReturnValue(mockInstance);
 
@@ -571,14 +656,16 @@ describe("useEcharts", () => {
         click: { handler: clickHandler, query: "series" },
       };
 
-      renderHook(() => useEcharts(ref, { option: baseOption, onEvents }));
+      const { result } = renderHook(() => useEcharts({ option: baseOption, onEvents }));
+      act(() => {
+        result.current.ref(element);
+      });
 
       expect(mockInstance.on).toHaveBeenCalledWith("click", "series", clickHandler, undefined);
     });
 
     it("should bind events with object query", () => {
       const element = document.createElement("div");
-      const ref = { current: element };
       const mockInstance = createMockInstance(element);
       (echarts.init as ReturnType<typeof vi.fn>).mockReturnValue(mockInstance);
 
@@ -588,14 +675,16 @@ describe("useEcharts", () => {
         click: { handler: clickHandler, query },
       };
 
-      renderHook(() => useEcharts(ref, { option: baseOption, onEvents }));
+      const { result } = renderHook(() => useEcharts({ option: baseOption, onEvents }));
+      act(() => {
+        result.current.ref(element);
+      });
 
       expect(mockInstance.on).toHaveBeenCalledWith("click", query, clickHandler, undefined);
     });
 
     it("should bind events with empty string query", () => {
       const element = document.createElement("div");
-      const ref = { current: element };
       const mockInstance = createMockInstance(element);
       (echarts.init as ReturnType<typeof vi.fn>).mockReturnValue(mockInstance);
 
@@ -604,14 +693,16 @@ describe("useEcharts", () => {
         click: { handler: clickHandler, query: "" },
       };
 
-      renderHook(() => useEcharts(ref, { option: baseOption, onEvents }));
+      const { result } = renderHook(() => useEcharts({ option: baseOption, onEvents }));
+      act(() => {
+        result.current.ref(element);
+      });
 
       expect(mockInstance.on).toHaveBeenCalledWith("click", "", clickHandler, undefined);
     });
 
     it("should bind events with context", () => {
       const element = document.createElement("div");
-      const ref = { current: element };
       const mockInstance = createMockInstance(element);
       (echarts.init as ReturnType<typeof vi.fn>).mockReturnValue(mockInstance);
 
@@ -621,14 +712,16 @@ describe("useEcharts", () => {
         click: { handler: clickHandler, context },
       };
 
-      renderHook(() => useEcharts(ref, { option: baseOption, onEvents }));
+      const { result } = renderHook(() => useEcharts({ option: baseOption, onEvents }));
+      act(() => {
+        result.current.ref(element);
+      });
 
       expect(mockInstance.on).toHaveBeenCalledWith("click", clickHandler, context);
     });
 
     it("should unbind events on unmount", () => {
       const element = document.createElement("div");
-      const ref = { current: element };
       const mockInstance = createMockInstance(element);
       (echarts.init as ReturnType<typeof vi.fn>).mockReturnValue(mockInstance);
 
@@ -637,7 +730,10 @@ describe("useEcharts", () => {
         click: { handler: clickHandler },
       };
 
-      const { unmount } = renderHook(() => useEcharts(ref, { option: baseOption, onEvents }));
+      const { unmount, result } = renderHook(() => useEcharts({ option: baseOption, onEvents }));
+      act(() => {
+        result.current.ref(element);
+      });
 
       unmount();
 
@@ -646,7 +742,6 @@ describe("useEcharts", () => {
 
     it("should route initial event bind errors through onError without breaking cleanup", () => {
       const element = document.createElement("div");
-      const ref = { current: element };
       const mockInstance = createMockInstance(element);
       const bindError = new Error("on() failed");
       mockInstance.on.mockImplementation(() => {
@@ -655,13 +750,16 @@ describe("useEcharts", () => {
       (echarts.init as ReturnType<typeof vi.fn>).mockReturnValue(mockInstance);
 
       const onError = vi.fn();
-      const { unmount } = renderHook(() =>
-        useEcharts(ref, {
+      const { unmount, result } = renderHook(() =>
+        useEcharts({
           option: baseOption,
           onEvents: { click: () => {} },
           onError,
         }),
       );
+      act(() => {
+        result.current.ref(element);
+      });
 
       expect(onError).toHaveBeenCalledWith(bindError);
 
@@ -671,17 +769,19 @@ describe("useEcharts", () => {
 
     it("should rebind events when onEvents changes", async () => {
       const element = document.createElement("div");
-      const ref = { current: element };
       const mockInstance = createMockInstance(element);
       (echarts.init as ReturnType<typeof vi.fn>).mockReturnValue(mockInstance);
 
       const clickHandler1 = vi.fn();
       const clickHandler2 = vi.fn();
 
-      const { rerender } = renderHook(
-        ({ handler }) => useEcharts(ref, { option: baseOption, onEvents: { click: { handler } } }),
+      const { rerender, result } = renderHook(
+        ({ handler }) => useEcharts({ option: baseOption, onEvents: { click: { handler } } }),
         { initialProps: { handler: clickHandler1 } },
       );
+      act(() => {
+        result.current.ref(element);
+      });
 
       rerender({ handler: clickHandler2 });
 
@@ -693,7 +793,6 @@ describe("useEcharts", () => {
 
     it("should route dynamic rebind bind errors through onError", async () => {
       const element = document.createElement("div");
-      const ref = { current: element };
       const mockInstance = createMockInstance(element);
       (echarts.init as ReturnType<typeof vi.fn>).mockReturnValue(mockInstance);
 
@@ -708,11 +807,14 @@ describe("useEcharts", () => {
       });
 
       const onError = vi.fn();
-      const { rerender } = renderHook(
+      const { rerender, result } = renderHook(
         ({ handler }) =>
-          useEcharts(ref, { option: baseOption, onEvents: { click: { handler } }, onError }),
+          useEcharts({ option: baseOption, onEvents: { click: { handler } }, onError }),
         { initialProps: { handler: handler1 } },
       );
+      act(() => {
+        result.current.ref(element);
+      });
 
       rerender({ handler: handler2 });
 
@@ -725,17 +827,19 @@ describe("useEcharts", () => {
 
     it("should clear bound events when onEvents transitions to undefined", async () => {
       const element = document.createElement("div");
-      const ref = { current: element };
       const mockInstance = createMockInstance(element);
       (echarts.init as ReturnType<typeof vi.fn>).mockReturnValue(mockInstance);
 
       const handler = vi.fn();
 
-      const { rerender, unmount } = renderHook(
+      const { rerender, unmount, result } = renderHook(
         ({ events }: { events: { click: typeof handler } | undefined }) =>
-          useEcharts(ref, { option: baseOption, onEvents: events }),
+          useEcharts({ option: baseOption, onEvents: events }),
         { initialProps: { events: { click: handler } as { click: typeof handler } | undefined } },
       );
+      act(() => {
+        result.current.ref(element);
+      });
 
       // Drop onEvents — must off the previously-bound handler so cleanup
       // becomes a no-op afterward.
@@ -755,7 +859,6 @@ describe("useEcharts", () => {
       // rebind from query A → query B must off() BEFORE on(); otherwise the
       // unbind would remove the freshly-bound handler.
       const element = document.createElement("div");
-      const ref = { current: element };
       const mockInstance = createMockInstance(element);
       (echarts.init as ReturnType<typeof vi.fn>).mockReturnValue(mockInstance);
 
@@ -768,14 +871,17 @@ describe("useEcharts", () => {
         sequence.push("off");
       });
 
-      const { rerender } = renderHook(
+      const { rerender, result } = renderHook(
         ({ query }) =>
-          useEcharts(ref, {
+          useEcharts({
             option: baseOption,
             onEvents: { click: { handler, query } },
           }),
         { initialProps: { query: "series0" } },
       );
+      act(() => {
+        result.current.ref(element);
+      });
 
       // Initial mount: just on().
       expect(sequence).toEqual(["on"]);
@@ -795,19 +901,24 @@ describe("useEcharts", () => {
       // doesn't throw on real ECharts, but the structural try/catch +
       // try/finally guarantees release happens regardless.
       const element = document.createElement("div");
-      const ref = { current: element };
       const mockInstance = createMockInstance(element);
       (echarts.init as ReturnType<typeof vi.fn>).mockReturnValue(mockInstance);
 
       const unbindError = new Error("cleanup off() failed");
+
+      const onError = vi.fn();
+      const { unmount, result } = renderHook(() =>
+        useEcharts({ option: baseOption, onEvents: { click: () => {} }, onError }),
+      );
+      act(() => {
+        result.current.ref(element);
+      });
+
+      // Arm the off() to throw only on the cleanup path — the initial mount
+      // path doesn't call off().
       mockInstance.off.mockImplementation(() => {
         throw unbindError;
       });
-
-      const onError = vi.fn();
-      const { unmount } = renderHook(() =>
-        useEcharts(ref, { option: baseOption, onEvents: { click: () => {} }, onError }),
-      );
 
       expect(() => unmount()).not.toThrow();
       expect(onError).toHaveBeenCalledWith(unbindError);
@@ -819,7 +930,6 @@ describe("useEcharts", () => {
       // callers can route them. Hook cleanup wraps the call so a thrown
       // error doesn't disrupt React commit at unmount.
       const element = document.createElement("div");
-      const ref = { current: element };
       const mockInstance = createMockInstance(element);
       const disposeError = new Error("dispose failed");
       mockInstance.dispose.mockImplementation(() => {
@@ -828,7 +938,10 @@ describe("useEcharts", () => {
       (echarts.init as ReturnType<typeof vi.fn>).mockReturnValue(mockInstance);
 
       const onError = vi.fn();
-      const { unmount } = renderHook(() => useEcharts(ref, { option: baseOption, onError }));
+      const { unmount, result } = renderHook(() => useEcharts({ option: baseOption, onError }));
+      act(() => {
+        result.current.ref(element);
+      });
 
       expect(() => unmount()).not.toThrow();
       expect(onError).toHaveBeenCalledWith(disposeError);
@@ -841,11 +954,13 @@ describe("useEcharts", () => {
   describe("group handling", () => {
     it("should add chart to group", async () => {
       const element = document.createElement("div");
-      const ref = { current: element };
       const mockInstance = createMockInstance(element);
       (echarts.init as ReturnType<typeof vi.fn>).mockReturnValue(mockInstance);
 
-      renderHook(() => useEcharts(ref, { option: baseOption, group: "myGroup" }));
+      const { result } = renderHook(() => useEcharts({ option: baseOption, group: "myGroup" }));
+      act(() => {
+        result.current.ref(element);
+      });
 
       await waitFor(() => {
         expect(getGroupInstances("myGroup")).toContain(mockInstance);
@@ -854,14 +969,16 @@ describe("useEcharts", () => {
 
     it("should update group when changed", async () => {
       const element = document.createElement("div");
-      const ref = { current: element };
       const mockInstance = createMockInstance(element);
       (echarts.init as ReturnType<typeof vi.fn>).mockReturnValue(mockInstance);
 
-      const { rerender } = renderHook(
-        ({ group }) => useEcharts(ref, { option: baseOption, group }),
+      const { rerender, result } = renderHook(
+        ({ group }) => useEcharts({ option: baseOption, group }),
         { initialProps: { group: "group1" } },
       );
+      act(() => {
+        result.current.ref(element);
+      });
 
       await waitFor(() => {
         expect(getGroupInstances("group1")).toContain(mockInstance);
@@ -877,7 +994,6 @@ describe("useEcharts", () => {
 
     it("should keep group linkage after theme change", async () => {
       const element = document.createElement("div");
-      const ref = { current: element };
 
       const mockInstance1 = createMockInstance(element);
       const mockInstance2 = createMockInstance(element);
@@ -886,15 +1002,21 @@ describe("useEcharts", () => {
         .mockReturnValueOnce(mockInstance1)
         .mockReturnValueOnce(mockInstance2);
 
-      const { rerender } = renderHook<ReturnType<typeof useEcharts>, { theme: BuiltinTheme }>(
+      const { rerender, result } = renderHook<
+        ReturnType<typeof useEcharts>,
+        { theme: BuiltinTheme }
+      >(
         ({ theme }) =>
-          useEcharts(ref, {
+          useEcharts({
             option: baseOption,
             group: "myGroup",
             theme,
           }),
         { initialProps: { theme: "light" } },
       );
+      act(() => {
+        result.current.ref(element);
+      });
 
       await waitFor(() => {
         expect(getGroupInstances("myGroup")).toContain(mockInstance1);
@@ -935,11 +1057,15 @@ describe("useEcharts", () => {
         ControlledIntersectionObserver as unknown as typeof IntersectionObserver;
 
       const element = document.createElement("div");
-      const ref = { current: element };
       const mockInstance = createMockInstance(element);
       (echarts.init as ReturnType<typeof vi.fn>).mockReturnValue(mockInstance);
 
-      renderHook(() => useEcharts(ref, { option: baseOption, group: "lazyGroup", lazyInit: true }));
+      const { result } = renderHook(() =>
+        useEcharts({ option: baseOption, group: "lazyGroup", lazyInit: true }),
+      );
+      act(() => {
+        result.current.ref(element);
+      });
 
       // Not initialized before intersection
       expect(echarts.init).not.toHaveBeenCalled();
@@ -960,11 +1086,13 @@ describe("useEcharts", () => {
   describe("setOption", () => {
     it("should update chart options via setOption", async () => {
       const element = document.createElement("div");
-      const ref = { current: element };
       const mockInstance = createMockInstance(element);
       (echarts.init as ReturnType<typeof vi.fn>).mockReturnValue(mockInstance);
 
-      const { result } = renderHook(() => useEcharts(ref, { option: baseOption }));
+      const { result } = renderHook(() => useEcharts({ option: baseOption }));
+      act(() => {
+        result.current.ref(element);
+      });
 
       const newOption: EChartsOption = {
         series: [{ type: "bar", data: [4, 5, 6] }],
@@ -982,13 +1110,15 @@ describe("useEcharts", () => {
 
     it("should merge setOptionOpts", async () => {
       const element = document.createElement("div");
-      const ref = { current: element };
       const mockInstance = createMockInstance(element);
       (echarts.init as ReturnType<typeof vi.fn>).mockReturnValue(mockInstance);
 
       const { result } = renderHook(() =>
-        useEcharts(ref, { option: baseOption, setOptionOpts: { notMerge: true } }),
+        useEcharts({ option: baseOption, setOptionOpts: { notMerge: true } }),
       );
+      act(() => {
+        result.current.ref(element);
+      });
 
       const newOption: EChartsOption = {
         series: [{ type: "bar", data: [4, 5, 6] }],
@@ -1008,7 +1138,6 @@ describe("useEcharts", () => {
 
     it("should skip setOption when rerender option is shallow-equal", async () => {
       const element = document.createElement("div");
-      const ref = { current: element };
       const mockInstance = createMockInstance(element);
       (echarts.init as ReturnType<typeof vi.fn>).mockReturnValue(mockInstance);
 
@@ -1016,8 +1145,11 @@ describe("useEcharts", () => {
       const option1: EChartsOption = { series: sharedSeries };
       const option2: EChartsOption = { series: sharedSeries };
 
-      const { rerender } = renderHook(({ option }) => useEcharts(ref, { option }), {
+      const { rerender, result } = renderHook(({ option }) => useEcharts({ option }), {
         initialProps: { option: option1 },
+      });
+      act(() => {
+        result.current.ref(element);
       });
 
       await waitFor(() => {
@@ -1033,7 +1165,6 @@ describe("useEcharts", () => {
 
     it("should skip setOption for shallow-equal option with multiple top-level keys", async () => {
       const element = document.createElement("div");
-      const ref = { current: element };
       const mockInstance = createMockInstance(element);
       (echarts.init as ReturnType<typeof vi.fn>).mockReturnValue(mockInstance);
 
@@ -1045,8 +1176,11 @@ describe("useEcharts", () => {
       const option1: EChartsOption = { ...multiKeyOption };
       const option2: EChartsOption = { ...multiKeyOption };
 
-      const { rerender } = renderHook(({ option }) => useEcharts(ref, { option }), {
+      const { rerender, result } = renderHook(({ option }) => useEcharts({ option }), {
         initialProps: { option: option1 },
+      });
+      act(() => {
+        result.current.ref(element);
       });
 
       await waitFor(() => {
@@ -1062,17 +1196,19 @@ describe("useEcharts", () => {
 
     it("should take reference-equality fast path when option and setOptionOpts refs are identical", async () => {
       const element = document.createElement("div");
-      const ref = { current: element };
       const mockInstance = createMockInstance(element);
       (echarts.init as ReturnType<typeof vi.fn>).mockReturnValue(mockInstance);
 
       const stableOption: EChartsOption = { series: [{ type: "line", data: [1, 2, 3] }] };
       const stableOpts = { notMerge: false };
 
-      const { rerender } = renderHook(
-        ({ option, opts }) => useEcharts(ref, { option, setOptionOpts: opts }),
+      const { rerender, result } = renderHook(
+        ({ option, opts }) => useEcharts({ option, setOptionOpts: opts }),
         { initialProps: { option: stableOption, opts: stableOpts } },
       );
+      act(() => {
+        result.current.ref(element);
+      });
 
       await waitFor(() => {
         expect(mockInstance.setOption).toHaveBeenCalledTimes(1);
@@ -1098,7 +1234,6 @@ describe("useEcharts", () => {
       // prop-driven OPTION-SYNC effect sees the actual instance state, not a
       // stale "what props sent last".
       const element = document.createElement("div");
-      const ref = { current: element };
       const mockInstance = createMockInstance(element);
       (echarts.init as ReturnType<typeof vi.fn>).mockReturnValue(mockInstance);
 
@@ -1107,8 +1242,11 @@ describe("useEcharts", () => {
       const propOptionAEqual: EChartsOption = { series: sharedSeries };
       const imperativeOption: EChartsOption = { series: [{ type: "bar", data: [9] }] };
 
-      const { result, rerender } = renderHook(({ option }) => useEcharts(ref, { option }), {
+      const { result, rerender } = renderHook(({ option }) => useEcharts({ option }), {
         initialProps: { option: propOptionA },
+      });
+      act(() => {
+        result.current.ref(element);
       });
 
       // 1. Init applied propOptionA.
@@ -1141,35 +1279,41 @@ describe("useEcharts", () => {
     });
   });
 
-  describe("getInstance", () => {
+  describe("instance field", () => {
     it("should return chart instance", () => {
       const element = document.createElement("div");
-      const ref = { current: element };
       const mockInstance = createMockInstance(element);
       (echarts.init as ReturnType<typeof vi.fn>).mockReturnValue(mockInstance);
 
-      const { result } = renderHook(() => useEcharts(ref, { option: baseOption }));
+      const { result } = renderHook(() => useEcharts({ option: baseOption }));
+      act(() => {
+        result.current.ref(element);
+      });
 
-      expect(result.current.getInstance()).toBe(mockInstance);
+      act(() => {
+        result.current.ref(element);
+      });
+
+      expect(result.current.instance).toBe(mockInstance);
     });
 
     it("should return undefined when ref is null", () => {
-      const ref = { current: null };
+      const { result } = renderHook(() => useEcharts({ option: baseOption }));
 
-      const { result } = renderHook(() => useEcharts(ref, { option: baseOption }));
-
-      expect(result.current.getInstance()).toBeUndefined();
+      expect(result.current.instance).toBeUndefined();
     });
   });
 
   describe("resize", () => {
     it("should call resize on instance", () => {
       const element = document.createElement("div");
-      const ref = { current: element };
       const mockInstance = createMockInstance(element);
       (echarts.init as ReturnType<typeof vi.fn>).mockReturnValue(mockInstance);
 
-      const { result } = renderHook(() => useEcharts(ref, { option: baseOption }));
+      const { result } = renderHook(() => useEcharts({ option: baseOption }));
+      act(() => {
+        result.current.ref(element);
+      });
 
       act(() => {
         result.current.resize();
@@ -1179,9 +1323,7 @@ describe("useEcharts", () => {
     });
 
     it("should not throw when instance is undefined", () => {
-      const ref = { current: null };
-
-      const { result } = renderHook(() => useEcharts(ref, { option: baseOption }));
+      const { result } = renderHook(() => useEcharts({ option: baseOption }));
 
       // Should not throw
       act(() => {
@@ -1191,7 +1333,6 @@ describe("useEcharts", () => {
 
     it("should route resize errors through onError", () => {
       const element = document.createElement("div");
-      const ref = { current: element };
       const mockInstance = createMockInstance(element);
       const resizeError = new Error("resize failed");
       mockInstance.resize.mockImplementation(() => {
@@ -1200,7 +1341,10 @@ describe("useEcharts", () => {
       (echarts.init as ReturnType<typeof vi.fn>).mockReturnValue(mockInstance);
 
       const onError = vi.fn();
-      const { result } = renderHook(() => useEcharts(ref, { option: baseOption, onError }));
+      const { result } = renderHook(() => useEcharts({ option: baseOption, onError }));
+      act(() => {
+        result.current.ref(element);
+      });
 
       act(() => {
         result.current.resize();
@@ -1211,14 +1355,16 @@ describe("useEcharts", () => {
 
     it("should rethrow resize errors when no onError", () => {
       const element = document.createElement("div");
-      const ref = { current: element };
       const mockInstance = createMockInstance(element);
       mockInstance.resize.mockImplementation(() => {
         throw new Error("resize boom");
       });
       (echarts.init as ReturnType<typeof vi.fn>).mockReturnValue(mockInstance);
 
-      const { result } = renderHook(() => useEcharts(ref, { option: baseOption }));
+      const { result } = renderHook(() => useEcharts({ option: baseOption }));
+      act(() => {
+        result.current.ref(element);
+      });
 
       expect(() => {
         act(() => {
@@ -1229,11 +1375,13 @@ describe("useEcharts", () => {
 
     it("should forward ResizeOpts to instance.resize", () => {
       const element = document.createElement("div");
-      const ref = { current: element };
       const mockInstance = createMockInstance(element);
       (echarts.init as ReturnType<typeof vi.fn>).mockReturnValue(mockInstance);
 
-      const { result } = renderHook(() => useEcharts(ref, { option: baseOption }));
+      const { result } = renderHook(() => useEcharts({ option: baseOption }));
+      act(() => {
+        result.current.ref(element);
+      });
 
       const opts = { width: 800, height: 600, silent: true };
       act(() => {
@@ -1247,11 +1395,13 @@ describe("useEcharts", () => {
   describe("dispatchAction", () => {
     it("should forward payload to instance", () => {
       const element = document.createElement("div");
-      const ref = { current: element };
       const mockInstance = createMockInstance(element);
       (echarts.init as ReturnType<typeof vi.fn>).mockReturnValue(mockInstance);
 
-      const { result } = renderHook(() => useEcharts(ref, { option: baseOption }));
+      const { result } = renderHook(() => useEcharts({ option: baseOption }));
+      act(() => {
+        result.current.ref(element);
+      });
 
       const payload = { type: "highlight", seriesIndex: 0 };
       act(() => {
@@ -1263,11 +1413,13 @@ describe("useEcharts", () => {
 
     it("should forward opts argument", () => {
       const element = document.createElement("div");
-      const ref = { current: element };
       const mockInstance = createMockInstance(element);
       (echarts.init as ReturnType<typeof vi.fn>).mockReturnValue(mockInstance);
 
-      const { result } = renderHook(() => useEcharts(ref, { option: baseOption }));
+      const { result } = renderHook(() => useEcharts({ option: baseOption }));
+      act(() => {
+        result.current.ref(element);
+      });
 
       const payload = { type: "showTip", seriesIndex: 0, dataIndex: 1 };
       act(() => {
@@ -1278,9 +1430,7 @@ describe("useEcharts", () => {
     });
 
     it("should be a no-op when instance is not initialized", () => {
-      const ref = { current: null };
-
-      const { result } = renderHook(() => useEcharts(ref, { option: baseOption }));
+      const { result } = renderHook(() => useEcharts({ option: baseOption }));
 
       // Should not throw
       act(() => {
@@ -1290,7 +1440,6 @@ describe("useEcharts", () => {
 
     it("should route dispatch errors through onError", () => {
       const element = document.createElement("div");
-      const ref = { current: element };
       const mockInstance = createMockInstance(element);
       const dispatchError = new Error("invalid action");
       mockInstance.dispatchAction.mockImplementation(() => {
@@ -1299,7 +1448,10 @@ describe("useEcharts", () => {
       (echarts.init as ReturnType<typeof vi.fn>).mockReturnValue(mockInstance);
 
       const onError = vi.fn();
-      const { result } = renderHook(() => useEcharts(ref, { option: baseOption, onError }));
+      const { result } = renderHook(() => useEcharts({ option: baseOption, onError }));
+      act(() => {
+        result.current.ref(element);
+      });
 
       act(() => {
         result.current.dispatchAction({ type: "broken" });
@@ -1310,14 +1462,16 @@ describe("useEcharts", () => {
 
     it("should rethrow dispatch errors when no onError", () => {
       const element = document.createElement("div");
-      const ref = { current: element };
       const mockInstance = createMockInstance(element);
       mockInstance.dispatchAction.mockImplementation(() => {
         throw new Error("boom");
       });
       (echarts.init as ReturnType<typeof vi.fn>).mockReturnValue(mockInstance);
 
-      const { result } = renderHook(() => useEcharts(ref, { option: baseOption }));
+      const { result } = renderHook(() => useEcharts({ option: baseOption }));
+      act(() => {
+        result.current.ref(element);
+      });
 
       expect(() => {
         act(() => {
@@ -1330,11 +1484,13 @@ describe("useEcharts", () => {
   describe("clear", () => {
     it("should call clear on instance", () => {
       const element = document.createElement("div");
-      const ref = { current: element };
       const mockInstance = createMockInstance(element);
       (echarts.init as ReturnType<typeof vi.fn>).mockReturnValue(mockInstance);
 
-      const { result } = renderHook(() => useEcharts(ref, { option: baseOption }));
+      const { result } = renderHook(() => useEcharts({ option: baseOption }));
+      act(() => {
+        result.current.ref(element);
+      });
 
       act(() => {
         result.current.clear();
@@ -1344,9 +1500,7 @@ describe("useEcharts", () => {
     });
 
     it("should not throw when instance is undefined", () => {
-      const ref = { current: null };
-
-      const { result } = renderHook(() => useEcharts(ref, { option: baseOption }));
+      const { result } = renderHook(() => useEcharts({ option: baseOption }));
 
       act(() => {
         result.current.clear();
@@ -1355,7 +1509,6 @@ describe("useEcharts", () => {
 
     it("should route clear errors through onError", () => {
       const element = document.createElement("div");
-      const ref = { current: element };
       const mockInstance = createMockInstance(element);
       const clearError = new Error("clear failed");
       mockInstance.clear.mockImplementation(() => {
@@ -1364,7 +1517,10 @@ describe("useEcharts", () => {
       (echarts.init as ReturnType<typeof vi.fn>).mockReturnValue(mockInstance);
 
       const onError = vi.fn();
-      const { result } = renderHook(() => useEcharts(ref, { option: baseOption, onError }));
+      const { result } = renderHook(() => useEcharts({ option: baseOption, onError }));
+      act(() => {
+        result.current.ref(element);
+      });
 
       act(() => {
         result.current.clear();
@@ -1375,14 +1531,16 @@ describe("useEcharts", () => {
 
     it("should rethrow clear errors when no onError", () => {
       const element = document.createElement("div");
-      const ref = { current: element };
       const mockInstance = createMockInstance(element);
       mockInstance.clear.mockImplementation(() => {
         throw new Error("clear boom");
       });
       (echarts.init as ReturnType<typeof vi.fn>).mockReturnValue(mockInstance);
 
-      const { result } = renderHook(() => useEcharts(ref, { option: baseOption }));
+      const { result } = renderHook(() => useEcharts({ option: baseOption }));
+      act(() => {
+        result.current.ref(element);
+      });
 
       expect(() => {
         act(() => {
@@ -1397,7 +1555,6 @@ describe("useEcharts", () => {
       // skips setOption, leaving the chart blank after clear(). Resetting
       // forces re-application.
       const element = document.createElement("div");
-      const ref = { current: element };
       const mockInstance = createMockInstance(element);
       (echarts.init as ReturnType<typeof vi.fn>).mockReturnValue(mockInstance);
 
@@ -1405,8 +1562,11 @@ describe("useEcharts", () => {
       const propOptionA: EChartsOption = { series: sharedSeries };
       const propOptionAEqual: EChartsOption = { series: sharedSeries };
 
-      const { result, rerender } = renderHook(({ option }) => useEcharts(ref, { option }), {
+      const { result, rerender } = renderHook(({ option }) => useEcharts({ option }), {
         initialProps: { option: propOptionA },
+      });
+      act(() => {
+        result.current.ref(element);
       });
 
       // 1. Init applied propOptionA.
@@ -1434,11 +1594,13 @@ describe("useEcharts", () => {
   describe("appendData", () => {
     it("should forward params to instance", () => {
       const element = document.createElement("div");
-      const ref = { current: element };
       const mockInstance = createMockInstance(element);
       (echarts.init as ReturnType<typeof vi.fn>).mockReturnValue(mockInstance);
 
-      const { result } = renderHook(() => useEcharts(ref, { option: baseOption }));
+      const { result } = renderHook(() => useEcharts({ option: baseOption }));
+      act(() => {
+        result.current.ref(element);
+      });
 
       const params = { seriesIndex: 0, data: [1, 2, 3] };
       act(() => {
@@ -1448,8 +1610,7 @@ describe("useEcharts", () => {
     });
 
     it("should not throw when instance is not initialized", () => {
-      const ref = { current: null };
-      const { result } = renderHook(() => useEcharts(ref, { option: baseOption }));
+      const { result } = renderHook(() => useEcharts({ option: baseOption }));
       act(() => {
         result.current.appendData({ seriesIndex: 0, data: [] });
       });
@@ -1460,14 +1621,16 @@ describe("useEcharts", () => {
       // outside the declarative option, so the next prop rerender that is
       // shallow-equal but a new reference must NOT be skipped by dedup.
       const element = document.createElement("div");
-      const ref = { current: element };
       const mockInstance = createMockInstance(element);
       (echarts.init as ReturnType<typeof vi.fn>).mockReturnValue(mockInstance);
 
       const propA = { series: baseOption.series } as EChartsOption;
 
-      const { result, rerender } = renderHook(({ option }) => useEcharts(ref, { option }), {
+      const { result, rerender } = renderHook(({ option }) => useEcharts({ option }), {
         initialProps: { option: propA },
+      });
+      act(() => {
+        result.current.ref(element);
       });
       await waitFor(() => {
         expect(mockInstance.setOption).toHaveBeenCalledTimes(1);
@@ -1486,7 +1649,6 @@ describe("useEcharts", () => {
 
     it("should route errors through onError", () => {
       const element = document.createElement("div");
-      const ref = { current: element };
       const mockInstance = createMockInstance(element);
       const err = new Error("appendData boom");
       mockInstance.appendData.mockImplementation(() => {
@@ -1495,7 +1657,10 @@ describe("useEcharts", () => {
       (echarts.init as ReturnType<typeof vi.fn>).mockReturnValue(mockInstance);
 
       const onError = vi.fn();
-      const { result } = renderHook(() => useEcharts(ref, { option: baseOption, onError }));
+      const { result } = renderHook(() => useEcharts({ option: baseOption, onError }));
+      act(() => {
+        result.current.ref(element);
+      });
       act(() => {
         result.current.appendData({ seriesIndex: 0, data: [] });
       });
@@ -1506,63 +1671,74 @@ describe("useEcharts", () => {
   describe("imperative API additions", () => {
     function setupReady() {
       const element = document.createElement("div");
-      const ref = { current: element };
       const mockInstance = createMockInstance(element);
       (echarts.init as ReturnType<typeof vi.fn>).mockReturnValue(mockInstance);
-      return { element, ref, mockInstance };
+      return { element, mockInstance };
     }
 
     describe("getOption", () => {
       it("forwards return from instance.getOption()", () => {
-        const { ref, mockInstance } = setupReady();
+        const { element, mockInstance } = setupReady();
         const fakeOption = { title: { text: "x" } };
         mockInstance.getOption.mockReturnValue(fakeOption);
 
-        const { result } = renderHook(() => useEcharts(ref, { option: baseOption }));
+        const { result } = renderHook(() => useEcharts({ option: baseOption }));
+        act(() => {
+          result.current.ref(element);
+        });
         expect(result.current.getOption()).toBe(fakeOption);
         expect(mockInstance.getOption).toHaveBeenCalled();
       });
 
       it("returns undefined when instance is not initialized", () => {
-        const { result } = renderHook(() => useEcharts({ current: null }, { option: baseOption }));
+        const { result } = renderHook(() => useEcharts({ option: baseOption }));
         expect(result.current.getOption()).toBeUndefined();
       });
 
       it("routes errors through onError and returns undefined", () => {
-        const { ref, mockInstance } = setupReady();
+        const { element, mockInstance } = setupReady();
         const err = new Error("getOption boom");
         mockInstance.getOption.mockImplementation(() => {
           throw err;
         });
         const onError = vi.fn();
-        const { result } = renderHook(() => useEcharts(ref, { option: baseOption, onError }));
+        const { result } = renderHook(() => useEcharts({ option: baseOption, onError }));
+        act(() => {
+          result.current.ref(element);
+        });
 
         expect(result.current.getOption()).toBeUndefined();
         expect(onError).toHaveBeenCalledWith(err);
       });
 
       it("rethrows when no onError is provided", () => {
-        const { ref, mockInstance } = setupReady();
+        const { element, mockInstance } = setupReady();
         mockInstance.getOption.mockImplementation(() => {
           throw new Error("getOption boom");
         });
-        const { result } = renderHook(() => useEcharts(ref, { option: baseOption }));
+        const { result } = renderHook(() => useEcharts({ option: baseOption }));
+        act(() => {
+          result.current.ref(element);
+        });
         expect(() => result.current.getOption()).toThrow("getOption boom");
       });
     });
 
     describe("getWidth / getHeight", () => {
       it("forward returns from instance", () => {
-        const { ref, mockInstance } = setupReady();
+        const { element, mockInstance } = setupReady();
         mockInstance.getWidth.mockReturnValue(640);
         mockInstance.getHeight.mockReturnValue(480);
-        const { result } = renderHook(() => useEcharts(ref, { option: baseOption }));
+        const { result } = renderHook(() => useEcharts({ option: baseOption }));
+        act(() => {
+          result.current.ref(element);
+        });
         expect(result.current.getWidth()).toBe(640);
         expect(result.current.getHeight()).toBe(480);
       });
 
       it("return undefined when instance is not initialized", () => {
-        const { result } = renderHook(() => useEcharts({ current: null }, { option: baseOption }));
+        const { result } = renderHook(() => useEcharts({ option: baseOption }));
         expect(result.current.getWidth()).toBeUndefined();
         expect(result.current.getHeight()).toBeUndefined();
       });
@@ -1570,37 +1746,46 @@ describe("useEcharts", () => {
 
     describe("getDom", () => {
       it("forwards instance.getDom()", () => {
-        const { element, ref } = setupReady();
-        const { result } = renderHook(() => useEcharts(ref, { option: baseOption }));
+        const { element } = setupReady();
+        const { result } = renderHook(() => useEcharts({ option: baseOption }));
+        act(() => {
+          result.current.ref(element);
+        });
         expect(result.current.getDom()).toBe(element);
       });
 
       it("returns undefined when instance is not initialized", () => {
-        const { result } = renderHook(() => useEcharts({ current: null }, { option: baseOption }));
+        const { result } = renderHook(() => useEcharts({ option: baseOption }));
         expect(result.current.getDom()).toBeUndefined();
       });
     });
 
     describe("isDisposed", () => {
       it("forwards instance.isDisposed()", () => {
-        const { ref, mockInstance } = setupReady();
+        const { element, mockInstance } = setupReady();
         mockInstance.isDisposed.mockReturnValue(false);
-        const { result } = renderHook(() => useEcharts(ref, { option: baseOption }));
+        const { result } = renderHook(() => useEcharts({ option: baseOption }));
+        act(() => {
+          result.current.ref(element);
+        });
         expect(result.current.isDisposed()).toBe(false);
       });
 
       it("returns true when instance is not initialized (semantically disposed)", () => {
-        const { result } = renderHook(() => useEcharts({ current: null }, { option: baseOption }));
+        const { result } = renderHook(() => useEcharts({ option: baseOption }));
         expect(result.current.isDisposed()).toBe(true);
       });
 
       it("falls back to true on error and routes through onError", () => {
-        const { ref, mockInstance } = setupReady();
+        const { element, mockInstance } = setupReady();
         mockInstance.isDisposed.mockImplementation(() => {
           throw new Error("isDisposed boom");
         });
         const onError = vi.fn();
-        const { result } = renderHook(() => useEcharts(ref, { option: baseOption, onError }));
+        const { result } = renderHook(() => useEcharts({ option: baseOption, onError }));
+        act(() => {
+          result.current.ref(element);
+        });
         expect(result.current.isDisposed()).toBe(true);
         expect(onError).toHaveBeenCalled();
       });
@@ -1608,8 +1793,11 @@ describe("useEcharts", () => {
 
     describe("getDataURL / getConnectedDataURL / getSvgDataURL / renderToSVGString", () => {
       it("forward opts and return strings from instance", () => {
-        const { ref, mockInstance } = setupReady();
-        const { result } = renderHook(() => useEcharts(ref, { option: baseOption }));
+        const { element, mockInstance } = setupReady();
+        const { result } = renderHook(() => useEcharts({ option: baseOption }));
+        act(() => {
+          result.current.ref(element);
+        });
 
         expect(result.current.getDataURL({ type: "png", pixelRatio: 2 })).toBe(
           "data:image/png;base64,mock",
@@ -1624,7 +1812,7 @@ describe("useEcharts", () => {
       });
 
       it("return undefined when instance is not initialized", () => {
-        const { result } = renderHook(() => useEcharts({ current: null }, { option: baseOption }));
+        const { result } = renderHook(() => useEcharts({ option: baseOption }));
         expect(result.current.getDataURL()).toBeUndefined();
         expect(result.current.getConnectedDataURL()).toBeUndefined();
         expect(result.current.getSvgDataURL()).toBeUndefined();
@@ -1634,12 +1822,15 @@ describe("useEcharts", () => {
 
     describe("convertToPixel / convertFromPixel / containPixel", () => {
       it("forward finder + value to instance", () => {
-        const { ref, mockInstance } = setupReady();
+        const { element, mockInstance } = setupReady();
         mockInstance.convertToPixel.mockReturnValue([100, 200]);
         mockInstance.convertFromPixel.mockReturnValue([1, 2]);
         mockInstance.containPixel.mockReturnValue(true);
 
-        const { result } = renderHook(() => useEcharts(ref, { option: baseOption }));
+        const { result } = renderHook(() => useEcharts({ option: baseOption }));
+        act(() => {
+          result.current.ref(element);
+        });
 
         const finder = { seriesIndex: 0 };
         expect(result.current.convertToPixel(finder, [10, 20])).toEqual([100, 200]);
@@ -1650,7 +1841,7 @@ describe("useEcharts", () => {
       });
 
       it("return undefined / false when instance is not initialized", () => {
-        const { result } = renderHook(() => useEcharts({ current: null }, { option: baseOption }));
+        const { result } = renderHook(() => useEcharts({ option: baseOption }));
         expect(result.current.convertToPixel("series", 10)).toBeUndefined();
         expect(result.current.convertFromPixel("series", 10)).toBeUndefined();
         expect(result.current.containPixel("series", [10, 20])).toBe(false);
@@ -1661,11 +1852,13 @@ describe("useEcharts", () => {
   describe("cleanup", () => {
     it("should dispose instance on unmount", () => {
       const element = document.createElement("div");
-      const ref = { current: element };
       const mockInstance = createMockInstance(element);
       (echarts.init as ReturnType<typeof vi.fn>).mockReturnValue(mockInstance);
 
-      const { unmount } = renderHook(() => useEcharts(ref, { option: baseOption }));
+      const { unmount, result } = renderHook(() => useEcharts({ option: baseOption }));
+      act(() => {
+        result.current.ref(element);
+      });
 
       unmount();
 
@@ -1674,13 +1867,15 @@ describe("useEcharts", () => {
 
     it("should remove from group on unmount", async () => {
       const element = document.createElement("div");
-      const ref = { current: element };
       const mockInstance = createMockInstance(element);
       (echarts.init as ReturnType<typeof vi.fn>).mockReturnValue(mockInstance);
 
-      const { unmount } = renderHook(() =>
-        useEcharts(ref, { option: baseOption, group: "testGroup" }),
+      const { unmount, result } = renderHook(() =>
+        useEcharts({ option: baseOption, group: "testGroup" }),
       );
+      act(() => {
+        result.current.ref(element);
+      });
 
       await waitFor(() => {
         expect(getGroupInstances("testGroup")).toContain(mockInstance);
@@ -1693,11 +1888,13 @@ describe("useEcharts", () => {
 
     it("should cache instance correctly", () => {
       const element = document.createElement("div");
-      const ref = { current: element };
       const mockInstance = createMockInstance(element);
       (echarts.init as ReturnType<typeof vi.fn>).mockReturnValue(mockInstance);
 
-      renderHook(() => useEcharts(ref, { option: baseOption }));
+      const { result } = renderHook(() => useEcharts({ option: baseOption }));
+      act(() => {
+        result.current.ref(element);
+      });
 
       expect(getCachedInstance(element)).toBe(mockInstance);
     });
@@ -1706,7 +1903,6 @@ describe("useEcharts", () => {
   describe("event shorthand API", () => {
     it("should bind function shorthand events", () => {
       const element = document.createElement("div");
-      const ref = { current: element };
       const mockInstance = createMockInstance(element);
       (echarts.init as ReturnType<typeof vi.fn>).mockReturnValue(mockInstance);
 
@@ -1715,21 +1911,26 @@ describe("useEcharts", () => {
         click: clickHandler,
       };
 
-      renderHook(() => useEcharts(ref, { option: baseOption, onEvents }));
+      const { result } = renderHook(() => useEcharts({ option: baseOption, onEvents }));
+      act(() => {
+        result.current.ref(element);
+      });
 
       expect(mockInstance.on).toHaveBeenCalledWith("click", clickHandler, undefined);
     });
 
     it("should unbind function shorthand events on unmount", () => {
       const element = document.createElement("div");
-      const ref = { current: element };
       const mockInstance = createMockInstance(element);
       (echarts.init as ReturnType<typeof vi.fn>).mockReturnValue(mockInstance);
 
       const clickHandler = vi.fn();
       const onEvents = { click: clickHandler };
 
-      const { unmount } = renderHook(() => useEcharts(ref, { option: baseOption, onEvents }));
+      const { unmount, result } = renderHook(() => useEcharts({ option: baseOption, onEvents }));
+      act(() => {
+        result.current.ref(element);
+      });
 
       unmount();
 
@@ -1738,7 +1939,6 @@ describe("useEcharts", () => {
 
     it("should support mixed shorthand and full config", () => {
       const element = document.createElement("div");
-      const ref = { current: element };
       const mockInstance = createMockInstance(element);
       (echarts.init as ReturnType<typeof vi.fn>).mockReturnValue(mockInstance);
 
@@ -1749,7 +1949,10 @@ describe("useEcharts", () => {
         mouseover: { handler: mouseoverHandler, query: "series" },
       };
 
-      renderHook(() => useEcharts(ref, { option: baseOption, onEvents }));
+      const { result } = renderHook(() => useEcharts({ option: baseOption, onEvents }));
+      act(() => {
+        result.current.ref(element);
+      });
 
       expect(mockInstance.on).toHaveBeenCalledWith("click", clickHandler, undefined);
       expect(mockInstance.on).toHaveBeenCalledWith(
@@ -1764,7 +1967,6 @@ describe("useEcharts", () => {
   describe("option update error handling", () => {
     it("should call onError when setOption throws on option update", async () => {
       const element = document.createElement("div");
-      const ref = { current: element };
       const mockInstance = createMockInstance(element);
       (echarts.init as ReturnType<typeof vi.fn>).mockReturnValue(mockInstance);
 
@@ -1772,8 +1974,11 @@ describe("useEcharts", () => {
       const option1: EChartsOption = { series: [{ type: "line", data: [1, 2, 3] }] };
       const option2: EChartsOption = { series: [{ type: "bar", data: [4, 5, 6] }] };
 
-      const { rerender } = renderHook(({ option }) => useEcharts(ref, { option, onError }), {
+      const { rerender, result } = renderHook(({ option }) => useEcharts({ option, onError }), {
         initialProps: { option: option1 },
+      });
+      act(() => {
+        result.current.ref(element);
       });
 
       // Make setOption throw on the next call
@@ -1791,7 +1996,6 @@ describe("useEcharts", () => {
 
     it("should console.error when no onError is provided on option update", async () => {
       const element = document.createElement("div");
-      const ref = { current: element };
       const mockInstance = createMockInstance(element);
       (echarts.init as ReturnType<typeof vi.fn>).mockReturnValue(mockInstance);
 
@@ -1800,8 +2004,11 @@ describe("useEcharts", () => {
 
       const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
 
-      const { rerender } = renderHook(({ option }) => useEcharts(ref, { option }), {
+      const { rerender, result } = renderHook(({ option }) => useEcharts({ option }), {
         initialProps: { option: option1 },
+      });
+      act(() => {
+        result.current.ref(element);
       });
 
       const error = new Error("setOption failed");
@@ -1822,7 +2029,6 @@ describe("useEcharts", () => {
   describe("lastAppliedRef reset on re-init", () => {
     it("should reapply same option object after theme-triggered re-init", async () => {
       const element = document.createElement("div");
-      const ref = { current: element };
       const mockInstance1 = createMockInstance(element);
       const mockInstance2 = createMockInstance(element);
       (echarts.init as ReturnType<typeof vi.fn>)
@@ -1833,10 +2039,13 @@ describe("useEcharts", () => {
         series: [{ type: "line", data: [1, 2, 3] }],
       };
 
-      const { rerender } = renderHook(
-        ({ theme }: { theme: BuiltinTheme }) => useEcharts(ref, { option: stableOption, theme }),
+      const { rerender, result } = renderHook(
+        ({ theme }: { theme: BuiltinTheme }) => useEcharts({ option: stableOption, theme }),
         { initialProps: { theme: "light" as BuiltinTheme } },
       );
+      act(() => {
+        result.current.ref(element);
+      });
 
       expect(mockInstance1.setOption).toHaveBeenCalledWith(stableOption, undefined);
 
@@ -1853,11 +2062,13 @@ describe("useEcharts", () => {
   describe("ResizeObserver", () => {
     it("should setup resize observer", () => {
       const element = document.createElement("div");
-      const ref = { current: element };
       const mockInstance = createMockInstance(element);
       (echarts.init as ReturnType<typeof vi.fn>).mockReturnValue(mockInstance);
 
-      renderHook(() => useEcharts(ref, { option: baseOption }));
+      const { result } = renderHook(() => useEcharts({ option: baseOption }));
+      act(() => {
+        result.current.ref(element);
+      });
 
       // ResizeObserver should have been created and observe called
       expect(resizeObserverInstances.length).toBeGreaterThan(0);
@@ -1875,12 +2086,14 @@ describe("useEcharts", () => {
       const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
 
       const element = document.createElement("div");
-      const ref = { current: element };
       const mockInstance = createMockInstance(element);
       (echarts.init as ReturnType<typeof vi.fn>).mockReturnValue(mockInstance);
 
       // Should not throw
-      renderHook(() => useEcharts(ref, { option: baseOption }));
+      const { result } = renderHook(() => useEcharts({ option: baseOption }));
+      act(() => {
+        result.current.ref(element);
+      });
 
       expect(errorSpy).toHaveBeenCalledWith("ResizeObserver not available:", expect.any(Error));
 
@@ -1901,11 +2114,13 @@ describe("useEcharts", () => {
       const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
 
       const element = document.createElement("div");
-      const ref = { current: element };
       const mockInstance = createMockInstance(element);
       (echarts.init as ReturnType<typeof vi.fn>).mockReturnValue(mockInstance);
 
-      renderHook(() => useEcharts(ref, { option: baseOption, onError }));
+      const { result } = renderHook(() => useEcharts({ option: baseOption, onError }));
+      act(() => {
+        result.current.ref(element);
+      });
 
       expect(onError).toHaveBeenCalledWith(thrown);
       expect(errorSpy).not.toHaveBeenCalled();
@@ -1916,11 +2131,13 @@ describe("useEcharts", () => {
 
     it("should disconnect resize observer on unmount", () => {
       const element = document.createElement("div");
-      const ref = { current: element };
       const mockInstance = createMockInstance(element);
       (echarts.init as ReturnType<typeof vi.fn>).mockReturnValue(mockInstance);
 
-      const { unmount } = renderHook(() => useEcharts(ref, { option: baseOption }));
+      const { unmount, result } = renderHook(() => useEcharts({ option: baseOption }));
+      act(() => {
+        result.current.ref(element);
+      });
 
       unmount();
 
@@ -1930,20 +2147,24 @@ describe("useEcharts", () => {
     it("should move resize observer to a replacement ref element", async () => {
       const element1 = document.createElement("div");
       const element2 = document.createElement("div");
-      const ref = { current: element1 };
       const mockInstance1 = createMockInstance(element1);
       const mockInstance2 = createMockInstance(element2);
       (echarts.init as ReturnType<typeof vi.fn>)
         .mockReturnValueOnce(mockInstance1)
         .mockReturnValueOnce(mockInstance2);
 
-      const { rerender } = renderHook(() => useEcharts(ref, { option: baseOption }));
+      const { rerender, result } = renderHook(() => useEcharts({ option: baseOption }));
+      act(() => {
+        result.current.ref(element1);
+      });
 
       await waitFor(() => {
         expect(resizeObserverInstances[0]!.observe).toHaveBeenCalledWith(element1);
       });
 
-      ref.current = element2;
+      act(() => {
+        result.current.ref(element2);
+      });
       rerender();
 
       await waitFor(() => {
@@ -1963,7 +2184,6 @@ describe("useEcharts", () => {
 
       it("should resize chart when ResizeObserver fires (via RAF)", () => {
         const element = document.createElement("div");
-        const ref = { current: element };
         const mockInstance = createMockInstance(element);
         (echarts.init as ReturnType<typeof vi.fn>).mockReturnValue(mockInstance);
 
@@ -1972,7 +2192,10 @@ describe("useEcharts", () => {
           return 1;
         });
 
-        renderHook(() => useEcharts(ref, { option: baseOption }));
+        const { result } = renderHook(() => useEcharts({ option: baseOption }));
+        act(() => {
+          result.current.ref(element);
+        });
 
         const observer = resizeObserverInstances[0] as unknown as MockResizeObserver;
         act(() => {
@@ -1988,7 +2211,6 @@ describe("useEcharts", () => {
 
       it("should debounce rapid ResizeObserver callbacks via cancelAnimationFrame", () => {
         const element = document.createElement("div");
-        const ref = { current: element };
         const mockInstance = createMockInstance(element);
         (echarts.init as ReturnType<typeof vi.fn>).mockReturnValue(mockInstance);
 
@@ -2000,7 +2222,10 @@ describe("useEcharts", () => {
         });
         globalThis.cancelAnimationFrame = vi.fn();
 
-        renderHook(() => useEcharts(ref, { option: baseOption }));
+        const { result } = renderHook(() => useEcharts({ option: baseOption }));
+        act(() => {
+          result.current.ref(element);
+        });
 
         const observer = resizeObserverInstances[0] as unknown as MockResizeObserver;
 
@@ -2027,14 +2252,16 @@ describe("useEcharts", () => {
 
       it("should cancel pending RAF on unmount", () => {
         const element = document.createElement("div");
-        const ref = { current: element };
         const mockInstance = createMockInstance(element);
         (echarts.init as ReturnType<typeof vi.fn>).mockReturnValue(mockInstance);
 
         globalThis.requestAnimationFrame = vi.fn(() => 42);
         globalThis.cancelAnimationFrame = vi.fn();
 
-        const { unmount } = renderHook(() => useEcharts(ref, { option: baseOption }));
+        const { unmount, result } = renderHook(() => useEcharts({ option: baseOption }));
+        act(() => {
+          result.current.ref(element);
+        });
 
         const observer = resizeObserverInstances[0] as unknown as MockResizeObserver;
         act(() => {
@@ -2051,7 +2278,6 @@ describe("useEcharts", () => {
 
       it("should route RAF resize errors through onError", () => {
         const element = document.createElement("div");
-        const ref = { current: element };
         const mockInstance = createMockInstance(element);
         const resizeError = new Error("RAF resize failed");
         mockInstance.resize.mockImplementation(() => {
@@ -2065,7 +2291,10 @@ describe("useEcharts", () => {
         });
 
         const onError = vi.fn();
-        renderHook(() => useEcharts(ref, { option: baseOption, onError }));
+        const { result } = renderHook(() => useEcharts({ option: baseOption, onError }));
+        act(() => {
+          result.current.ref(element);
+        });
 
         const observer = resizeObserverInstances[0] as unknown as MockResizeObserver;
         act(() => {
@@ -2081,11 +2310,13 @@ describe("useEcharts", () => {
 
     it("should not create resize observer when autoResize is false", () => {
       const element = document.createElement("div");
-      const ref = { current: element };
       const mockInstance = createMockInstance(element);
       (echarts.init as ReturnType<typeof vi.fn>).mockReturnValue(mockInstance);
 
-      renderHook(() => useEcharts(ref, { option: baseOption, autoResize: false }));
+      const { result } = renderHook(() => useEcharts({ option: baseOption, autoResize: false }));
+      act(() => {
+        result.current.ref(element);
+      });
 
       expect(resizeObserverInstances).toHaveLength(0);
     });
@@ -2114,11 +2345,13 @@ describe("useEcharts", () => {
 
       it("should resize when tab becomes visible again", () => {
         const element = document.createElement("div");
-        const ref = { current: element };
         const mockInstance = createMockInstance(element);
         (echarts.init as ReturnType<typeof vi.fn>).mockReturnValue(mockInstance);
 
-        renderHook(() => useEcharts(ref, { option: baseOption }));
+        const { result } = renderHook(() => useEcharts({ option: baseOption }));
+        act(() => {
+          result.current.ref(element);
+        });
 
         // Reset resize calls from initial mount (e.g. from ResizeObserver firing
         // on observe() in jsdom).
@@ -2135,11 +2368,13 @@ describe("useEcharts", () => {
 
       it("should remove visibilitychange listener on unmount", () => {
         const element = document.createElement("div");
-        const ref = { current: element };
         const mockInstance = createMockInstance(element);
         (echarts.init as ReturnType<typeof vi.fn>).mockReturnValue(mockInstance);
 
-        const { unmount } = renderHook(() => useEcharts(ref, { option: baseOption }));
+        const { unmount, result } = renderHook(() => useEcharts({ option: baseOption }));
+        act(() => {
+          result.current.ref(element);
+        });
         unmount();
 
         // Cache is cleared on unmount, so even if the listener leaked the
@@ -2163,8 +2398,14 @@ describe("useEcharts", () => {
           .mockReturnValueOnce(mockInstance1)
           .mockReturnValueOnce(mockInstance2);
 
-        const hook1 = renderHook(() => useEcharts({ current: element1 }, { option: baseOption }));
-        const hook2 = renderHook(() => useEcharts({ current: element2 }, { option: baseOption }));
+        const hook1 = renderHook(() => useEcharts({ option: baseOption }));
+        const hook2 = renderHook(() => useEcharts({ option: baseOption }));
+        act(() => {
+          hook1.result.current.ref(element1);
+        });
+        act(() => {
+          hook2.result.current.ref(element2);
+        });
 
         const visibilityAdds = addSpy.mock.calls.filter((c) => c[0] === "visibilitychange");
         expect(visibilityAdds).toHaveLength(1);
@@ -2188,16 +2429,18 @@ describe("useEcharts", () => {
   describe("initOpts", () => {
     it("should pass initOpts to echarts.init", () => {
       const element = document.createElement("div");
-      const ref = { current: element };
       const mockInstance = createMockInstance(element);
       (echarts.init as ReturnType<typeof vi.fn>).mockReturnValue(mockInstance);
 
-      renderHook(() =>
-        useEcharts(ref, {
+      const { result } = renderHook(() =>
+        useEcharts({
           option: baseOption,
           initOpts: { devicePixelRatio: 2, locale: "ZH" },
         }),
       );
+      act(() => {
+        result.current.ref(element);
+      });
 
       expect(echarts.init).toHaveBeenCalledWith(element, null, {
         renderer: "canvas",
@@ -2208,19 +2451,21 @@ describe("useEcharts", () => {
 
     it("should handle non-serializable initOpts without throwing", () => {
       const element = document.createElement("div");
-      const ref = { current: element };
       const mockInstance = createMockInstance(element);
       (echarts.init as ReturnType<typeof vi.fn>).mockReturnValue(mockInstance);
 
       const circular: Record<string, unknown> = { locale: "ZH" };
       circular.self = circular;
 
-      renderHook(() =>
-        useEcharts(ref, {
+      const { result } = renderHook(() =>
+        useEcharts({
           option: baseOption,
           initOpts: circular as never,
         }),
       );
+      act(() => {
+        result.current.ref(element);
+      });
 
       expect(echarts.init).toHaveBeenCalledWith(
         element,
@@ -2233,11 +2478,15 @@ describe("useEcharts", () => {
   describe("non-builtin string theme", () => {
     it("should pass non-builtin string theme through to echarts.init", () => {
       const element = document.createElement("div");
-      const ref = { current: element };
       const mockInstance = createMockInstance(element);
       (echarts.init as ReturnType<typeof vi.fn>).mockReturnValue(mockInstance);
 
-      renderHook(() => useEcharts(ref, { option: baseOption, theme: "custom-theme-string" }));
+      const { result } = renderHook(() =>
+        useEcharts({ option: baseOption, theme: "custom-theme-string" }),
+      );
+      act(() => {
+        result.current.ref(element);
+      });
 
       // resolveThemeName should pass any string theme through
       expect(echarts.init).toHaveBeenCalledWith(element, "custom-theme-string", expect.any(Object));
@@ -2245,12 +2494,14 @@ describe("useEcharts", () => {
 
     it("should treat unexpected theme type (e.g. number) as null", () => {
       const element = document.createElement("div");
-      const ref = { current: element };
       const mockInstance = createMockInstance(element);
       (echarts.init as ReturnType<typeof vi.fn>).mockReturnValue(mockInstance);
 
       // Force a non-string, non-object, non-null theme to exercise the defensive fallback
-      renderHook(() => useEcharts(ref, { option: baseOption, theme: 42 as never }));
+      const { result } = renderHook(() => useEcharts({ option: baseOption, theme: 42 as never }));
+      act(() => {
+        result.current.ref(element);
+      });
 
       expect(echarts.init).toHaveBeenCalledWith(element, null, expect.any(Object));
     });
@@ -2259,14 +2510,16 @@ describe("useEcharts", () => {
   describe("circular reference theme", () => {
     it("should handle circular reference theme object without throwing", () => {
       const element = document.createElement("div");
-      const ref = { current: element };
       const mockInstance = createMockInstance(element);
       (echarts.init as ReturnType<typeof vi.fn>).mockReturnValue(mockInstance);
 
       const circularTheme: Record<string, unknown> = { color: ["#abc"] };
       circularTheme.self = circularTheme;
 
-      renderHook(() => useEcharts(ref, { option: baseOption, theme: circularTheme }));
+      const { result } = renderHook(() => useEcharts({ option: baseOption, theme: circularTheme }));
+      act(() => {
+        result.current.ref(element);
+      });
 
       expect(echarts.init).toHaveBeenCalled();
     });
@@ -2277,22 +2530,24 @@ describe("useEcharts", () => {
 
       // First hook instance — registers the circular theme ID
       const el1 = document.createElement("div");
-      const ref1 = { current: el1 };
       const mock1 = createMockInstance(el1);
       (echarts.init as ReturnType<typeof vi.fn>).mockReturnValue(mock1);
 
-      const { unmount } = renderHook(() =>
-        useEcharts(ref1, { option: baseOption, theme: circularTheme }),
-      );
-      unmount();
+      const hook1 = renderHook(() => useEcharts({ option: baseOption, theme: circularTheme }));
+      act(() => {
+        hook1.result.current.ref(el1);
+      });
+      hook1.unmount();
 
       // Second hook instance — should hit WeakMap cache for the same circular theme
       const el2 = document.createElement("div");
-      const ref2 = { current: el2 };
       const mock2 = createMockInstance(el2);
       (echarts.init as ReturnType<typeof vi.fn>).mockReturnValue(mock2);
 
-      renderHook(() => useEcharts(ref2, { option: baseOption, theme: circularTheme }));
+      const hook2 = renderHook(() => useEcharts({ option: baseOption, theme: circularTheme }));
+      act(() => {
+        hook2.result.current.ref(el2);
+      });
 
       expect(echarts.registerTheme).toHaveBeenCalledTimes(1);
       const firstThemeName = (echarts.init as ReturnType<typeof vi.fn>).mock.calls[0]![1];
@@ -2307,18 +2562,22 @@ describe("useEcharts", () => {
       theme2.self = theme2;
 
       const el1 = document.createElement("div");
-      const ref1 = { current: el1 };
       const mock1 = createMockInstance(el1);
       (echarts.init as ReturnType<typeof vi.fn>).mockReturnValueOnce(mock1);
 
-      renderHook(() => useEcharts(ref1, { option: baseOption, theme: theme1 }));
+      const hook1 = renderHook(() => useEcharts({ option: baseOption, theme: theme1 }));
+      act(() => {
+        hook1.result.current.ref(el1);
+      });
 
       const el2 = document.createElement("div");
-      const ref2 = { current: el2 };
       const mock2 = createMockInstance(el2);
       (echarts.init as ReturnType<typeof vi.fn>).mockReturnValueOnce(mock2);
 
-      renderHook(() => useEcharts(ref2, { option: baseOption, theme: theme2 }));
+      const hook2 = renderHook(() => useEcharts({ option: baseOption, theme: theme2 }));
+      act(() => {
+        hook2.result.current.ref(el2);
+      });
 
       expect(echarts.registerTheme).toHaveBeenCalledTimes(2);
       const firstThemeName = (echarts.init as ReturnType<typeof vi.fn>).mock.calls[0]![1];
@@ -2330,21 +2589,22 @@ describe("useEcharts", () => {
   describe("init error handling", () => {
     it("should call onError when echarts.init throws", () => {
       const element = document.createElement("div");
-      const ref = { current: element };
       const initError = new Error("init failed");
       (echarts.init as ReturnType<typeof vi.fn>).mockImplementation(() => {
         throw initError;
       });
 
       const onError = vi.fn();
-      renderHook(() => useEcharts(ref, { option: baseOption, onError }));
+      const { result } = renderHook(() => useEcharts({ option: baseOption, onError }));
+      act(() => {
+        result.current.ref(element);
+      });
 
       expect(onError).toHaveBeenCalledWith(initError);
     });
 
     it("should console.error when echarts.init throws without onError", () => {
       const element = document.createElement("div");
-      const ref = { current: element };
       const initError = new Error("init failed");
       (echarts.init as ReturnType<typeof vi.fn>).mockImplementation(() => {
         throw initError;
@@ -2352,7 +2612,10 @@ describe("useEcharts", () => {
 
       const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
 
-      renderHook(() => useEcharts(ref, { option: baseOption }));
+      const { result } = renderHook(() => useEcharts({ option: baseOption }));
+      act(() => {
+        result.current.ref(element);
+      });
 
       expect(errorSpy).toHaveBeenCalledWith("ECharts init failed:", initError);
       errorSpy.mockRestore();
@@ -2360,7 +2623,6 @@ describe("useEcharts", () => {
 
     it("should call onError when initial setOption throws", () => {
       const element = document.createElement("div");
-      const ref = { current: element };
       const mockInstance = createMockInstance(element);
       const setOptionError = new Error("initial setOption failed");
       // Only throw once (during the lifecycle effect's initial setOption);
@@ -2373,7 +2635,10 @@ describe("useEcharts", () => {
       (echarts.init as ReturnType<typeof vi.fn>).mockReturnValue(mockInstance);
 
       const onError = vi.fn();
-      renderHook(() => useEcharts(ref, { option: baseOption, onError }));
+      const { result } = renderHook(() => useEcharts({ option: baseOption, onError }));
+      act(() => {
+        result.current.ref(element);
+      });
 
       expect(onError).toHaveBeenCalledTimes(1);
       expect(onError).toHaveBeenCalledWith(setOptionError);
@@ -2381,7 +2646,6 @@ describe("useEcharts", () => {
 
     it("should console.error when initial setOption throws without onError", () => {
       const element = document.createElement("div");
-      const ref = { current: element };
       const mockInstance = createMockInstance(element);
       const setOptionError = new Error("initial setOption failed");
       // Only throw once (during the lifecycle effect's initial setOption);
@@ -2395,7 +2659,10 @@ describe("useEcharts", () => {
 
       const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
 
-      renderHook(() => useEcharts(ref, { option: baseOption }));
+      const { result } = renderHook(() => useEcharts({ option: baseOption }));
+      act(() => {
+        result.current.ref(element);
+      });
 
       expect(errorSpy).toHaveBeenCalledWith("ECharts setOption failed:", setOptionError);
       errorSpy.mockRestore();
@@ -2405,12 +2672,14 @@ describe("useEcharts", () => {
   describe("imperative setOption error handling", () => {
     it("should call onError when imperative setOption throws", () => {
       const element = document.createElement("div");
-      const ref = { current: element };
       const mockInstance = createMockInstance(element);
       (echarts.init as ReturnType<typeof vi.fn>).mockReturnValue(mockInstance);
 
       const onError = vi.fn();
-      const { result } = renderHook(() => useEcharts(ref, { option: baseOption, onError }));
+      const { result } = renderHook(() => useEcharts({ option: baseOption, onError }));
+      act(() => {
+        result.current.ref(element);
+      });
 
       const error = new Error("imperative setOption failed");
       mockInstance.setOption.mockImplementation(() => {
@@ -2426,11 +2695,13 @@ describe("useEcharts", () => {
 
     it("should rethrow when imperative setOption throws without onError", () => {
       const element = document.createElement("div");
-      const ref = { current: element };
       const mockInstance = createMockInstance(element);
       (echarts.init as ReturnType<typeof vi.fn>).mockReturnValue(mockInstance);
 
-      const { result } = renderHook(() => useEcharts(ref, { option: baseOption }));
+      const { result } = renderHook(() => useEcharts({ option: baseOption }));
+      act(() => {
+        result.current.ref(element);
+      });
 
       mockInstance.setOption.mockImplementation(() => {
         throw new Error("imperative setOption failed");
@@ -2442,9 +2713,7 @@ describe("useEcharts", () => {
     });
 
     it("should do nothing when imperative setOption is called without instance", () => {
-      const ref = { current: null };
-
-      const { result } = renderHook(() => useEcharts(ref, { option: baseOption }));
+      const { result } = renderHook(() => useEcharts({ option: baseOption }));
 
       // Should not throw — early return because no instance
       act(() => {
@@ -2456,13 +2725,15 @@ describe("useEcharts", () => {
   describe("cache hit on init", () => {
     it("should reuse existing cached instance instead of calling echarts.init", () => {
       const element = document.createElement("div");
-      const ref = { current: element };
       const existingInstance = createMockInstance(element);
 
       // Pre-populate the cache as if another hook already owns this element
       setCachedInstance(element, existingInstance as never);
 
-      renderHook(() => useEcharts(ref, { option: baseOption }));
+      const { result } = renderHook(() => useEcharts({ option: baseOption }));
+      act(() => {
+        result.current.ref(element);
+      });
 
       // echarts.init should NOT be called since the cache already had an instance
       expect(echarts.init).not.toHaveBeenCalled();
@@ -2477,12 +2748,14 @@ describe("useEcharts", () => {
       const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
       try {
         const element = document.createElement("div");
-        const ref = { current: element };
         const existingInstance = createMockInstance(element);
 
         setCachedInstance(element, existingInstance as never);
 
-        renderHook(() => useEcharts(ref, { option: baseOption }));
+        const { result } = renderHook(() => useEcharts({ option: baseOption }));
+        act(() => {
+          result.current.ref(element);
+        });
 
         expect(warnSpy).toHaveBeenCalledWith(
           expect.stringContaining("multiple hooks share the same DOM element"),
@@ -2500,12 +2773,14 @@ describe("useEcharts", () => {
       const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
       try {
         const element = document.createElement("div");
-        const ref = { current: element };
         const existingInstance = createMockInstance(element);
 
         setCachedInstance(element, existingInstance as never);
 
-        renderHook(() => useEcharts(ref, { option: baseOption }));
+        const { result } = renderHook(() => useEcharts({ option: baseOption }));
+        act(() => {
+          result.current.ref(element);
+        });
 
         expect(warnSpy).not.toHaveBeenCalledWith(
           expect.stringContaining("multiple hooks share the same DOM element"),
@@ -2520,11 +2795,13 @@ describe("useEcharts", () => {
   describe("cleanup edge cases", () => {
     it("should handle cleanup when instance is already gone", () => {
       const element = document.createElement("div");
-      const ref = { current: element };
       const mockInstance = createMockInstance(element);
       (echarts.init as ReturnType<typeof vi.fn>).mockReturnValue(mockInstance);
 
-      const { unmount } = renderHook(() => useEcharts(ref, { option: baseOption }));
+      const { unmount, result } = renderHook(() => useEcharts({ option: baseOption }));
+      act(() => {
+        result.current.ref(element);
+      });
 
       // Clear the cache before unmounting so cleanup finds no instance
       clearInstanceCache();
@@ -2541,7 +2818,6 @@ describe("useEcharts", () => {
   describe("onError freshness", () => {
     it("routes effect-context errors to the latest onError after rerender", async () => {
       const element = document.createElement("div");
-      const ref = { current: element };
       const mockInstance = createMockInstance(element);
       (echarts.init as ReturnType<typeof vi.fn>).mockReturnValue(mockInstance);
 
@@ -2550,11 +2826,14 @@ describe("useEcharts", () => {
       const option1: EChartsOption = { series: [{ type: "line", data: [1] }] };
       const option2: EChartsOption = { series: [{ type: "bar", data: [2] }] };
 
-      const { rerender } = renderHook(
+      const { rerender, result } = renderHook(
         ({ onError, option }: { onError: (e: unknown) => void; option: EChartsOption }) =>
-          useEcharts(ref, { option, onError }),
+          useEcharts({ option, onError }),
         { initialProps: { onError: onError1, option: option1 } },
       );
+      act(() => {
+        result.current.ref(element);
+      });
 
       // Swap onError, then trigger an error via the Option-Sync effect.
       const error = new Error("setOption failed after swap");
@@ -2572,7 +2851,6 @@ describe("useEcharts", () => {
 
     it("routes cleanup-time errors to the latest onError after rerender", () => {
       const element = document.createElement("div");
-      const ref = { current: element };
       const mockInstance = createMockInstance(element);
       (echarts.init as ReturnType<typeof vi.fn>).mockReturnValue(mockInstance);
 
@@ -2584,11 +2862,14 @@ describe("useEcharts", () => {
         throw disposeError;
       });
 
-      const { rerender, unmount } = renderHook(
+      const { rerender, unmount, result } = renderHook(
         ({ onError }: { onError: (e: unknown) => void }) =>
-          useEcharts(ref, { option: baseOption, onError }),
+          useEcharts({ option: baseOption, onError }),
         { initialProps: { onError: onError1 } },
       );
+      act(() => {
+        result.current.ref(element);
+      });
 
       rerender({ onError: onError2 });
 
@@ -2599,7 +2880,6 @@ describe("useEcharts", () => {
 
     it("routes imperative-API errors to the latest onError after rerender", () => {
       const element = document.createElement("div");
-      const ref = { current: element };
       const mockInstance = createMockInstance(element);
       (echarts.init as ReturnType<typeof vi.fn>).mockReturnValue(mockInstance);
 
@@ -2608,9 +2888,12 @@ describe("useEcharts", () => {
 
       const { result, rerender } = renderHook(
         ({ onError }: { onError: (e: unknown) => void }) =>
-          useEcharts(ref, { option: baseOption, onError }),
+          useEcharts({ option: baseOption, onError }),
         { initialProps: { onError: onError1 } },
       );
+      act(() => {
+        result.current.ref(element);
+      });
 
       rerender({ onError: onError2 });
 
@@ -2637,18 +2920,20 @@ describe("useEcharts", () => {
 
       try {
         const element = document.createElement("div");
-        const ref = { current: element };
         const mockInstance = createMockInstance(element);
         (echarts.init as ReturnType<typeof vi.fn>).mockReturnValue(mockInstance);
 
         const onError1 = vi.fn();
         const onError2 = vi.fn();
 
-        const { rerender } = renderHook(
+        const { rerender, result } = renderHook(
           ({ onError }: { onError: (e: unknown) => void }) =>
-            useEcharts(ref, { option: baseOption, onError }),
+            useEcharts({ option: baseOption, onError }),
           { initialProps: { onError: onError1 } },
         );
+        act(() => {
+          result.current.ref(element);
+        });
 
         rerender({ onError: onError2 });
 
