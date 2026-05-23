@@ -111,19 +111,32 @@ useEcharts(chartRef, { option, theme: customTheme });
 
 ### 事件处理
 
-支持简写（函数）和完整配置（带 query/context 的对象）两种写法：
+支持简写（函数）和完整配置（带 query/context 的对象）两种写法。已知 echarts 事件的 `params` 类型会从 `EChartsEventPayloadMap` 自动推导，无需手动断言。
 
 ```tsx
 useEcharts(chartRef, {
   option,
   onEvents: {
-    click: (params) => console.log("Clicked:", params),
+    // params 自动推导为 ECElementEvent
+    click: (params) => console.log("clicked", params.data),
     mouseover: {
-      handler: (params) => console.log("Hover:", params),
+      handler: (params) => console.log("hovered", params.value),
       query: "series",
     },
+    // params 自动推导为 SelectChangedPayload
+    selectchanged: (params) => console.log("selection changed", params),
   },
 });
+```
+
+自定义事件名（如通过 `echarts.registerAction()` 注册）会回退到开放索引签名，`params` 类型较宽松。若要为自定义事件获得类型化 payload，可对 `EChartsEventPayloadMap` 做 module augmentation：
+
+```ts
+declare module "react-use-echarts" {
+  interface EChartsEventPayloadMap {
+    "my-custom-action": { foo: number; bar: string };
+  }
+}
 ```
 
 ### 加载状态

@@ -111,19 +111,32 @@ useEcharts(chartRef, { option, theme: customTheme });
 
 ### Event Handling
 
-Supports shorthand (function) and full config (object with query/context):
+Supports shorthand (function) and full config (object with query/context). Known echarts events have their `params` type auto-inferred from `EChartsEventPayloadMap` — no manual cast needed.
 
 ```tsx
 useEcharts(chartRef, {
   option,
   onEvents: {
-    click: (params) => console.log("Clicked:", params),
+    // `params` is auto-typed as `ECElementEvent`
+    click: (params) => console.log("clicked", params.data),
     mouseover: {
-      handler: (params) => console.log("Hover:", params),
+      handler: (params) => console.log("hovered", params.value),
       query: "series",
     },
+    // `params` is auto-typed as `SelectChangedPayload`
+    selectchanged: (params) => console.log("selection changed", params),
   },
 });
+```
+
+Custom event names (e.g. registered via `echarts.registerAction()`) fall through to the open index signature with a loose `params` type. To get a typed payload for your own events, augment `EChartsEventPayloadMap`:
+
+```ts
+declare module "react-use-echarts" {
+  interface EChartsEventPayloadMap {
+    "my-custom-action": { foo: number; bar: string };
+  }
+}
 ```
 
 ### Loading State
