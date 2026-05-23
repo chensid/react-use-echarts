@@ -1,6 +1,6 @@
 {
   "name": "react-use-echarts",
-  "version": "2.0.0",
+  "version": "2.1.0",
   "private": false,
   "description": "React hooks & component for Apache ECharts — TypeScript, auto-resize, themes, lazy init",
   "keywords": [
@@ -32,9 +32,7 @@
     "dist"
   ],
   "type": "module",
-  "sideEffects": [
-    "./dist/index.js"
-  ],
+  "sideEffects": false,
   "module": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "exports": {
@@ -49,6 +47,10 @@
     "./themes/registry": {
       "types": "./dist/themes/registry.d.ts",
       "default": "./dist/themes/registry.js"
+    },
+    "./preset-full": {
+      "types": "./dist/preset-full.d.ts",
+      "default": "./dist/preset-full.js"
     }
   },
   "publishConfig": {
@@ -115,7 +117,7 @@
     {
       "name": "dist/core.js (gzip)",
       "path": "dist/core.js",
-      "limit": "11.5 KB",
+      "limit": "12 KB",
       "gzip": true,
       "brotli": false
     },
@@ -123,6 +125,13 @@
       "name": "dist/themes/registry.js (gzip)",
       "path": "dist/themes/registry.js",
       "limit": "3 KB",
+      "gzip": true,
+      "brotli": false
+    },
+    {
+      "name": "dist/preset-full.js (gzip)",
+      "path": "dist/preset-full.js",
+      "limit": "1.5 KB",
       "gzip": true,
       "brotli": false
     }

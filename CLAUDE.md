@@ -28,7 +28,9 @@ vp check                      # format + lint + typecheck (typecheck via tsgolin
 
 ```
 src/
-├── index.ts                    # Package entry, re-exports everything
+├── index.ts                    # Package entry, re-exports everything. Modular — does NOT side-effect-import "echarts" (since v2.1; previously did, but Rolldown/Oxc DCE breaks that path)
+├── core.ts                     # DEPRECATED alias of index.ts (removed in v4); identical re-exports for v2.0-era `from "react-use-echarts/core"` imports
+├── preset-full.ts              # `registerEchartsFull()` sugar — one-call namespace-spread of echarts/charts + components + renderers + features, registered via `echarts.use(...)`. Consumer-side replacement for `import "echarts"`.
 ├── components/EChart.tsx       # Declarative component wrapping useEcharts
 ├── hooks/
 │   ├── use-echarts.ts          # Orchestrator hook (zero effects of its own; delegates to internal hooks)
@@ -107,19 +109,22 @@ All instance-related state lives in `useChartCore`; the orchestrator (`useEchart
 - **Commit format:** `feat|fix|docs|test|refactor|chore: <subject>`
 - **Types-first:** define types in `src/types/index.ts` before implementing
 - **Paired cleanup:** all side effects must have cleanup functions
-- **Build outputs:** `dist/index.js` + `.d.ts` (ESM), `dist/themes/registry.js` + `.d.ts` (theme subpath). `publint` + `attw` run automatically via `vp pack`.
+- **Build outputs:** `dist/{index,core,preset-full}.js` + `.d.ts` (ESM), `dist/themes/registry.js` + `.d.ts` (theme subpath). `publint` + `attw` (`esm-only` profile) run automatically via `vp pack`.
+- **ECharts registration is the consumer's responsibility** — this library does NOT auto-register charts/components/renderers/features. Apps call `registerEchartsFull()` (from `react-use-echarts/preset-full`) for the everything-included path, or `echarts.use([...])` selectively. Mirrors `vue-echarts` / `nuxt-echarts` / `react-chartjs-2`. See `src/preset-full.ts` for the why.
 
 ## Anti-patterns
 
 - **DO NOT** create effects without paired cleanup functions
 - **DO NOT** pass un-memoized theme objects (two-level cache is a safety net, not a guarantee)
 - **DO NOT** duplicate API reference from `README.md` into this file
+- **DO NOT** re-add `import "echarts"` to `src/index.ts` — production minifiers DCE its top-level `use([...])` registrations. Registration belongs in consumer-side code (their app entry or `registerEchartsFull()`).
 
 ## Troubleshooting
 
-| Problem                          | Cause                            | Fix                                                    |
-| -------------------------------- | -------------------------------- | ------------------------------------------------------ |
-| Test fails: "echarts not mocked" | Missing `vi.mock("echarts")`     | Add mock before imports                                |
-| Test lint errors                 | `tsconfig.test.json` not correct | Check `include` patterns                               |
-| Build fails with `vp pack`       | External peer not configured     | Check `pack.outputOptions.globals` in `vite.config.ts` |
-| StrictMode double-mount issues   | Instance cache refCount mismatch | Check `src/utils/instance-cache.ts` logic              |
+| Problem                                                              | Cause                                   | Fix                                                                                          |
+| -------------------------------------------------------------------- | --------------------------------------- | -------------------------------------------------------------------------------------------- |
+| Test fails: "echarts not mocked"                                     | Missing `vi.mock("echarts")`            | Add mock before imports                                                                      |
+| Test lint errors                                                     | `tsconfig.test.json` not correct        | Check `include` patterns                                                                     |
+| Build fails with `vp pack`                                           | External peer not configured            | Check `pack.outputOptions.globals` in `vite.config.ts`                                       |
+| StrictMode double-mount issues                                       | Instance cache refCount mismatch        | Check `src/utils/instance-cache.ts` logic                                                    |
+| `TypeError: ka[a] is not a constructor` at first `useEcharts()` init | App forgot to register charts/renderers | Call `registerEchartsFull()` at app entry, or `echarts.use([...])` selectively before render |

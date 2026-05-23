@@ -99,8 +99,9 @@ export const featureItems: readonly FeatureItem[] = [
   },
   {
     id: "core-entry",
-    title: "Tree-shakable Core Entry",
-    description: "Use react-use-echarts/core with echarts.use([...]) for minimal bundles.",
+    title: "Selective Registration",
+    description:
+      "Register only the chart/component/renderer modules you actually render via echarts.use([...]) — tree-shake-friendly alternative to registerEchartsFull().",
     icon: "layers",
     component: React.lazy(() => import("../core-entry/CoreEntryChart")),
     source: () => import("../core-entry/CoreEntryChart.tsx?raw"),
