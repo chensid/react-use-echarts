@@ -272,4 +272,67 @@ describe("useLazyInit", () => {
       expect(result.current.isInView).toBe(true);
     });
   });
+
+  // React 19 callback-ref cleanup: the ref callback returns a function that
+  // React invokes on detach (component unmount or ref-callback identity
+  // change). The wrapper hook's cleanup must release the tracked element so
+  // the underlying observer disconnects and no further state writes occur
+  // against a possibly-unmounted component.
+  it("releases the tracked element when the callback-ref cleanup runs", () => {
+    const element = document.createElement("div");
+    const { result } = renderHook(() => useLazyInit(true));
+
+    let cleanup: (() => void) | undefined;
+    act(() => {
+      cleanup = result.current.ref(element) ?? undefined;
+    });
+
+    expect(typeof cleanup).toBe("function");
+    expect(mockObserve).toHaveBeenCalledTimes(1);
+    expect(mockObserve).toHaveBeenCalledWith(element);
+
+    // Invoking the cleanup clears the tracked element; the underlying
+    // useLazyInitForElement effect re-runs with element=null and disconnects
+    // the observer (cleanup of the previous effect run).
+    act(() => {
+      cleanup?.();
+    });
+
+    expect(mockDisconnect).toHaveBeenCalled();
+  });
+
+  // Regression: previously the hook's `useState(!isLazyMode)` seeded
+  // `isInView` from the initial `lazyInit` value and never reset it, so
+  // flipping `lazyInit` from false → true at runtime left the hook
+  // reporting `isInView: true` forever — the observer was never installed.
+  it("starts observing when lazy mode is enabled after mount", async () => {
+    const element = document.createElement("div");
+
+    const { result, rerender } = renderHook(
+      ({ lazyInit }: { lazyInit: boolean }) => useLazyInit(lazyInit),
+      { initialProps: { lazyInit: false } },
+    );
+    act(() => {
+      result.current.ref(element);
+    });
+
+    // Lazy mode off → instantly visible, observer not used.
+    expect(result.current.isInView).toBe(true);
+    expect(mockObserve).not.toHaveBeenCalled();
+
+    rerender({ lazyInit: true });
+
+    // Lazy mode on → visibility must drop back to false, observer installed.
+    await waitFor(() => {
+      expect(result.current.isInView).toBe(false);
+    });
+    expect(mockObserve).toHaveBeenCalledTimes(1);
+    expect(mockObserve).toHaveBeenLastCalledWith(element);
+
+    // Observer firing flips visibility back to true.
+    act(() => {
+      intersectionCallback([{ isIntersecting: true }]);
+    });
+    expect(result.current.isInView).toBe(true);
+  });
 });

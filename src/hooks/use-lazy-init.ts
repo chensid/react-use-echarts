@@ -33,7 +33,12 @@ export function useLazyInitForElement(
   options: boolean | IntersectionObserverInit = false,
 ): boolean {
   const isLazyMode = options !== false;
-  const [isInView, setIsInView] = useState(!isLazyMode);
+  // State holds ONLY the observer's "has fired with isIntersecting" verdict.
+  // Initial visibility (when lazy mode is disabled) is derived at return,
+  // NOT seeded via useState(!isLazyMode) — that initializer only runs on
+  // first mount, so flipping `lazyInit` from false→true at runtime would
+  // otherwise leave the value permanently `true` and skip observation.
+  const [hasIntersected, setHasIntersected] = useState(false);
 
   // Extract config values for stable dependency comparison
   // 提取配置值用于稳定的依赖比较
@@ -49,13 +54,13 @@ export function useLazyInitForElement(
   useEffect(() => {
     // Skip if lazy mode is disabled or already in view
     // 如果禁用了懒加载模式或已经可见，则跳过
-    if (!isLazyMode || isInView || !element) return;
+    if (!isLazyMode || hasIntersected || !element) return;
 
     const observer = new IntersectionObserver(
       (entries) => {
         const [entry] = entries;
         if (entry?.isIntersecting) {
-          setIsInView(true);
+          setHasIntersected(true);
           // Once visible, stop observing
           // 一旦可见，就停止观察
           observer.disconnect();
@@ -73,10 +78,11 @@ export function useLazyInitForElement(
     return () => {
       observer.disconnect();
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- isInView excluded (observer self-disconnects); thresholdDep stabilizes inline number[] in place of optThreshold
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- hasIntersected excluded (observer self-disconnects); thresholdDep stabilizes inline number[] in place of optThreshold
   }, [element, isLazyMode, optRoot, optRootMargin, thresholdDep]);
 
-  // Derive visibility — when lazy mode is toggled off at runtime,
-  // the hook should report visible without waiting for an effect tick.
-  return !isLazyMode || isInView;
+  // Derive visibility: visible when lazy mode is off (instant init) OR the
+  // observer has fired at least once. Toggling lazy mode at runtime is
+  // therefore correctly handled in both directions.
+  return !isLazyMode || hasIntersected;
 }
