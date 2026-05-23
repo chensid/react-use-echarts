@@ -44,7 +44,7 @@ const GalleryIndex: React.FC = () => {
               className={`${styles.filter} ${filter === g ? styles.filterActive : ""}`}
             >
               {g}
-              <span className={styles.filterCount}>{GROUPS[g].length}</span>
+              <span className={styles.filterCount}>{GROUPS[g]!.length}</span>
             </button>
           ))}
         </div>
@@ -57,7 +57,7 @@ const GalleryIndex: React.FC = () => {
             to={`/gallery/${item.id}`}
             title={item.title}
             description={item.description}
-            option={thumbOptions[item.id]}
+            option={thumbOptions[item.id]!}
             tag={item.id}
           />
         ))}

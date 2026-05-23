@@ -1,20 +1,31 @@
-import { useEffect, useState, type RefObject } from "react";
-import { useRefElement } from "./internal/use-ref-element";
+import { useCallback, useEffect, useState } from "react";
 import { computeStableKey } from "../utils/stable-key";
+import type { UseLazyInitReturn } from "../types";
 
 /**
  * Hook for lazy initialization using IntersectionObserver
  * 使用 IntersectionObserver 的懒加载 Hook
- * @param elementRef Element reference to observe
- * @param options IntersectionObserver options or false to disable lazy init
- * @returns Whether the element is in viewport (or true if lazy init is disabled)
+ *
+ * Returns a callback `ref` to attach to the target element and a
+ * reactive `isInView` boolean. Pass `false` (default) to disable
+ * lazy mode — `isInView` is then always `true`.
+ *
+ * @example
+ * ```tsx
+ * const { ref, isInView } = useLazyInit({ rootMargin: "100px" });
+ * return <div ref={ref}>{isInView ? <Chart /> : null}</div>;
+ * ```
  */
 export function useLazyInit(
-  elementRef: RefObject<Element | null>,
   options: boolean | IntersectionObserverInit = false,
-): boolean {
-  const element = useRefElement(elementRef);
-  return useLazyInitForElement(element, options);
+): UseLazyInitReturn {
+  const [element, setElement] = useState<Element | null>(null);
+  const ref = useCallback((node: Element | null) => {
+    setElement(node);
+    return () => setElement(null);
+  }, []);
+  const isInView = useLazyInitForElement(element, options);
+  return { ref, isInView };
 }
 
 export function useLazyInitForElement(
@@ -22,7 +33,12 @@ export function useLazyInitForElement(
   options: boolean | IntersectionObserverInit = false,
 ): boolean {
   const isLazyMode = options !== false;
-  const [isInView, setIsInView] = useState(!isLazyMode);
+  // State holds ONLY the observer's "has fired with isIntersecting" verdict.
+  // Initial visibility (when lazy mode is disabled) is derived at return,
+  // NOT seeded via useState(!isLazyMode) — that initializer only runs on
+  // first mount, so flipping `lazyInit` from false→true at runtime would
+  // otherwise leave the value permanently `true` and skip observation.
+  const [hasIntersected, setHasIntersected] = useState(false);
 
   // Extract config values for stable dependency comparison
   // 提取配置值用于稳定的依赖比较
@@ -38,13 +54,13 @@ export function useLazyInitForElement(
   useEffect(() => {
     // Skip if lazy mode is disabled or already in view
     // 如果禁用了懒加载模式或已经可见，则跳过
-    if (!isLazyMode || isInView || !element) return;
+    if (!isLazyMode || hasIntersected || !element) return;
 
     const observer = new IntersectionObserver(
       (entries) => {
         const [entry] = entries;
-        if (entry.isIntersecting) {
-          setIsInView(true);
+        if (entry?.isIntersecting) {
+          setHasIntersected(true);
           // Once visible, stop observing
           // 一旦可见，就停止观察
           observer.disconnect();
@@ -62,10 +78,11 @@ export function useLazyInitForElement(
     return () => {
       observer.disconnect();
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- isInView excluded (observer self-disconnects); thresholdDep stabilizes inline number[] in place of optThreshold
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- hasIntersected excluded (observer self-disconnects); thresholdDep stabilizes inline number[] in place of optThreshold
   }, [element, isLazyMode, optRoot, optRootMargin, thresholdDep]);
 
-  // Derive visibility — when lazy mode is toggled off at runtime,
-  // the hook should report visible without waiting for an effect tick.
-  return !isLazyMode || isInView;
+  // Derive visibility: visible when lazy mode is off (instant init) OR the
+  // observer has fired at least once. Toggling lazy mode at runtime is
+  // therefore correctly handled in both directions.
+  return !isLazyMode || hasIntersected;
 }

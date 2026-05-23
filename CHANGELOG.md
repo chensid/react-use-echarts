@@ -1,5 +1,27 @@
 # react-use-echarts
 
+## 2.0.0
+
+### Major Changes
+
+- Callback-ref API. `useEcharts` now takes `(options)` only and returns `{ ref, instance, …imperativeAPI }`. Attach the returned `ref` to your container: `<div ref={ref} />`. The previous `useEcharts(refObject, options)` signature has been removed; there is no codemod.
+  - `useLazyInit` mirrors the new shape: `useLazyInit(options) → { ref, isInView }`.
+  - `instance` is now a reactive field — `useEffect([instance], …)` subscribes to the lifecycle of the underlying ECharts instance. `getInstance()` is removed.
+
+- New utility `mergeRefs(...refs)` — composes `RefObject`, legacy callback refs, and React 19 cleanup-callback refs into one callback ref. Each ref invocation/cleanup runs in isolation; a throwing third-party ref cannot strand the chart.
+
+- `<EChart>` imperative handle now exposes the new `EChartHandle` type (`Omit<UseEchartsReturn, "ref">`). The container `ref` field is intentionally stripped from the handle — external callers can no longer reassign the chart's DOM element via `handle.ref(otherNode)`. Migrate `useRef<UseEchartsReturn>(null)` to `useRef<EChartHandle>(null)` for `<EChart ref>`.
+
+- Drops the internal `useRefElement` polling bridge in favor of React 19 callback-ref + state. One fewer effect, one fewer render on mount.
+
+- Engines: requires Node `>=22`. React peer remains `^19.2.0`, ECharts peer remains `^6.0.0`. ESM-only (unchanged).
+
+### Patch Changes
+
+- `eventsEqual` now correctly handles `EChartsEvents` entries explicitly assigned `undefined` (the index signature is `EChartsEventConfig | undefined`) — previously crashed with `TypeError: Cannot read properties of undefined (reading 'handler')` when toggling an event between defined and undefined under the same key.
+- `setOption` / `showLoading` lifecycle attempts now record `lastAppliedRef` / `lastLoadingRef` via `try/finally` even when ECharts throws, so the dedicated Option-Sync / Loading-Toggle useEffects don't immediately replay the same failing call on the same mount and fire `onError` twice.
+- `useLazyInit` toggling `lazyInit` from `false` to `true` at runtime now correctly resumes observation (previously the initial `useState(!isLazyMode)` snapshot left visibility permanently `true`).
+
 ## 1.6.1
 
 ### Patch Changes

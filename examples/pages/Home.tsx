@@ -79,7 +79,7 @@ const Home: React.FC = () => (
             to={`/gallery/${item.id}`}
             title={item.title}
             description={item.description}
-            option={thumbOptions[item.id]}
+            option={thumbOptions[item.id]!}
           />
         ))}
       </div>

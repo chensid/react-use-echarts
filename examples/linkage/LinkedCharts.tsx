@@ -1,11 +1,9 @@
-import React, { useRef } from "react";
+import React from "react";
 import { useEcharts } from "../../src";
 import { useTheme } from "../components/theme-context";
 import type { EChartsOption } from "echarts";
 
 const LinkedCharts: React.FC = () => {
-  const chartRef1 = useRef<HTMLDivElement>(null);
-  const chartRef2 = useRef<HTMLDivElement>(null);
   const { mode } = useTheme();
 
   const option1: EChartsOption = {
@@ -28,13 +26,13 @@ const LinkedCharts: React.FC = () => {
     ],
   };
 
-  useEcharts(chartRef1, { option: option1, group: "dashboard", theme: mode });
-  useEcharts(chartRef2, { option: option2, group: "dashboard", theme: mode });
+  const { ref: ref1 } = useEcharts({ option: option1, group: "dashboard", theme: mode });
+  const { ref: ref2 } = useEcharts({ option: option2, group: "dashboard", theme: mode });
 
   return (
     <div className="grid-2">
-      <div ref={chartRef1} className="chart-container" />
-      <div ref={chartRef2} className="chart-container" />
+      <div ref={ref1} className="chart-container" />
+      <div ref={ref2} className="chart-container" />
     </div>
   );
 };

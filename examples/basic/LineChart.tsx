@@ -1,10 +1,9 @@
-import React, { useRef } from "react";
+import React from "react";
 import { useEcharts } from "../../src";
 import { useTheme } from "../components/theme-context";
 import type { EChartsOption } from "echarts";
 
 const LineChart: React.FC = () => {
-  const chartRef = useRef<HTMLDivElement>(null);
   const { mode } = useTheme();
 
   const options: EChartsOption = {
@@ -24,9 +23,9 @@ const LineChart: React.FC = () => {
     ],
   };
 
-  useEcharts(chartRef, { option: options, theme: mode });
+  const { ref } = useEcharts({ option: options, theme: mode });
 
-  return <div ref={chartRef} className="chart-container" />;
+  return <div ref={ref} className="chart-container" />;
 };
 
 export default LineChart;

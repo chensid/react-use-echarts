@@ -1,4 +1,4 @@
-import React, { useRef } from "react";
+import React from "react";
 import { Link } from "react-router-dom";
 import { useEcharts } from "../../src";
 import { useTheme } from "./theme-context";
@@ -15,10 +15,9 @@ interface ThumbCardProps {
 }
 
 const ThumbCard: React.FC<ThumbCardProps> = ({ to, title, description, option, tag }) => {
-  const chartRef = useRef<HTMLDivElement>(null);
   const { mode } = useTheme();
 
-  useEcharts(chartRef, { option, theme: mode });
+  const { ref } = useEcharts({ option, theme: mode });
 
   return (
     <Link to={to} className={styles.card}>
@@ -27,7 +26,7 @@ const ThumbCard: React.FC<ThumbCardProps> = ({ to, title, description, option, t
         {tag ? <span className={styles.headTag}>{tag}</span> : null}
       </div>
       <div className={styles.thumbWrap}>
-        <div ref={chartRef} className={styles.thumb} />
+        <div ref={ref} className={styles.thumb} />
       </div>
       <div className={styles.meta}>
         <div className={styles.metaText}>

@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vite-plus/test";
 import * as echarts from "echarts/core";
-import { clearThemeCache, isBuiltinThemeRegistered } from "../../themes";
+import { __clearThemeCacheForTesting__, isBuiltinThemeRegistered } from "../../themes";
 import { registerBuiltinThemes } from "../../themes/registry";
 
 // Mock ECharts
@@ -10,7 +10,7 @@ vi.mock("echarts/core", () => ({
 
 describe("themes registry", () => {
   beforeEach(() => {
-    clearThemeCache();
+    __clearThemeCacheForTesting__();
     vi.clearAllMocks();
   });
 

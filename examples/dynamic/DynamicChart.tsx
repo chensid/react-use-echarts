@@ -25,7 +25,6 @@ function generateInitialData() {
 }
 
 const DynamicChart: React.FC = () => {
-  const chartRef = useRef<HTMLDivElement>(null);
   const { mode } = useTheme();
   const [running, setRunning] = useState(true);
   const [count, setCount] = useState(INITIAL_COUNT);
@@ -50,7 +49,7 @@ const DynamicChart: React.FC = () => {
     animation: false,
   });
 
-  const { setOption } = useEcharts(chartRef, { option: optionRef.current, theme: mode });
+  const { ref, setOption } = useEcharts({ option: optionRef.current, theme: mode });
 
   useEffect(() => {
     if (!running) return;
@@ -58,7 +57,7 @@ const DynamicChart: React.FC = () => {
     const timer = window.setInterval(() => {
       const { times, values } = dataRef.current;
       times.push(formatTime(new Date()));
-      values.push(randomValue(values[values.length - 1]));
+      values.push(randomValue(values[values.length - 1]!));
 
       if (times.length > 60) {
         times.shift();
@@ -85,7 +84,7 @@ const DynamicChart: React.FC = () => {
         </button>
         <span className="note-box">{count} data points</span>
       </div>
-      <div ref={chartRef} className="chart-container" style={{ marginTop: 10 }} />
+      <div ref={ref} className="chart-container" style={{ marginTop: 10 }} />
     </div>
   );
 };

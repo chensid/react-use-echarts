@@ -9,12 +9,11 @@
  */
 import { describe, it, expect } from "vite-plus/test";
 import { render } from "@testing-library/react";
-import { useRef } from "react";
 import * as echarts from "echarts/core";
 import { LineChart } from "echarts/charts";
 import { GridComponent } from "echarts/components";
 import { CanvasRenderer } from "echarts/renderers";
-import useEcharts from "../../hooks/use-echarts";
+import { useEcharts } from "../../hooks/use-echarts";
 import type { UseEchartsReturn } from "../../types";
 
 // Browser tests import the hook directly, bypassing the default entry's
@@ -28,8 +27,7 @@ function ResizableChart({
   chartRef: { current: UseEchartsReturn | null };
   width: number;
 }) {
-  const containerRef = useRef<HTMLDivElement>(null);
-  const chart = useEcharts(containerRef, {
+  const chart = useEcharts({
     option: {
       xAxis: { type: "category", data: ["a", "b", "c"] },
       yAxis: { type: "value" },
@@ -39,7 +37,7 @@ function ResizableChart({
   chartRef.current = chart;
 
   return (
-    <div ref={containerRef} style={{ width: `${width}px`, height: "300px" }} data-testid="chart" />
+    <div ref={chart.ref} style={{ width: `${width}px`, height: "300px" }} data-testid="chart" />
   );
 }
 

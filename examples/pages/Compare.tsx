@@ -17,8 +17,8 @@ const Compare: React.FC = () => (
         <span className={styles.noteIdx}>01</span>
         <h3>Single hook surface</h3>
         <p>
-          <code>useEcharts(ref, &#123; option &#125;)</code> is the entire required API. Everything
-          else — themes, lazy init, group linkage — is opt-in via the same options object.
+          <code>useEcharts(&#123; option &#125;)</code> is the entire required API. Everything else
+          — themes, lazy init, group linkage — is opt-in via the same options object.
         </p>
       </div>
       <div className={styles.note}>

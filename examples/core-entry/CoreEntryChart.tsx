@@ -11,7 +11,7 @@
  * tree-shaking benefit is realized in a standalone consumer project that
  * imports ONLY from `react-use-echarts/core`.
  */
-import React, { useRef } from "react";
+import React from "react";
 import * as echarts from "echarts/core";
 import { LineChart } from "echarts/charts";
 import { GridComponent, TooltipComponent, TitleComponent } from "echarts/components";
@@ -26,7 +26,6 @@ import type { EChartsOption } from "echarts";
 echarts.use([LineChart, GridComponent, TooltipComponent, TitleComponent, CanvasRenderer]);
 
 const CoreEntryChart: React.FC = () => {
-  const chartRef = useRef<HTMLDivElement>(null);
   const { mode } = useTheme();
 
   const options: EChartsOption = {
@@ -47,9 +46,9 @@ const CoreEntryChart: React.FC = () => {
     ],
   };
 
-  useEcharts(chartRef, { option: options, theme: mode });
+  const { ref } = useEcharts({ option: options, theme: mode });
 
-  return <div ref={chartRef} className="chart-container" />;
+  return <div ref={ref} className="chart-container" />;
 };
 
 export default CoreEntryChart;

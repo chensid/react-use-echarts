@@ -8,6 +8,7 @@ import type { EChartsEvents, EChartsEventConfig } from "../../types";
 export function bindEvents(instance: ECharts, events: EChartsEvents | undefined): void {
   if (!events) return;
   for (const [eventName, config] of Object.entries(events)) {
+    if (config === undefined) continue;
     if (typeof config === "function") {
       instance.on(eventName, config, undefined);
       continue;
@@ -25,11 +26,21 @@ export function bindEvents(instance: ECharts, events: EChartsEvents | undefined)
  * Compare two event config values for equality.
  * Reads handler/query/context directly without allocating normalized objects;
  * shorthand (function) form is treated as `{ handler, query: undefined, context: undefined }`.
+ * `undefined` is allowed on either side — only equal to another `undefined`.
  * 比较两个事件配置值是否相等。直接读取字段，避免分配标准化对象；
  * 函数简写形式视作 `{ handler, query: undefined, context: undefined }`。
+ * 任意一侧为 undefined 时，仅当另一侧也为 undefined 才相等。
  */
-function eventConfigEqual(a: EChartsEventConfig, b: EChartsEventConfig): boolean {
+function eventConfigEqual(
+  a: EChartsEventConfig | undefined,
+  b: EChartsEventConfig | undefined,
+): boolean {
   if (a === b) return true;
+  // After the strict-equal check, "either side undefined" implies the
+  // other side is defined → never equal. Returning here also guards the
+  // property reads below (`a.handler`, `b.handler`) from null-deref when
+  // an EChartsEvents entry is explicitly assigned `undefined`.
+  if (a === undefined || b === undefined) return false;
   if (typeof a === "function") {
     if (typeof b === "function") return false;
     return a === b.handler && b.query === undefined && b.context === undefined;
@@ -53,6 +64,9 @@ export function eventsEqual(a: EChartsEvents | undefined, b: EChartsEvents | und
   if (keysA.length === 0) return true;
   for (const key of keysA) {
     if (!Object.prototype.hasOwnProperty.call(b!, key)) return false;
+    // EChartsEvents' index signature is `EChartsEventConfig<any> | undefined`,
+    // so a/b may contain an explicit-undefined value. eventConfigEqual handles
+    // undefined on either side.
     if (!eventConfigEqual(a![key], b![key])) return false;
   }
   return true;
@@ -69,6 +83,7 @@ export function eventsEqual(a: EChartsEvents | undefined, b: EChartsEvents | und
 export function unbindEvents(instance: ECharts, events: EChartsEvents | undefined): void {
   if (!events) return;
   for (const [eventName, config] of Object.entries(events)) {
+    if (config === undefined) continue;
     const handler = typeof config === "function" ? config : config.handler;
     instance.off(eventName, handler);
   }

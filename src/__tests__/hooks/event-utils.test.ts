@@ -104,6 +104,30 @@ describe("eventsEqual", () => {
       ),
     ).toBe(false);
   });
+
+  // Regression: the EChartsEvents index signature is
+  // `EChartsEventConfig<any> | undefined`, so user code like
+  //   onEvents={{ click: handler, hover: enabled ? hoverFn : undefined }}
+  // can land an explicit `undefined` under a key. Before the guard in
+  // eventConfigEqual, comparing { hover: hoverFn } to { hover: undefined }
+  // dereferenced `b.handler` on undefined and crashed.
+  it("does not throw and returns false when one side has an explicit undefined entry", () => {
+    const h = handler();
+    expect(() => eventsEqual({ hover: h }, { hover: undefined })).not.toThrow();
+    expect(eventsEqual({ hover: h }, { hover: undefined })).toBe(false);
+    expect(eventsEqual({ hover: undefined }, { hover: h })).toBe(false);
+    expect(eventsEqual({ hover: undefined }, { hover: undefined })).toBe(true);
+  });
+
+  it("does not throw when an object-config side faces an undefined entry", () => {
+    const h = handler();
+    expect(() =>
+      eventsEqual({ click: { handler: h, query: "series" } }, { click: undefined }),
+    ).not.toThrow();
+    expect(eventsEqual({ click: { handler: h, query: "series" } }, { click: undefined })).toBe(
+      false,
+    );
+  });
 });
 
 describe("bindEvents", () => {
@@ -161,6 +185,21 @@ describe("bindEvents", () => {
 
     expect(on).toHaveBeenCalledWith("click", query, clickHandler, undefined);
   });
+
+  // Parity with the eventsEqual undefined-entry guard: `EChartsEvents`'s index
+  // signature is `EChartsEventConfig | undefined`, so user code can assign an
+  // explicit-undefined value under a key. Bind must skip it instead of calling
+  // `instance.on(name, undefined)` (which would throw).
+  it("skips entries whose value is undefined", () => {
+    const on = vi.fn();
+    const instance = { on, off: vi.fn() } as unknown as ECharts;
+    const clickHandler = handler();
+
+    bindEvents(instance, { click: clickHandler, hover: undefined });
+
+    expect(on).toHaveBeenCalledTimes(1);
+    expect(on).toHaveBeenCalledWith("click", clickHandler, undefined);
+  });
 });
 
 describe("unbindEvents", () => {
@@ -185,5 +224,18 @@ describe("unbindEvents", () => {
 
     expect(off).toHaveBeenNthCalledWith(1, "click", clickHandler);
     expect(off).toHaveBeenNthCalledWith(2, "mouseover", mouseoverHandler);
+  });
+
+  // Mirror of the bindEvents guard above — explicit-undefined values must be
+  // skipped instead of calling `instance.off(name, undefined)`.
+  it("skips entries whose value is undefined", () => {
+    const off = vi.fn();
+    const instance = { on: vi.fn(), off } as unknown as ECharts;
+    const clickHandler = handler();
+
+    unbindEvents(instance, { click: clickHandler, hover: undefined });
+
+    expect(off).toHaveBeenCalledTimes(1);
+    expect(off).toHaveBeenCalledWith("click", clickHandler);
   });
 });

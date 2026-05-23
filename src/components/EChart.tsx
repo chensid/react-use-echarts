@@ -1,6 +1,6 @@
-import { useRef, useImperativeHandle, type Ref } from "react";
-import useEcharts from "../hooks/use-echarts";
-import type { EChartProps, UseEchartsReturn } from "../types";
+import { useImperativeHandle, type Ref } from "react";
+import { useEcharts } from "../hooks/use-echarts";
+import type { EChartHandle, EChartProps } from "../types";
 
 /**
  * Declarative EChart component — thin wrapper around useEcharts
@@ -14,22 +14,25 @@ import type { EChartProps, UseEchartsReturn } from "../types";
  * <EChart option={{ series: [{ type: 'line', data: [1,2,3] }] }} />
  * ```
  */
-function EChart({
+export function EChart({
   ref,
   style,
   className,
   ...options
-}: EChartProps & { ref?: Ref<UseEchartsReturn> }) {
-  const containerRef = useRef<HTMLDivElement>(null);
-  const chart = useEcharts(containerRef, options);
-  useImperativeHandle(ref, () => chart, [chart]);
+}: EChartProps & { ref?: Ref<EChartHandle> }) {
+  const chart = useEcharts(options);
+  // Strip the container `ref` field from the imperative handle so external
+  // callers can't reassign the chart's DOM element via `handle.ref(otherNode)`.
+  // The handle only exposes the reactive `instance` + imperative methods.
+  useImperativeHandle(ref, () => {
+    const { ref: _containerRef, ...api } = chart;
+    return api;
+  }, [chart]);
   return (
     <div
-      ref={containerRef}
+      ref={chart.ref}
       style={{ width: "100%", height: "100%", ...style }}
       className={className}
     />
   );
 }
-
-export default EChart;

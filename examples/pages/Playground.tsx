@@ -1,4 +1,4 @@
-import React, { useMemo, useRef, useState } from "react";
+import React, { useMemo, useState } from "react";
 import { useEcharts } from "../../src";
 import { useTheme } from "../components/theme-context";
 import PageHeader from "./PageHeader";
@@ -78,8 +78,7 @@ const buildCodeSample = (state: State): string => {
   const lines = [
     `import { useEcharts } from "react-use-echarts";`,
     "",
-    `const ref = useRef<HTMLDivElement>(null);`,
-    `useEcharts(ref, {`,
+    `const { ref } = useEcharts({`,
     `  option: {`,
     `    legend: ${state.showLegend ? "{ bottom: 0 }" : "{ show: false }"},`,
     `    xAxis: ${state.horizontal ? '{ type: "value" }' : '{ type: "category", data: days }'},`,
@@ -104,10 +103,9 @@ const buildCodeSample = (state: State): string => {
 const Playground: React.FC = () => {
   const [state, setState] = useState<State>(DEFAULT);
   const { mode } = useTheme();
-  const chartRef = useRef<HTMLDivElement>(null);
 
   const option = useMemo(() => buildOption(state), [state]);
-  useEcharts(chartRef, { option, theme: mode });
+  const { ref } = useEcharts({ option, theme: mode });
 
   const updateState = <K extends keyof State>(key: K, value: State[K]) =>
     setState((prev) => ({ ...prev, [key]: value }));
@@ -129,7 +127,7 @@ const Playground: React.FC = () => {
       />
       <div className={styles.layout}>
         <ControlsPanel state={state} onChange={updateState} onReset={() => setState(DEFAULT)} />
-        <PreviewPanel chartRef={chartRef} code={codeStr} />
+        <PreviewPanel chartRef={ref} code={codeStr} />
       </div>
     </>
   );
@@ -216,7 +214,7 @@ const ControlsPanel: React.FC<ControlsPanelProps> = ({ state, onChange, onReset 
 );
 
 interface PreviewPanelProps {
-  readonly chartRef: React.RefObject<HTMLDivElement | null>;
+  readonly chartRef: React.RefCallback<HTMLDivElement>;
   readonly code: string;
 }
 

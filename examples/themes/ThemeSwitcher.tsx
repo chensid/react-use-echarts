@@ -1,11 +1,10 @@
-import React, { useRef, useState, useMemo } from "react";
+import React, { useState, useMemo } from "react";
 import { useEcharts } from "../../src";
 import type { EChartsOption } from "echarts";
 
 const THEMES = ["light", "dark", "macarons", "custom"] as const;
 
 const ThemeSwitcher: React.FC = () => {
-  const chartRef = useRef<HTMLDivElement>(null);
   const [themeIndex, setThemeIndex] = useState(0);
 
   const customTheme = useMemo(
@@ -30,7 +29,7 @@ const ThemeSwitcher: React.FC = () => {
     ],
   };
 
-  useEcharts(chartRef, { option, theme });
+  const { ref } = useEcharts({ option, theme });
 
   return (
     <div>
@@ -54,7 +53,7 @@ const ThemeSwitcher: React.FC = () => {
           </button>
         ))}
       </div>
-      <div ref={chartRef} className="chart-container" />
+      <div ref={ref} className="chart-container" />
     </div>
   );
 };

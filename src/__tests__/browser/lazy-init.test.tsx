@@ -4,17 +4,16 @@
  * IntersectionObserver against a chromium frame.
  *
  * Smoke-level: assert that scrolling the chart into view causes
- * `getInstance()` to transition from undefined → defined. Not asserting exact
+ * `chart.instance` to transition from undefined → defined. Not asserting exact
  * timing or layout numbers.
  */
 import { describe, it, expect } from "vite-plus/test";
 import { render, act } from "@testing-library/react";
-import { useRef } from "react";
 import * as echarts from "echarts/core";
 import { LineChart } from "echarts/charts";
 import { GridComponent } from "echarts/components";
 import { CanvasRenderer } from "echarts/renderers";
-import useEcharts from "../../hooks/use-echarts";
+import { useEcharts } from "../../hooks/use-echarts";
 import type { UseEchartsReturn } from "../../types";
 
 // Browser tests import the hook directly, bypassing the default entry's
@@ -22,8 +21,7 @@ import type { UseEchartsReturn } from "../../types";
 echarts.use([LineChart, GridComponent, CanvasRenderer]);
 
 function LazyChart({ chartRef }: { chartRef: { current: UseEchartsReturn | null } }) {
-  const containerRef = useRef<HTMLDivElement>(null);
-  const chart = useEcharts(containerRef, {
+  const chart = useEcharts({
     option: {
       xAxis: { type: "category", data: ["a", "b", "c"] },
       yAxis: { type: "value" },
@@ -37,7 +35,7 @@ function LazyChart({ chartRef }: { chartRef: { current: UseEchartsReturn | null 
     <div style={{ height: "100vh", overflow: "auto" }} data-testid="scroll-host">
       {/* Spacer to push the chart below the initial viewport */}
       <div style={{ height: "200vh" }} />
-      <div ref={containerRef} style={{ width: "400px", height: "300px" }} data-testid="chart" />
+      <div ref={chart.ref} style={{ width: "400px", height: "300px" }} data-testid="chart" />
     </div>
   );
 }
@@ -48,7 +46,7 @@ describe("lazy init in real browser", () => {
     const { getByTestId, unmount } = render(<LazyChart chartRef={chartRef} />);
 
     // Before scroll: container is well below the viewport — no instance yet.
-    expect(chartRef.current?.getInstance()).toBeUndefined();
+    expect(chartRef.current?.instance).toBeUndefined();
 
     const host = getByTestId("scroll-host");
     const chartEl = getByTestId("chart");
@@ -63,14 +61,14 @@ describe("lazy init in real browser", () => {
       // Poll for up to 2s — IntersectionObserver microtask + React commit.
       const deadline = Date.now() + 2000;
       while (Date.now() < deadline) {
-        if (chartRef.current?.getInstance()) break;
+        if (chartRef.current?.instance) break;
         await new Promise((r) => setTimeout(r, 50));
       }
     });
 
-    expect(chartRef.current?.getInstance()).toBeDefined();
+    expect(chartRef.current?.instance).toBeDefined();
     // Sanity: the resolved instance is wired to the actual DOM container.
-    expect(chartRef.current?.getInstance()?.getDom()).toBe(chartEl);
+    expect(chartRef.current?.instance?.getDom()).toBe(chartEl);
 
     unmount();
     void host;

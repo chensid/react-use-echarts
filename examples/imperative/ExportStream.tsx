@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import { EChart } from "../../src";
-import type { UseEchartsReturn } from "../../src";
+import type { EChartHandle } from "../../src";
 import { useTheme } from "../components/theme-context";
 import type { EChartsOption } from "echarts";
 
@@ -28,7 +28,7 @@ function generateInitial(): Point[] {
 }
 
 const initialData = generateInitial();
-const initialLast = initialData[initialData.length - 1];
+const initialLast = initialData[initialData.length - 1]!;
 
 const baseOption: EChartsOption = {
   backgroundColor: "transparent",
@@ -50,7 +50,7 @@ const baseOption: EChartsOption = {
 };
 
 const ExportStream: React.FC = () => {
-  const chartRef = useRef<UseEchartsReturn>(null);
+  const chartRef = useRef<EChartHandle>(null);
   const { mode } = useTheme();
   const [count, setCount] = useState(INITIAL_POINTS);
   const lastTsRef = useRef<number>(initialLast[0]);

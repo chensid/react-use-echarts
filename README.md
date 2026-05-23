@@ -71,20 +71,20 @@ Pass `ref` to access the imperative API — see [Returns](#returns) for the full
 
 ### `useEcharts` Hook
 
-For full control, use the hook directly:
+For full control, use the hook directly. It returns a callback `ref` to attach to your container plus a reactive `instance` field and the full imperative API:
 
 ```tsx
-import { useRef } from "react";
 import { useEcharts } from "react-use-echarts";
 
 function MyChart() {
-  const chartRef = useRef<HTMLDivElement>(null);
-  const { setOption, getInstance, resize } = useEcharts(chartRef, {
+  const { ref, instance, setOption, resize } = useEcharts({
     option: { series: [{ type: "line", data: [150, 230, 224, 218, 135] }] },
   });
-  return <div ref={chartRef} style={{ width: "100%", height: "400px" }} />;
+  return <div ref={ref} style={{ width: "100%", height: "400px" }} />;
 }
 ```
+
+`instance` is `undefined` before init and after dispose; subscribe via `useEffect([instance])` to run side effects against the live ECharts instance.
 
 The chart container must have an explicit size, for example `style={{ width: "100%", height: "400px" }}`.
 
@@ -99,31 +99,44 @@ import { registerBuiltinThemes } from "react-use-echarts/themes/registry";
 registerBuiltinThemes();
 
 // Built-in theme
-useEcharts(chartRef, { option, theme: "dark" });
+useEcharts({ option, theme: "dark" });
 
 // Any string registered via echarts.registerTheme
-useEcharts(chartRef, { option, theme: "vintage" });
+useEcharts({ option, theme: "vintage" });
 
 // Custom theme object (use useMemo to keep reference stable)
 const customTheme = useMemo(() => ({ color: ["#fc8452", "#9a60b4", "#ea7ccc"] }), []);
-useEcharts(chartRef, { option, theme: customTheme });
+useEcharts({ option, theme: customTheme });
 ```
 
 ### Event Handling
 
-Supports shorthand (function) and full config (object with query/context):
+Supports shorthand (function) and full config (object with query/context). Known echarts events have their `params` type auto-inferred from `EChartsEventPayloadMap` — no manual cast needed.
 
 ```tsx
-useEcharts(chartRef, {
+useEcharts({
   option,
   onEvents: {
-    click: (params) => console.log("Clicked:", params),
+    // `params` is auto-typed as `ECElementEvent`
+    click: (params) => console.log("clicked", params.data),
     mouseover: {
-      handler: (params) => console.log("Hover:", params),
+      handler: (params) => console.log("hovered", params.value),
       query: "series",
     },
+    // `params` is auto-typed as `SelectChangedPayload`
+    selectchanged: (params) => console.log("selection changed", params),
   },
 });
+```
+
+Custom event names (e.g. registered via `echarts.registerAction()`) fall through to the open index signature with a loose `params` type. To get a typed payload for your own events, augment `EChartsEventPayloadMap`:
+
+```ts
+declare module "react-use-echarts" {
+  interface EChartsEventPayloadMap {
+    "my-custom-action": { foo: number; bar: string };
+  }
+}
 ```
 
 ### Loading State
@@ -131,7 +144,7 @@ useEcharts(chartRef, {
 ```tsx
 const [loading, setLoading] = useState(true);
 
-useEcharts(chartRef, {
+useEcharts({
   option,
   showLoading: loading,
   loadingOption: { text: "Loading..." },
@@ -143,8 +156,8 @@ useEcharts(chartRef, {
 Assign the same `group` ID — tooltips, highlights, and other interactions will sync:
 
 ```tsx
-useEcharts(chartRef1, { option: option1, group: "dashboard" });
-useEcharts(chartRef2, { option: option2, group: "dashboard" });
+useEcharts({ option: option1, group: "dashboard" });
+useEcharts({ option: option2, group: "dashboard" });
 ```
 
 ### Lazy Initialization
@@ -152,10 +165,10 @@ useEcharts(chartRef2, { option: option2, group: "dashboard" });
 Defer chart init until the element scrolls into view:
 
 ```tsx
-useEcharts(chartRef, { option, lazyInit: true });
+useEcharts({ option, lazyInit: true });
 
 // Custom IntersectionObserver options
-useEcharts(chartRef, {
+useEcharts({
   option,
   lazyInit: { rootMargin: "200px", threshold: 0.5 },
 });
@@ -226,13 +239,13 @@ export default function Page() {
 
 Declarative component wrapping `useEcharts`. Accepts all hook options as props plus:
 
-| Prop        | Type                    | Default                             | Description                                               |
-| ----------- | ----------------------- | ----------------------------------- | --------------------------------------------------------- |
-| `style`     | `React.CSSProperties`   | `{ width: '100%', height: '100%' }` | Container style (merged with defaults)                    |
-| `className` | `string`                | —                                   | Container CSS class                                       |
-| `ref`       | `Ref<UseEchartsReturn>` | —                                   | Exposes the full imperative API (see [Returns](#returns)) |
+| Prop        | Type                  | Default                             | Description                                                                                                                      |
+| ----------- | --------------------- | ----------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| `style`     | `React.CSSProperties` | `{ width: '100%', height: '100%' }` | Container style (merged with defaults)                                                                                           |
+| `className` | `string`              | —                                   | Container CSS class                                                                                                              |
+| `ref`       | `Ref<EChartHandle>`   | —                                   | Exposes the imperative API as `EChartHandle` (`Omit<UseEchartsReturn, 'ref'>` — the container ref is owned by `<EChart>` itself) |
 
-### `useEcharts(ref, options)`
+### `useEcharts(options)`
 
 #### Options
 
@@ -256,6 +269,13 @@ Declarative component wrapping `useEcharts`. Accepts all hook options as props p
 > Prefer the declarative props (`option`, `theme`, `showLoading`, …) over imperative methods. Use these methods only when a prop does not cover the action — image export, coordinate conversion, streaming append, etc.
 > All methods are no-ops or return safe defaults when the instance is not yet initialized. When the instance throws, errors are routed through `onError` if provided (and the call returns the fallback); otherwise the error is rethrown — including from readers (no `console.error` fallback for imperative methods).
 
+**Container ref / live instance**
+
+| Property   | Type                          | Description                                                                                                                                              |
+| ---------- | ----------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `ref`      | `RefCallback<HTMLDivElement>` | Callback ref to attach to the chart container. Compose with your own ref via [`mergeRefs`](#other-exports)                                               |
+| `instance` | `ECharts \| undefined`        | Reactive — defined after init, `undefined` before init and after dispose. Subscribe via `useEffect([instance])` to run side effects on the live instance |
+
 **Lifecycle / updates**
 
 | Method           | Type                                                                                 | Description                                                                                                                                           |
@@ -268,14 +288,13 @@ Declarative component wrapping `useEcharts`. Accepts all hook options as props p
 
 **Read / introspect**
 
-| Method        | Type                               | Description                                                                              |
-| ------------- | ---------------------------------- | ---------------------------------------------------------------------------------------- |
-| `getInstance` | `() => ECharts \| undefined`       | Get ECharts instance                                                                     |
-| `getOption`   | `() => EChartsOption \| undefined` | Get the current merged option                                                            |
-| `getWidth`    | `() => number \| undefined`        | Container width in pixels                                                                |
-| `getHeight`   | `() => number \| undefined`        | Container height in pixels                                                               |
-| `getDom`      | `() => HTMLElement \| undefined`   | Underlying DOM container                                                                 |
-| `isDisposed`  | `() => boolean`                    | Whether the instance is disposed (returns `true` when uninitialized — semantically gone) |
+| Method       | Type                               | Description                                                                              |
+| ------------ | ---------------------------------- | ---------------------------------------------------------------------------------------- |
+| `getOption`  | `() => EChartsOption \| undefined` | Get the current merged option                                                            |
+| `getWidth`   | `() => number \| undefined`        | Container width in pixels                                                                |
+| `getHeight`  | `() => number \| undefined`        | Container height in pixels                                                               |
+| `getDom`     | `() => HTMLElement \| undefined`   | Underlying DOM container                                                                 |
+| `isDisposed` | `() => boolean`                    | Whether the instance is disposed (returns `true` when uninitialized — semantically gone) |
 
 **Export**
 
@@ -299,15 +318,25 @@ Declarative component wrapping `useEcharts`. Accepts all hook options as props p
 ### Other Exports
 
 ```tsx
-import { useLazyInit } from "react-use-echarts"; // standalone lazy init hook
+import { useLazyInit } from "react-use-echarts"; // standalone lazy init hook -> { ref, isInView }
+import { mergeRefs } from "react-use-echarts"; // compose multiple refs into one callback ref
 import { isBuiltinTheme, registerCustomTheme } from "react-use-echarts"; // theme utils (no JSON)
 import { registerBuiltinThemes } from "react-use-echarts/themes/registry"; // ~20KB theme JSON
 import { useEcharts, EChart } from "react-use-echarts/core"; // tree-shakable entry (see Recipes)
 
-// All exported types: UseEchartsOptions, UseEchartsReturn, EChartProps,
-// EChartsEvents, EChartsEventConfig, EChartsEventHandler, EChartsInitOpts,
-// BuiltinTheme, LoadingOption, ChartFinder, ChartScaleValue, Payload
+// All exported types: UseEchartsOptions, UseEchartsReturn, UseLazyInitReturn,
+// EChartProps, EChartHandle, EChartsEvents, EChartsEventConfig, EChartsEventHandler,
+// EChartsEventPayloadMap, EChartsInitOpts, BuiltinTheme, LoadingOption,
+// ChartFinder, ChartScaleValue, Payload.
 // EChartsOption, SetOptionOpts, ResizeOpts come from the "echarts" package directly.
+```
+
+`mergeRefs` returns a callback ref that fans the node out to every input — `RefObject`, legacy callback ref, or React 19 callback ref with cleanup — and isolates each invocation so a throwing 3rd-party ref can't strand the chart. Reach for it when you need both the hook-provided ref and your own:
+
+```tsx
+const myRef = useRef<HTMLDivElement>(null);
+const { ref } = useEcharts({ option });
+return <div ref={mergeRefs(ref, myRef)} style={{ height: 400 }} />;
 ```
 
 ## Migrating from `echarts-for-react`
@@ -322,7 +351,7 @@ Most props map 1:1; a few are folded into existing options. Quick reference:
 | `showLoading`             | `showLoading`                             | Same                                                                                                                                                                                   |
 | `loadingOption`           | `loadingOption`                           | Same                                                                                                                                                                                   |
 | `onEvents`                | `onEvents`                                | Same shape; also accepts `{ handler, query?, context? }` for query/context binding                                                                                                     |
-| `onChartReady`            | Use the imperative API                    | Read `getInstance()` from the hook return (or `ref.current`) — fires after first init                                                                                                  |
+| `onChartReady`            | Subscribe to the reactive `instance`      | `useEffect(() => { if (instance) onReady(instance); }, [instance])` — the returned `instance` is `undefined` before init and re-renders when init/dispose completes                    |
 | `opts.renderer`           | `renderer: 'canvas' \| 'svg'`             | Promoted to a top-level option                                                                                                                                                         |
 | `opts` (rest)             | `initOpts`                                | Same shape (`devicePixelRatio`, `locale`, `width`, `height`, `useDirtyRect`, etc.)                                                                                                     |
 | `style`                   | `style`                                   | `<EChart />` defaults to `{ width: '100%', height: '100%' }` so the parent needs size                                                                                                  |
@@ -360,7 +389,41 @@ Side-by-side example:
   onEvents={{ click: handleClick }}
   showLoading={loading}
 />
-// chartRef.current?.getInstance() replaces onChartReady
+// chartRef.current?.instance replaces onChartReady
+```
+
+## Migrating from v1
+
+v2.0 flips the hook to return a callback ref + reactive `instance`, aligning with the modern community convention used by `floating-ui/react`, `react-aria`, `downshift`, and `react-hook-form`. `<EChart />` external props are unchanged — only direct hook consumers and `<EChart ref>` typings migrate.
+
+| v1                                               | v2                                                   | Notes                                                                                                                    |
+| ------------------------------------------------ | ---------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| `const ref = useRef(); useEcharts(ref, options)` | `const { ref } = useEcharts(options)`                | Hook owns the callback ref; attach it to your container                                                                  |
+| `getInstance()` method on the hook return        | `instance` field on the same return                  | Reactive — re-renders when init/dispose completes; use `useEffect([instance])` to subscribe                              |
+| `useLazyInit(ref, options)` returning `boolean`  | `useLazyInit(options)` returning `{ ref, isInView }` | Same callback-ref pattern                                                                                                |
+| `useRef<UseEchartsReturn>(null)` for `<EChart>`  | `useRef<EChartHandle>(null)` for `<EChart>`          | `EChartHandle = Omit<UseEchartsReturn, 'ref'>` — the container ref is intentionally not exposed on the imperative handle |
+| Compose refs by hand                             | `mergeRefs(chartRef, myRef)`                         | New public utility (see [Other Exports](#other-exports))                                                                 |
+| `engines.node >=20`                              | `engines.node >=22`                                  | Tooling requirement only — published bundle is unaffected                                                                |
+
+Side-by-side hook example:
+
+```tsx
+// v1
+const chartRef = useRef<HTMLDivElement>(null);
+const { setOption, getInstance } = useEcharts(chartRef, { option });
+useEffect(() => {
+  getInstance()?.on("finished", handler);
+}, []);
+return <div ref={chartRef} style={{ height: 400 }} />;
+
+// v2
+const { ref, instance, setOption } = useEcharts({ option });
+useEffect(() => {
+  if (!instance) return;
+  instance.on("finished", handler);
+  return () => instance.off("finished", handler);
+}, [instance]);
+return <div ref={ref} style={{ height: 400 }} />;
 ```
 
 ## Contributing

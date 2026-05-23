@@ -26,13 +26,13 @@
  * Main hook for using ECharts in React components
  * 在 React 组件中使用 ECharts 的主要 Hook
  */
-export { default as useEcharts } from "./hooks/use-echarts";
+export { useEcharts } from "./hooks/use-echarts";
 
 /**
  * Declarative EChart component
  * 声明式 EChart 组件
  */
-export { default as EChart } from "./components/EChart";
+export { EChart } from "./components/EChart";
 
 /**
  * Lazy initialization hook
@@ -47,11 +47,14 @@ export { useLazyInit } from "./hooks/use-lazy-init";
 export type {
   UseEchartsOptions,
   UseEchartsReturn,
+  UseLazyInitReturn,
   EChartsEvents,
   EChartsEventConfig,
   EChartsEventHandler,
+  EChartsEventPayloadMap,
   EChartsInitOpts,
   EChartProps,
+  EChartHandle,
   BuiltinTheme,
   LoadingOption,
   ChartFinder,
@@ -70,3 +73,9 @@ export type { Payload } from "echarts";
  * 主题工具函数（轻量，不含 JSON）
  */
 export { isBuiltinTheme, isKnownTheme, registerCustomTheme } from "./themes";
+
+/**
+ * Merge multiple React refs into one callback ref
+ * 将多个 React ref 合并为单一 callback ref
+ */
+export { mergeRefs } from "./utils/merge-refs";

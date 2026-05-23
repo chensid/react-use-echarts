@@ -32,11 +32,10 @@ src/
 ├── components/EChart.tsx       # Declarative component wrapping useEcharts
 ├── hooks/
 │   ├── use-echarts.ts          # Orchestrator hook (zero effects of its own; delegates to internal hooks)
-│   ├── use-lazy-init.ts        # IntersectionObserver hook
+│   ├── use-lazy-init.ts        # IntersectionObserver hook — `useLazyInit(options) → { ref, isInView }` callback-ref shape
 │   └── internal/
-│       ├── use-chart-core.ts   # Core: instance lifecycle + option sync + event rebinding + loading + group (6 effects); exposes the imperative API (setOption, dispatchAction, clear, resize, appendData, getOption, getDataURL, convertToPixel, …)
+│       ├── use-chart-core.ts   # Core: instance lifecycle + option sync + event rebinding + loading + group (6 effects); exposes the imperative API (setOption, dispatchAction, clear, resize, appendData, getOption, getDataURL, convertToPixel, …) and a reactive `instance` field
 │       ├── use-resize-observer.ts # ResizeObserver auto-resize + visibilitychange resync (1 effect; onError reached via useEffectEvent)
-│       ├── use-ref-element.ts  # Track ref.current across DOM-node replacement (re-runs effects when ref swaps)
 │       └── event-utils.ts      # Pure functions: bindEvents / unbindEvents / eventsEqual
 ├── themes/
 │   ├── index.ts                # Lightweight theme utilities (no JSON); FIFO contentHashCache for custom themes
@@ -47,6 +46,8 @@ src/
 │   ├── connect.ts              # Chart group linkage logic (one connect() per groupId; disconnect when last member leaves)
 │   ├── shallow-equal.ts        # Shallow equality for option / setOptionOpts / loadingOption deduplication
 │   ├── stable-key.ts           # Stable dependency keys via JSON.stringify (returns null when not serializable)
+│   ├── merge-refs.ts           # Compose multiple refs (RefObject / RefCallback / React 19 cleanup-callback) into one callback ref; per-ref try/catch isolation
+│   ├── error.ts                # Imperative-path error routing helper (`routeImperativeError`)
 │   └── dev-warnings.ts         # Shared dev-mode warning sets (unknown theme, zero-size container)
 ├── types/index.ts              # All type definitions
 └── __tests__/                  # Mirror structure: components/, hooks/, themes/, utils/
@@ -73,7 +74,7 @@ All instance-related state lives in `useChartCore`; the orchestrator (`useEchart
 
 ### Key Design Patterns
 
-- Ref passed in by caller — hook does not create refs internally; `useRefElement` tracks `ref.current` so effects re-run if the DOM node is swapped
+- Callback-ref API — `useEcharts` owns the container ref internally: a `useCallback` callback ref + `useState<HTMLDivElement | null>` writes the live element into hook state, then the React 19 ref-cleanup return path clears it on unmount. Consumers receive a stable `ref` field and attach it to their container `<div ref={ref}>`. DOM-node replacement is detected because the ref-callback identity is stable while React itself fires `ref(newNode)` + cleanup with the old node.
 - `useChartCore` owns all shared state internally — `lastAppliedRef`, `lastBoundRef`, `lastLoadingRef`, and the typed `latestRef` never leak to callers
 - `useChartCore(element, shouldInit, config)` — 3-parameter API; takes the resolved element (not a ref) so DOM-node replacement re-triggers the lifecycle effect
 - WeakMap instance cache + reference counting — safe under StrictMode (instance recreated cleanly; refCount prevents premature disposal when multiple consumers share an element)
@@ -82,8 +83,10 @@ All instance-related state lives in `useChartCore`; the orchestrator (`useEchart
 - Errors from `init` / `setOption` / `dispatchAction` / `resize` / event-bind route through the shared `onError` callback (or fall back to `console.error` / re-throw); calls that don't throw on real instances (`off`, `dispose`, `connect`, `showLoading`, group assignment) are uninstrumented. Effect-context errors flow through `useEffectEvent` for always-latest `onError`; imperative-API errors flow through `latestRef.current.onError` because `useEffectEvent` cannot be called outside Effects.
 - `shallowEqual` on option updates — avoids unnecessary `setOption` when top-level keys are identical
 - `eventsEqual` on event rebinding — avoids unnecessary unbind/rebind when inline event objects have identical handlers
-- Memoized return value — `useMemo` ensures referential stability
+- `setOption` / `showLoading` lifecycle attempts are recorded into `lastAppliedRef` / `lastLoadingRef` via `try/finally` even on failure — Option-Sync / Loading-Toggle dedup against the same (option, opts) pair instead of replaying a known-bad call and double-firing `onError`
+- Memoized return value — `useChartCore` manually wraps its imperative API in `useMemo([element])` (since React Compiler does not memoize this hook); `useEcharts` is compiler-cached, so `{ ref, ...chart }` is stable when `chart` is stable
 - React Compiler enabled via `@vitejs/plugin-react` + `@rolldown/plugin-babel`
+- `<EChart>` imperative handle exposes `EChartHandle = Omit<UseEchartsReturn, "ref">` — `ref` is intentionally stripped so external callers cannot reassign the container via `handle.ref(otherNode)`
 
 ## Testing
 

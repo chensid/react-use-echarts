@@ -1,11 +1,11 @@
 import { describe, it, expect, vi, beforeEach } from "vite-plus/test";
-import { renderHook } from "@testing-library/react";
+import { act, renderHook } from "@testing-library/react";
 import * as echarts from "echarts/core";
-import useEcharts from "../../hooks/use-echarts";
+import { useEcharts } from "../../hooks/use-echarts";
 import { getCachedInstance, clearInstanceCache } from "../../utils/instance-cache";
 import { clearGroups } from "../../utils/connect";
 import type { BuiltinTheme } from "../../types";
-import { clearThemeCache } from "../../themes";
+import { __clearThemeCacheForTesting__ } from "../../themes";
 import { createMockInstance, MockResizeObserver, MockIntersectionObserver } from "../helpers";
 
 // Mock ECharts
@@ -24,13 +24,12 @@ describe("Theme change behavior", () => {
   beforeEach(() => {
     clearInstanceCache();
     clearGroups();
-    clearThemeCache();
+    __clearThemeCacheForTesting__();
     vi.clearAllMocks();
   });
 
   it("should create new instance when theme changes", () => {
     const element = document.createElement("div");
-    const ref = { current: element };
 
     const mockInstance1 = createMockInstance(element);
     const mockInstance2 = createMockInstance(element);
@@ -43,11 +42,17 @@ describe("Theme change behavior", () => {
     const baseOption = { series: [{ type: "line" as const, data: [1, 2, 3] }] };
 
     // First render with light theme
-    const { rerender } = renderHook<
-      ReturnType<typeof useEcharts>,
-      { ref: typeof ref; theme: BuiltinTheme }
-    >(({ ref, theme }) => useEcharts(ref, { option: baseOption, theme }), {
-      initialProps: { ref, theme: "light" },
+    const { result, rerender } = renderHook<ReturnType<typeof useEcharts>, { theme: BuiltinTheme }>(
+      ({ theme }) => useEcharts({ option: baseOption, theme }),
+      {
+        initialProps: { theme: "light" },
+      },
+    );
+
+    // Attach the element to the hook's callback ref; the queued setState
+    // schedules a re-render that triggers the lifecycle effect.
+    act(() => {
+      result.current.ref(element);
     });
 
     // Should have created first instance
@@ -55,7 +60,7 @@ describe("Theme change behavior", () => {
     expect(mockInstance1.setOption).toHaveBeenCalled();
 
     // Rerender with dark theme
-    rerender({ ref, theme: "dark" });
+    rerender({ theme: "dark" });
 
     // Should have disposed old instance and created new one
     expect(mockInstance1.dispose).toHaveBeenCalledTimes(1);

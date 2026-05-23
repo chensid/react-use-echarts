@@ -1,22 +1,23 @@
-import { type RefObject } from "react";
+import { useCallback, useState } from "react";
 import type { UseEchartsOptions, UseEchartsReturn } from "../types";
 import { useLazyInitForElement } from "./use-lazy-init";
 import { useChartCore } from "./internal/use-chart-core";
 import { useResizeObserver } from "./internal/use-resize-observer";
-import { useRefElement } from "./internal/use-ref-element";
 
 /**
  * React hook for Apache ECharts integration
  * Apache ECharts React Hook
  *
- * @param ref React ref to the chart container element
- * @param options Configuration options
- * @returns Chart control methods
+ * Returns a callback ref to attach to the container element, plus a
+ * reactive `instance` field and the imperative chart API.
+ *
+ * @example
+ * ```tsx
+ * const { ref, instance, setOption } = useEcharts({ option });
+ * return <div ref={ref} style={{ width: 600, height: 400 }} />;
+ * ```
  */
-function useEcharts(
-  ref: RefObject<HTMLDivElement | null>,
-  options: UseEchartsOptions,
-): UseEchartsReturn {
+export function useEcharts(options: UseEchartsOptions): UseEchartsReturn {
   const {
     option,
     theme,
@@ -32,7 +33,16 @@ function useEcharts(
     onError,
   } = options;
 
-  const element = useRefElement(ref);
+  // React 19 callback ref with cleanup: receives the node on mount, the
+  // returned cleanup runs on unmount (or before the next ref-callback
+  // invocation when the node is replaced). The stable `useCallback`
+  // identity prevents the cleanup/re-invoke from firing on every render.
+  const [element, setElement] = useState<HTMLDivElement | null>(null);
+  const ref = useCallback((node: HTMLDivElement | null) => {
+    setElement(node);
+    return () => setElement(null);
+  }, []);
+
   const shouldInit = useLazyInitForElement(element, lazyInit);
 
   // Core owns all instance IO — including the imperative resize/clear methods
@@ -52,7 +62,5 @@ function useEcharts(
 
   useResizeObserver(element, autoResize, onError);
 
-  return chart;
+  return { ref, ...chart };
 }
-
-export default useEcharts;
