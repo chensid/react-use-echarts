@@ -128,7 +128,7 @@ function randArray(len: number, max: number) {
 function LazyChart({ index }: { index: number }) {
   const chartRef = useRef<HTMLDivElement>(null);
   const { mode } = useTheme();
-  const option = CHART_CONFIGS[index]();
+  const option = CHART_CONFIGS[index]!();
 
   useEcharts(chartRef, { option, lazyInit: true, theme: mode });
 

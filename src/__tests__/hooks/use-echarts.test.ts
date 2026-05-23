@@ -1861,7 +1861,7 @@ describe("useEcharts", () => {
 
       // ResizeObserver should have been created and observe called
       expect(resizeObserverInstances.length).toBeGreaterThan(0);
-      expect(resizeObserverInstances[0].observe).toHaveBeenCalled();
+      expect(resizeObserverInstances[0]!.observe).toHaveBeenCalled();
     });
 
     it("should gracefully handle ResizeObserver constructor failure", () => {
@@ -1924,7 +1924,7 @@ describe("useEcharts", () => {
 
       unmount();
 
-      expect(resizeObserverInstances[0].disconnect).toHaveBeenCalled();
+      expect(resizeObserverInstances[0]!.disconnect).toHaveBeenCalled();
     });
 
     it("should move resize observer to a replacement ref element", async () => {
@@ -1940,16 +1940,16 @@ describe("useEcharts", () => {
       const { rerender } = renderHook(() => useEcharts(ref, { option: baseOption }));
 
       await waitFor(() => {
-        expect(resizeObserverInstances[0].observe).toHaveBeenCalledWith(element1);
+        expect(resizeObserverInstances[0]!.observe).toHaveBeenCalledWith(element1);
       });
 
       ref.current = element2;
       rerender();
 
       await waitFor(() => {
-        expect(resizeObserverInstances[1].observe).toHaveBeenCalledWith(element2);
+        expect(resizeObserverInstances[1]!.observe).toHaveBeenCalledWith(element2);
       });
-      expect(resizeObserverInstances[0].disconnect).toHaveBeenCalled();
+      expect(resizeObserverInstances[0]!.disconnect).toHaveBeenCalled();
     });
 
     describe("RAF throttle", () => {
@@ -2295,8 +2295,8 @@ describe("useEcharts", () => {
       renderHook(() => useEcharts(ref2, { option: baseOption, theme: circularTheme }));
 
       expect(echarts.registerTheme).toHaveBeenCalledTimes(1);
-      const firstThemeName = (echarts.init as ReturnType<typeof vi.fn>).mock.calls[0][1];
-      const secondThemeName = (echarts.init as ReturnType<typeof vi.fn>).mock.calls[1][1];
+      const firstThemeName = (echarts.init as ReturnType<typeof vi.fn>).mock.calls[0]![1];
+      const secondThemeName = (echarts.init as ReturnType<typeof vi.fn>).mock.calls[1]![1];
       expect(firstThemeName).toBe(secondThemeName);
     });
 
@@ -2321,8 +2321,8 @@ describe("useEcharts", () => {
       renderHook(() => useEcharts(ref2, { option: baseOption, theme: theme2 }));
 
       expect(echarts.registerTheme).toHaveBeenCalledTimes(2);
-      const firstThemeName = (echarts.init as ReturnType<typeof vi.fn>).mock.calls[0][1];
-      const secondThemeName = (echarts.init as ReturnType<typeof vi.fn>).mock.calls[1][1];
+      const firstThemeName = (echarts.init as ReturnType<typeof vi.fn>).mock.calls[0]![1];
+      const secondThemeName = (echarts.init as ReturnType<typeof vi.fn>).mock.calls[1]![1];
       expect(firstThemeName).not.toBe(secondThemeName);
     });
   });

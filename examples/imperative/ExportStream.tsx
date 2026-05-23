@@ -28,7 +28,7 @@ function generateInitial(): Point[] {
 }
 
 const initialData = generateInitial();
-const initialLast = initialData[initialData.length - 1];
+const initialLast = initialData[initialData.length - 1]!;
 
 const baseOption: EChartsOption = {
   backgroundColor: "transparent",

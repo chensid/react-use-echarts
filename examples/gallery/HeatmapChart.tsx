@@ -28,7 +28,7 @@ const HeatmapChart: React.FC = () => {
       position: "top",
       formatter: (params: unknown) => {
         const p = params as { value: number[] };
-        return `${HOURS[p.value[0]]} ${SLOTS[p.value[1]]}: <b>${p.value[2]}</b>`;
+        return `${HOURS[p.value[0]!]} ${SLOTS[p.value[1]!]}: <b>${p.value[2]}</b>`;
       },
     },
     xAxis: { type: "category", data: HOURS, splitArea: { show: true } },

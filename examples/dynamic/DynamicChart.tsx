@@ -58,7 +58,7 @@ const DynamicChart: React.FC = () => {
     const timer = window.setInterval(() => {
       const { times, values } = dataRef.current;
       times.push(formatTime(new Date()));
-      values.push(randomValue(values[values.length - 1]));
+      values.push(randomValue(values[values.length - 1]!));
 
       if (times.length > 60) {
         times.shift();
