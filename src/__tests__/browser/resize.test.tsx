@@ -16,8 +16,8 @@ import { CanvasRenderer } from "echarts/renderers";
 import { useEcharts } from "../../hooks/use-echarts";
 import type { UseEchartsReturn } from "../../types";
 
-// Browser tests import the hook directly, bypassing the default entry's
-// `import "echarts"` side-effect. Register only what this test renders.
+// The library is fully modular and does not auto-register anything —
+// register just what this test renders.
 echarts.use([LineChart, GridComponent, CanvasRenderer]);
 
 function ResizableChart({

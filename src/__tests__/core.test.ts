@@ -1,11 +1,8 @@
 import { describe, it, expect, vi } from "vite-plus/test";
 
-// Both entries re-export the same underlying modules; the only intentional
-// difference is that `../index` has a top-level `import "echarts"` side-effect
-// (full echarts registration) and `../core` does not. Mock both module
-// specifiers so neither entry pulls in the real ECharts during this smoke
-// test — we only care about the surface contract, not runtime behavior.
-vi.mock("echarts", () => ({}));
+// Since v2.1 `../core` is a deprecated alias of `../index` — both re-export
+// the same set, neither side-effect imports `"echarts"`. This test guards
+// against the alias drifting out of sync with the default entry.
 vi.mock("echarts/core", () => ({
   init: vi.fn(),
   connect: vi.fn(),

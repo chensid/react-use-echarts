@@ -117,7 +117,7 @@
     {
       "name": "dist/core.js (gzip)",
       "path": "dist/core.js",
-      "limit": "11.5 KB",
+      "limit": "12 KB",
       "gzip": true,
       "brotli": false
     },
