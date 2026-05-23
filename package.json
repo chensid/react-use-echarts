@@ -49,6 +49,10 @@
     "./themes/registry": {
       "types": "./dist/themes/registry.d.ts",
       "default": "./dist/themes/registry.js"
+    },
+    "./preset-full": {
+      "types": "./dist/preset-full.d.ts",
+      "default": "./dist/preset-full.js"
     }
   },
   "publishConfig": {
@@ -123,6 +127,13 @@
       "name": "dist/themes/registry.js (gzip)",
       "path": "dist/themes/registry.js",
       "limit": "3 KB",
+      "gzip": true,
+      "brotli": false
+    },
+    {
+      "name": "dist/preset-full.js (gzip)",
+      "path": "dist/preset-full.js",
+      "limit": "1.5 KB",
       "gzip": true,
       "brotli": false
     }

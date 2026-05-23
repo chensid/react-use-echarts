@@ -71,6 +71,15 @@ export default defineConfig({
       dts: { build: true },
       platform: "browser",
     },
+    {
+      entry: { "preset-full": "src/preset-full.ts" },
+      format: ["esm"],
+      dts: { build: true },
+      publint: true,
+      attw: { profile: "esm-only" },
+      platform: "browser",
+      plugins: [babel({ presets: [reactCompilerPreset()] })],
+    },
   ],
   server: {
     port: 3000,
