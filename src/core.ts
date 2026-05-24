@@ -64,7 +64,7 @@ export type {
  * the imperative `dispatchAction` returned from `useEcharts`.
  * 转出的 ECharts `Payload` 类型，便于在调用 `dispatchAction` 时显式标注参数。
  */
-export type { Payload } from "echarts";
+export type { Payload } from "echarts/core";
 
 /**
  * Theme utilities (lightweight, no JSON bundled)

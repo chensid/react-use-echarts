@@ -1,6 +1,5 @@
-import type { ECharts } from "echarts/core";
 import type {
-  EChartsOption,
+  ECharts,
   SetOptionOpts,
   EChartsInitOpts as RawEChartsInitOpts,
   Payload,
@@ -13,7 +12,10 @@ import type {
   CollapseAxisBreakPayload,
   ExpandAxisBreakPayload,
   ToggleAxisBreakPayload,
-} from "echarts";
+} from "echarts/core";
+// EChartsOption is the full pre-composed option type; only the full "echarts"
+// package exports it (echarts/core ships ComposeOption / EChartsCoreOption).
+import type { EChartsOption } from "echarts";
 import type { CSSProperties, RefCallback } from "react";
 
 /**

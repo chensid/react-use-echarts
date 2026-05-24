@@ -1,7 +1,7 @@
 import { useEffect, useEffectEvent, useMemo, useRef, useState, useLayoutEffect } from "react";
 import * as echarts from "echarts/core";
-import type { ECharts } from "echarts/core";
-import type { SetOptionOpts, EChartsOption } from "echarts";
+import type { ECharts, SetOptionOpts } from "echarts/core";
+import type { EChartsOption } from "echarts";
 import type {
   EChartsEvents,
   EChartsInitOpts,
