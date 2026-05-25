@@ -57,11 +57,12 @@ export default defineConfig({
       plugins: [babel({ presets: [reactCompilerPreset()] })],
     },
     {
+      // publint/attw validate the whole package (tarball + exports map) once
+      // from the index entry above — they're not per-entry, so re-declaring
+      // them here re-runs attw redundantly on the same tarball.
       entry: { core: "src/core.ts" },
       format: ["esm"],
       dts: { build: true },
-      publint: true,
-      attw: { profile: "esm-only" },
       platform: "browser",
       plugins: [babel({ presets: [reactCompilerPreset()] })],
     },
@@ -72,11 +73,10 @@ export default defineConfig({
       platform: "browser",
     },
     {
+      // publint/attw run once from the index entry (see core entry note).
       entry: { "preset-full": "src/preset-full.ts" },
       format: ["esm"],
       dts: { build: true },
-      publint: true,
-      attw: { profile: "esm-only" },
       platform: "browser",
       plugins: [babel({ presets: [reactCompilerPreset()] })],
     },
