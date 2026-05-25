@@ -50,7 +50,8 @@ src/
 │   ├── stable-key.ts           # Stable dependency keys via JSON.stringify (returns null when not serializable)
 │   ├── merge-refs.ts           # Compose multiple refs (RefObject / RefCallback / React 19 cleanup-callback) into one callback ref; per-ref try/catch isolation
 │   ├── error.ts                # Imperative-path error routing helper (`routeImperativeError`)
-│   └── dev-warnings.ts         # Shared dev-mode warning sets (unknown theme, zero-size container)
+│   ├── dev-warnings.ts         # Shared dev-mode warning sets (unknown theme, zero-size container)
+│   └── visibility-coordinator.ts # Module-level `document.visibilitychange` coordinator — single shared DOM listener serving all charts (`subscribeVisibilityResume`); attaches on first subscriber, detaches on last
 ├── types/index.ts              # All type definitions
 └── __tests__/                  # Mirror structure: components/, hooks/, themes/, utils/
 ```
@@ -72,7 +73,7 @@ All instance-related state lives in `useChartCore`; the orchestrator (`useEchart
 
 **`useResizeObserver`** — one effect.
 
-- **Resize Observer** (`useEffect`) — create/destroy ResizeObserver with RAF throttle; also listens to `document.visibilitychange` to resync when the tab returns to foreground (RAF is throttled in hidden tabs). Latest `onError` is reached via `useEffectEvent` (no separate ref-sync effect).
+- **Resize Observer** (`useEffect`) — create/destroy ResizeObserver with RAF throttle; also subscribes to a foreground resync via `subscribeVisibilityResume` (from `utils/visibility-coordinator.ts`) so the chart re-resizes when the tab returns to foreground (RAF is throttled in hidden tabs). The coordinator owns a single shared `document.visibilitychange` listener for all charts rather than one listener per instance. Latest `onError` is reached via `useEffectEvent` (no separate ref-sync effect).
 
 ### Key Design Patterns
 
