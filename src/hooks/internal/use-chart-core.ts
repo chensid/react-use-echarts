@@ -216,9 +216,15 @@ export function useChartCore(
   // React reconciles this state update.
   const [liveInstance, setLiveInstance] = useState<ECharts | undefined>(undefined);
 
-  // --- Stable dependency keys (plain calls; React Compiler memoizes) ---
-  const themeKey = computeStableKey(theme);
-  const initOptsKey = computeStableKey(initOpts);
+  // --- Stable dependency keys, memoized on the raw input reference. React
+  // Compiler skips this whole hook because it disables a react-hooks ESLint
+  // rule (the trimmed lifecycle-effect deps below) — the compiler bails on any
+  // function that opts out of its rules. So it won't auto-memoize these calls;
+  // without an explicit useMemo, computeStableKey would re-run JSON.stringify
+  // every render for object theme / initOpts (the stable-ref usage CLAUDE.md
+  // recommends). No regression for inline objects — the dep changes either way.
+  const themeKey = useMemo(() => computeStableKey(theme), [theme]);
+  const initOptsKey = useMemo(() => computeStableKey(initOpts), [initOpts]);
 
   // --- Public API ---
 
