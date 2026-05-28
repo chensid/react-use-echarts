@@ -47,7 +47,7 @@ src/
 │   ├── instance-cache.ts       # WeakMap instance cache + reference counting (warns on mismatched setCachedInstance)
 │   ├── connect.ts              # Chart group linkage logic (one connect() per groupId; disconnect when last member leaves)
 │   ├── shallow-equal.ts        # Shallow equality for option / setOptionOpts / loadingOption deduplication
-│   ├── stable-key.ts           # Stable dependency keys via JSON.stringify (returns null when not serializable)
+│   ├── stable-key.ts           # Stable dependency keys via JSON.stringify (per-reference id fallback when not serializable; null only for nullish or unsupported primitives — strings/numbers pass through)
 │   ├── merge-refs.ts           # Compose multiple refs (RefObject / RefCallback / React 19 cleanup-callback) into one callback ref; per-ref try/catch isolation
 │   ├── error.ts                # Imperative-path error routing helper (`routeImperativeError`)
 │   ├── dev-warnings.ts         # Shared dev-mode warning sets (unknown theme, zero-size container)
@@ -81,7 +81,7 @@ All instance-related state lives in `useChartCore`; the orchestrator (`useEchart
 - `useChartCore` owns all shared state internally — `lastAppliedRef`, `lastBoundRef`, `lastLoadingRef`, and the typed `latestRef` never leak to callers
 - `useChartCore(element, shouldInit, config)` — 3-parameter API; takes the resolved element (not a ref) so DOM-node replacement re-triggers the lifecycle effect
 - WeakMap instance cache + reference counting — safe under StrictMode (instance recreated cleanly; refCount prevents premature disposal when multiple consumers share an element)
-- initOpts / theme serialized to stable keys via `computeStableKey` — JSON.stringify-based; non-serializable inputs return `null` and skip dedup
+- initOpts / theme serialized to stable keys via `computeStableKey` — JSON.stringify-based; non-serializable objects fall back to a per-reference id (still dedups by reference); only nullish or unsupported primitives (e.g. boolean/symbol) return `null` — strings and numbers pass through. Each key is memoized via `useMemo` on the raw input ref (React Compiler skips this hook, so the calls aren't auto-memoized — see `src/hooks/internal/use-chart-core.ts`)
 - Two-level theme cache — custom theme objects auto-deduplicated; `contentHash` param avoids double JSON.stringify; `contentHashCache` is a FIFO with a 100-entry cap
 - Errors from `init` / `setOption` / `dispatchAction` / `resize` / event-bind route through the shared `onError` callback (or fall back to `console.error` / re-throw); calls that don't throw on real instances (`off`, `dispose`, `connect`, `showLoading`, group assignment) are uninstrumented. Effect-context errors flow through `useEffectEvent` for always-latest `onError`; imperative-API errors flow through `latestRef.current.onError` because `useEffectEvent` cannot be called outside Effects.
 - `shallowEqual` on option updates — avoids unnecessary `setOption` when top-level keys are identical

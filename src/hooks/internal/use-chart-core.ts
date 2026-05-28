@@ -34,7 +34,8 @@ import { bindEvents, unbindEvents, eventsEqual } from "./event-utils";
  *
  * @param themeKey Pre-computed key from computeStableKey — passed as contentHash
  *   to avoid redundant JSON.stringify inside getOrRegisterCustomTheme.
- *   `null` when the value isn't JSON-serializable.
+ *   `null` only for nullish theme; object themes always get a non-null key
+ *   (JSON string or per-reference id), so the object branch below can assert it.
  */
 function resolveThemeName(
   theme: string | object | undefined,
