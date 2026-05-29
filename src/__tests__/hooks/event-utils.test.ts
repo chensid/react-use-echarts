@@ -128,6 +128,36 @@ describe("eventsEqual", () => {
       false,
     );
   });
+
+  // An explicit-undefined value means "no listener" (bindEvents/unbindEvents
+  // both skip it), so it must be equivalent to the key being absent. Comparing
+  // raw key counts would treat these as different and force a redundant
+  // unbind/rebind on every render for code like
+  //   onEvents={{ click: h, hover: enabled ? hoverFn : undefined }}
+  it("treats an explicit-undefined entry as equivalent to an absent key", () => {
+    const h = handler();
+    expect(eventsEqual({ click: h }, { click: h, hover: undefined })).toBe(true);
+    expect(eventsEqual({ click: h, hover: undefined }, { click: h })).toBe(true);
+    // Differing undefined-only keys are still equivalent (both effectively {click:h}).
+    expect(eventsEqual({ click: h, a: undefined }, { click: h, b: undefined })).toBe(true);
+    // A defined extra listener is a real difference and must NOT compare equal.
+    expect(eventsEqual({ click: h }, { click: h, hover: h })).toBe(false);
+  });
+
+  // JS callers can land an out-of-type `null` under a key (the index signature
+  // is `EChartsEventConfig | undefined`). null must behave exactly like
+  // undefined / an absent key ("no listener"); before the nullish guard in
+  // eventConfigEqual, comparing it against a defined config dereferenced
+  // `null.handler` and crashed.
+  it("treats an explicit-null entry like undefined (no listener)", () => {
+    const h = handler();
+    const withNull = { click: h, hover: null } as unknown as Parameters<typeof eventsEqual>[0];
+    expect(() => eventsEqual(withNull, { click: h })).not.toThrow();
+    expect(eventsEqual(withNull, { click: h })).toBe(true);
+    expect(eventsEqual(withNull, { click: h, hover: undefined })).toBe(true);
+    // null vs a defined listener is a real difference.
+    expect(eventsEqual(withNull, { click: h, hover: h })).toBe(false);
+  });
 });
 
 describe("bindEvents", () => {
@@ -200,6 +230,23 @@ describe("bindEvents", () => {
     expect(on).toHaveBeenCalledTimes(1);
     expect(on).toHaveBeenCalledWith("click", clickHandler, undefined);
   });
+
+  // Parity with the eventsEqual nullish guard: a JS caller can land an
+  // out-of-type `null` under a key. Bind must skip it instead of destructuring
+  // null (which throws), exactly as it skips undefined.
+  it("skips entries whose value is null", () => {
+    const on = vi.fn();
+    const instance = { on, off: vi.fn() } as unknown as ECharts;
+    const clickHandler = handler();
+
+    bindEvents(instance, {
+      click: clickHandler,
+      hover: null,
+    } as unknown as Parameters<typeof bindEvents>[1]);
+
+    expect(on).toHaveBeenCalledTimes(1);
+    expect(on).toHaveBeenCalledWith("click", clickHandler, undefined);
+  });
 });
 
 describe("unbindEvents", () => {
@@ -234,6 +281,22 @@ describe("unbindEvents", () => {
     const clickHandler = handler();
 
     unbindEvents(instance, { click: clickHandler, hover: undefined });
+
+    expect(off).toHaveBeenCalledTimes(1);
+    expect(off).toHaveBeenCalledWith("click", clickHandler);
+  });
+
+  // Mirror of the bindEvents guard — explicit-null values must be skipped
+  // instead of reading `.handler` off null.
+  it("skips entries whose value is null", () => {
+    const off = vi.fn();
+    const instance = { on: vi.fn(), off } as unknown as ECharts;
+    const clickHandler = handler();
+
+    unbindEvents(instance, {
+      click: clickHandler,
+      hover: null,
+    } as unknown as Parameters<typeof unbindEvents>[1]);
 
     expect(off).toHaveBeenCalledTimes(1);
     expect(off).toHaveBeenCalledWith("click", clickHandler);
