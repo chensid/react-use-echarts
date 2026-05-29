@@ -32,7 +32,12 @@ export function useLazyInitForElement(
   element: Element | null,
   options: boolean | IntersectionObserverInit = false,
 ): boolean {
-  const isLazyMode = options !== false;
+  // Public type forbids null, but JS callers can still pass it; treat null like
+  // false (lazy disabled / instant visible), matching the `= false` default and
+  // resolveThemeName's identical typeof-null guard (use-chart-core.ts). Without
+  // the `!== null` check on isObject below, `typeof null === "object"` would make
+  // the option reads deref null and throw during render on every pass.
+  const isLazyMode = options != null && options !== false;
   // State holds ONLY the observer's "has fired with isIntersecting" verdict.
   // Initial visibility (when lazy mode is disabled) is derived at return,
   // NOT seeded via useState(!isLazyMode) — that initializer only runs on
@@ -42,7 +47,7 @@ export function useLazyInitForElement(
 
   // Extract config values for stable dependency comparison
   // 提取配置值用于稳定的依赖比较
-  const isObject = typeof options === "object";
+  const isObject = typeof options === "object" && options !== null;
   const optRoot = isObject ? options.root : null;
   const optRootMargin = isObject ? options.rootMargin : undefined;
   const optThreshold = isObject ? options.threshold : undefined;
@@ -56,24 +61,42 @@ export function useLazyInitForElement(
     // 如果禁用了懒加载模式或已经可见，则跳过
     if (!isLazyMode || hasIntersected || !element) return;
 
-    const observer = new IntersectionObserver(
-      (entries) => {
-        const [entry] = entries;
-        if (entry?.isIntersecting) {
-          setHasIntersected(true);
-          // Once visible, stop observing
-          // 一旦可见，就停止观察
-          observer.disconnect();
-        }
-      },
-      {
-        root: optRoot ?? null,
-        rootMargin: optRootMargin ?? "50px",
-        threshold: optThreshold ?? 0.1,
-      },
-    );
-
-    observer.observe(element);
+    let observer: IntersectionObserver;
+    try {
+      observer = new IntersectionObserver(
+        (entries) => {
+          const [entry] = entries;
+          if (entry?.isIntersecting) {
+            setHasIntersected(true);
+            // Once visible, stop observing
+            // 一旦可见，就停止观察
+            observer.disconnect();
+          }
+        },
+        {
+          root: optRoot ?? null,
+          rootMargin: optRootMargin ?? "50px",
+          threshold: optThreshold ?? 0.1,
+        },
+      );
+      observer.observe(element);
+    } catch (error) {
+      // A malformed IntersectionObserverInit makes the constructor throw
+      // synchronously — out-of-range/NaN threshold (RangeError), unit-less
+      // rootMargin (SyntaxError), or non-Element root (TypeError). These are all
+      // type-valid per `IntersectionObserverInit`, so even TS callers can hit it.
+      // Mirror useResizeObserver's construction try/catch: never let it escape
+      // the effect and tear down the React tree. Degrade to eager init (treat as
+      // visible) so the chart still renders — matching this file's null-guard
+      // "don't throw, fall back to visible" philosophy. onError is intentionally
+      // not plumbed into this hook, so we log rather than route.
+      console.error(
+        "useLazyInit: invalid IntersectionObserver options; falling back to eager init.",
+        error,
+      );
+      setHasIntersected(true);
+      return;
+    }
 
     return () => {
       observer.disconnect();

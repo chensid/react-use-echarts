@@ -57,6 +57,55 @@ describe("useLazyInit", () => {
     expect(mockObserve).not.toHaveBeenCalled();
   });
 
+  // The public type forbids null, but a JS caller can still pass it (e.g.
+  // useEcharts({ lazyInit: null }) — the `= false` default only fills undefined).
+  // `typeof null === "object"` previously made the option reads deref null and
+  // throw during render. null must be treated like false (lazy disabled).
+  it("treats null options like false (lazy disabled) instead of throwing", () => {
+    const element = document.createElement("div");
+
+    const { result } = renderHook(() => useLazyInit(null as unknown as boolean));
+    act(() => {
+      result.current.ref(element);
+    });
+
+    expect(result.current.isInView).toBe(true);
+    expect(mockObserve).not.toHaveBeenCalled();
+  });
+
+  // A malformed IntersectionObserverInit (out-of-range threshold here) makes the
+  // native constructor throw synchronously. Without the effect's try/catch this
+  // escaped useEffect and tore down the React tree. It must instead degrade to
+  // eager init (visible) — these values are type-valid, so TS callers hit it too.
+  it("falls back to eager init (visible) instead of throwing on invalid options", () => {
+    class ThrowingObserver {
+      constructor(_cb: IntersectionObserverCallback, options?: IntersectionObserverInit) {
+        const t = options?.threshold;
+        if (typeof t === "number" && (Number.isNaN(t) || t < 0 || t > 1)) {
+          throw new RangeError("Failed to construct 'IntersectionObserver': invalid threshold.");
+        }
+      }
+      observe = vi.fn();
+      disconnect = vi.fn();
+      unobserve = vi.fn();
+    }
+    globalThis.IntersectionObserver = ThrowingObserver as unknown as typeof IntersectionObserver;
+    const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+    const element = document.createElement("div");
+
+    const { result } = renderHook(() => useLazyInit({ threshold: 1.5 }));
+    expect(() => {
+      act(() => {
+        result.current.ref(element);
+      });
+    }).not.toThrow();
+
+    // Degraded to eager init: visible despite the construction failure.
+    expect(result.current.isInView).toBe(true);
+    expect(errorSpy).toHaveBeenCalled();
+    errorSpy.mockRestore();
+  });
+
   it("should return false initially when lazy mode is enabled", () => {
     const element = document.createElement("div");
 
