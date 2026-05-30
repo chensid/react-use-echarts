@@ -503,11 +503,8 @@ export function useChartCore(
           lastAppliedRef.current = { option: newOption, opts: finalOpts };
         }, undefined),
 
-      dispatchAction: ((payload, opt) =>
-        withInstance(
-          (instance) => instance.dispatchAction(payload, opt),
-          undefined,
-        )) as ChartCoreReturn["dispatchAction"],
+      dispatchAction: (payload, opt) =>
+        withInstance((instance) => instance.dispatchAction(payload, opt), undefined),
 
       clear: () =>
         withInstance((instance) => {
@@ -518,8 +515,7 @@ export function useChartCore(
           lastAppliedRef.current = null;
         }, undefined),
 
-      resize: ((opts) =>
-        withInstance((instance) => instance.resize(opts), undefined)) as ChartCoreReturn["resize"],
+      resize: (opts) => withInstance((instance) => instance.resize(opts), undefined),
 
       getOption: () => withInstance((instance) => instance.getOption() as EChartsOption, undefined),
       getWidth: () => withInstance((instance) => instance.getWidth(), undefined),
@@ -528,48 +524,26 @@ export function useChartCore(
       // No instance → semantically disposed. Errors still route via withInstance,
       // falling back to true so consumers don't act on a half-broken instance.
       isDisposed: () => withInstance((instance) => instance.isDisposed(), true),
-      getDataURL: ((opts) =>
-        withInstance(
-          (instance) => instance.getDataURL(opts),
-          undefined,
-        )) as ChartCoreReturn["getDataURL"],
-      getConnectedDataURL: ((opts) =>
-        withInstance(
-          (instance) => instance.getConnectedDataURL(opts),
-          undefined,
-        )) as ChartCoreReturn["getConnectedDataURL"],
-      renderToSVGString: ((opts) =>
-        withInstance(
-          (instance) => instance.renderToSVGString(opts),
-          undefined,
-        )) as ChartCoreReturn["renderToSVGString"],
+      getDataURL: (opts) => withInstance((instance) => instance.getDataURL(opts), undefined),
+      getConnectedDataURL: (opts) =>
+        withInstance((instance) => instance.getConnectedDataURL(opts), undefined),
+      renderToSVGString: (opts) =>
+        withInstance((instance) => instance.renderToSVGString(opts), undefined),
       getSvgDataURL: () => withInstance((instance) => instance.getSvgDataURL(), undefined),
-      // ECharts' convertToPixel/convertFromPixel are overloaded; passing through
-      // the public widened signature requires `as never` to satisfy the
-      // last-overload-only inference TypeScript performs on overloaded methods.
-      convertToPixel: ((finder, value) =>
-        withInstance(
-          (instance) => instance.convertToPixel(finder as never, value as never),
-          undefined,
-        )) as ChartCoreReturn["convertToPixel"],
-      convertFromPixel: ((finder, value) =>
-        withInstance(
-          (instance) => instance.convertFromPixel(finder as never, value as never),
-          undefined,
-        )) as ChartCoreReturn["convertFromPixel"],
-      containPixel: ((finder, value) =>
-        withInstance(
-          (instance) => instance.containPixel(finder, value),
-          false,
-        )) as ChartCoreReturn["containPixel"],
-      appendData: ((params) =>
+      convertToPixel: (finder, value) =>
+        withInstance((instance) => instance.convertToPixel(finder, value), undefined),
+      convertFromPixel: (finder, value) =>
+        withInstance((instance) => instance.convertFromPixel(finder, value), undefined),
+      containPixel: (finder, value) =>
+        withInstance((instance) => instance.containPixel(finder, value), false),
+      appendData: (params) =>
         withInstance((instance) => {
           instance.appendData(params);
           // appendData drifts the instance from declarative `option`, same as
           // clear(): drop dedup memory so the next shallow-equal-new-ref
           // option prop re-applies setOption to resync.
           lastAppliedRef.current = null;
-        }, undefined)) as ChartCoreReturn["appendData"],
+        }, undefined),
     } satisfies Omit<ChartCoreReturn, "instance">;
     // eslint-disable-next-line react-hooks/exhaustive-deps -- lastAppliedRef / latestRef are refs; closures read them live. lookupInstance closes over `element`, so [element] is the full dep set.
   }, [element]);

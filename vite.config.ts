@@ -12,7 +12,7 @@ const base = process.env.GITHUB_ACTIONS === "true" && repositoryName ? `/${repos
 export default defineConfig({
   base,
   lint: {
-    plugins: ["oxc", "typescript", "unicorn", "react"],
+    plugins: ["oxc", "typescript", "unicorn", "react", "promise", "import"],
     categories: {
       correctness: "error",
     },
@@ -25,6 +25,15 @@ export default defineConfig({
           "@typescript-eslint/triple-slash-reference": "off",
           "react-hooks/exhaustive-deps": "warn",
           "react/only-export-components": ["error", { allowConstantExport: true }],
+          // Zero-noise regression guards (0 findings at adoption): catch genuinely
+          // wrong promise usage and ESM import cycles / self-imports. These do NOT
+          // flag `import "echarts"` (no no-unresolved/no-extraneous), so the
+          // modular-index.ts design decision is unaffected.
+          "promise/valid-params": "error",
+          "promise/no-new-statics": "error",
+          "promise/no-return-in-finally": "error",
+          "import/no-cycle": "error",
+          "import/no-self-import": "error",
         },
         env: { es2020: true, browser: true },
       },
@@ -89,6 +98,15 @@ export default defineConfig({
     // what differs (environment, include/exclude, browser settings).
     coverage: {
       provider: "v8",
+      // Gate against silent coverage erosion. Source is currently 100% on all
+      // metrics; thresholds sit a few points below so real regressions fail CI
+      // (vitest exits 1 when unmet) without flapping on minor churn.
+      thresholds: {
+        statements: 95,
+        branches: 90,
+        functions: 95,
+        lines: 95,
+      },
       reporter: ["text", "json", "html", "lcov"],
       include: ["src/**/*"],
       exclude: [
