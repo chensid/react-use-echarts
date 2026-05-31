@@ -6,7 +6,6 @@ import {
   updateGroup,
   getGroupInstances,
   getInstanceGroup,
-  isInGroup,
   clearGroups,
 } from "../../utils/connect";
 import { createMockInstance as createBaseMockInstance } from "../helpers";
@@ -190,20 +189,6 @@ describe("connect utilities", () => {
     it("should return undefined for instance not in any group", () => {
       const instance = createMockInstance();
       expect(getInstanceGroup(instance)).toBeUndefined();
-    });
-  });
-
-  describe("isInGroup", () => {
-    it("should return true for instance in group", () => {
-      const instance = createMockInstance();
-      addToGroup(instance, "group1");
-
-      expect(isInGroup(instance)).toBe(true);
-    });
-
-    it("should return false for instance not in any group", () => {
-      const instance = createMockInstance();
-      expect(isInGroup(instance)).toBe(false);
     });
   });
 

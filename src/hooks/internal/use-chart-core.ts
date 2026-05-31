@@ -80,10 +80,16 @@ function resolveThemeName(
 }
 
 function warnZeroSizeContainer(element: HTMLElement): void {
+  // NODE_ENV checks come FIRST so a consumer's production build folds the guard
+  // to `if (true) return;` and dead-code-eliminates the whole dev-only body
+  // (including the warning string). With the `warnedZeroSizeContainers.has(...)`
+  // call leading the `||` chain, minifiers can't prove the early-return is
+  // unconditional and leave the string in the bundle. Order is behavior-neutral
+  // in dev (Set.has is side-effect-free; `||` result is identical).
   if (
-    warnedZeroSizeContainers.has(element) ||
     process.env.NODE_ENV === "production" ||
-    process.env.NODE_ENV === "test"
+    process.env.NODE_ENV === "test" ||
+    warnedZeroSizeContainers.has(element)
   ) {
     return;
   }
@@ -189,8 +195,15 @@ export function useChartCore(
     latestRef.current = { setOptionOpts, onError };
   }
 
+  // Sync the two fields every render via a layout effect — keeps the committed
+  // timing the imperative API depends on (the closure only reads latestRef
+  // post-commit, from event handlers / imperative calls). Mutate the existing
+  // object in place rather than allocating a fresh `{ setOptionOpts, onError }`
+  // each render: the ref identity is stable and never read during render, so
+  // in-place writes are sufficient and save one allocation per render per chart.
   useLayoutEffect(() => {
-    latestRef.current = { setOptionOpts, onError };
+    latestRef.current.setOptionOpts = setOptionOpts;
+    latestRef.current.onError = onError;
   });
 
   // --- Effect-context error routing. `useEffectEvent` reads the latest

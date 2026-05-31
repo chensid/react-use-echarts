@@ -139,16 +139,6 @@ export function getInstanceGroup(instance: ECharts): string | undefined {
 }
 
 /**
- * Check if instance is in any group
- * 检查实例是否在任何组中
- * @param instance ECharts instance
- * @returns True if in a group
- */
-export function isInGroup(instance: ECharts): boolean {
-  return getInstanceGroup(instance) !== undefined;
-}
-
-/**
  * Clear all groups (for testing/cleanup)
  * 清除所有组（用于测试/清理）
  */
