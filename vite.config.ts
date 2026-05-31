@@ -8,6 +8,25 @@ import { playwright } from "vite-plus/test/browser/providers/playwright";
 const repositoryName = process.env.GITHUB_REPOSITORY?.split("/")[1];
 const base = process.env.GITHUB_ACTIONS === "true" && repositoryName ? `/${repositoryName}/` : "/";
 
+// Preserve `process.env.NODE_ENV` references verbatim in the packed bundle
+// instead of inlining the library's own build-time value. The dev-only console
+// warnings in use-chart-core / instance-cache are guarded by
+// `NODE_ENV !== "production"`; without this identity-define the pack build folds
+// those guards to the build-time value (dev), baking the warnings permanently
+// into the shipped bundle so consumers can neither strip them nor silence them
+// in production. Keeping the token lets each consumer's bundler DCE the dev
+// branches in their own production build (and keep them in dev) — the standard
+// library pattern (see Vite "Building for Production › Library Mode").
+//
+// IMPORTANT: keep this scoped to the pack (library) entries below — do NOT
+// hoist it to a top-level `define`, which would also rewrite the examples app
+// (`vp dev`/`vp build`) and leave `process.env.NODE_ENV` undefined at runtime
+// there. Applied uniformly to every JS-logic entry (index, its alias core, and
+// preset-full) — not only the two that emit warnings today — so a dev warning
+// added to any of them later is automatically consumer-strippable instead of
+// silently baked in. themes/registry is pure preset JSON with no guarded code.
+const preserveProcessEnvNodeEnv = { "process.env.NODE_ENV": "process.env.NODE_ENV" };
+
 // https://viteplus.dev/config/
 export default defineConfig({
   base,
@@ -63,6 +82,7 @@ export default defineConfig({
       publint: true,
       attw: { profile: "esm-only" },
       platform: "browser",
+      define: preserveProcessEnvNodeEnv,
       plugins: [babel({ presets: [reactCompilerPreset()] })],
     },
     {
@@ -73,6 +93,7 @@ export default defineConfig({
       format: ["esm"],
       dts: { build: true },
       platform: "browser",
+      define: preserveProcessEnvNodeEnv,
       plugins: [babel({ presets: [reactCompilerPreset()] })],
     },
     {
@@ -87,6 +108,7 @@ export default defineConfig({
       format: ["esm"],
       dts: { build: true },
       platform: "browser",
+      define: preserveProcessEnvNodeEnv,
       plugins: [babel({ presets: [reactCompilerPreset()] })],
     },
   ],
