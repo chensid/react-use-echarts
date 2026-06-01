@@ -72,6 +72,42 @@ describe("visibility-coordinator", () => {
     }
   });
 
+  it("isolates a throwing subscriber so later subscribers still fire", () => {
+    const ownDescriptor = Object.getOwnPropertyDescriptor(document, "hidden");
+    let hidden = true;
+    Object.defineProperty(document, "hidden", {
+      configurable: true,
+      get: () => hidden,
+    });
+    const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+
+    try {
+      const throwing = vi.fn(() => {
+        throw new Error("subscriber boom");
+      });
+      const after = vi.fn();
+      // Insertion order = iteration order, so `throwing` runs before `after`.
+      subscribeVisibilityResume(throwing);
+      subscribeVisibilityResume(after);
+
+      hidden = false;
+      // The dispatch itself must not throw, and the throwing subscriber must
+      // not starve the one registered after it.
+      expect(() => document.dispatchEvent(new Event("visibilitychange"))).not.toThrow();
+
+      expect(throwing).toHaveBeenCalledTimes(1);
+      expect(after).toHaveBeenCalledTimes(1);
+      expect(errorSpy).toHaveBeenCalled();
+    } finally {
+      errorSpy.mockRestore();
+      if (ownDescriptor) {
+        Object.defineProperty(document, "hidden", ownDescriptor);
+      } else {
+        delete (document as unknown as { hidden?: boolean }).hidden;
+      }
+    }
+  });
+
   it("__resetForTesting__ detaches an active listener", () => {
     const removeSpy = vi.spyOn(document, "removeEventListener");
 

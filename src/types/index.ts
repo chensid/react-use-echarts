@@ -67,9 +67,9 @@ export type EChartsEventHandler<TParams = unknown> = (params: TParams) => void;
 export type EChartsEventConfig<TParams = unknown> =
   | EChartsEventHandler<TParams>
   | {
-      handler: EChartsEventHandler<TParams>;
-      query?: string | object;
-      context?: object;
+      readonly handler: EChartsEventHandler<TParams>;
+      readonly query?: string | object;
+      readonly context?: object;
     };
 
 /**
