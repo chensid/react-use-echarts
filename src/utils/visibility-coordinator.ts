@@ -11,7 +11,17 @@ let attached = false;
 
 function onVisibilityChange(): void {
   if (document.hidden) return;
-  for (const cb of subscribers) cb();
+  // Isolate each subscriber: a throwing callback (e.g. a chart whose consumer
+  // `onError` rethrows from the resize path) must not abort the loop and starve
+  // every other chart's foreground resize resync — they share this one
+  // document listener. Mirrors merge-refs' per-callback try/catch isolation.
+  for (const cb of subscribers) {
+    try {
+      cb();
+    } catch (error) {
+      console.error("react-use-echarts: visibilitychange subscriber threw", error);
+    }
+  }
 }
 
 /**

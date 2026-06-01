@@ -67,15 +67,26 @@ export function eventsEqual(a: EChartsEvents | undefined, b: EChartsEvents | und
   // whose value is `undefined` means "no listener" (bindEvents/unbindEvents
   // both skip it), so `{ click: h }` and `{ click: h, hover: undefined }` must
   // be equivalent — comparing key counts would treat them as different and
-  // trigger a redundant unbind/rebind. The union of keys is walked through
-  // eventConfigEqual, which already treats undefined on either side as equal
-  // to undefined and unequal to any defined config (an absent key reads back
-  // as undefined here, matching an explicit-undefined value).
-  const keys = new Set<string>();
-  if (a) for (const key of Object.keys(a)) keys.add(key);
-  if (b) for (const key of Object.keys(b)) keys.add(key);
-  for (const key of keys) {
-    if (!eventConfigEqual(a?.[key], b?.[key])) return false;
+  // trigger a redundant unbind/rebind. eventConfigEqual already treats
+  // undefined on either side as equal to undefined and unequal to any defined
+  // config (an absent key reads back as undefined, matching an explicit one).
+  //
+  // Two-pass key walk (mirrors shallowEqual) — avoids allocating a key-union
+  // Set on a path that runs every render when `onEvents` is an inline object
+  // literal (the Event Rebinding effect calls this as its dedup fast path).
+  // Pass 1: every key in `a` must match `b` (covers keys present in both).
+  if (a) {
+    for (const key of Object.keys(a)) {
+      if (!eventConfigEqual(a[key], b?.[key])) return false;
+    }
+  }
+  // Pass 2: keys present only in `b` (the `a` side reads back as undefined).
+  // Keys in both were already compared in pass 1, so skip them.
+  if (b) {
+    for (const key of Object.keys(b)) {
+      if (a && Object.prototype.hasOwnProperty.call(a, key)) continue;
+      if (!eventConfigEqual(undefined, b[key])) return false;
+    }
   }
   return true;
 }
