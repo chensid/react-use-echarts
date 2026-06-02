@@ -68,5 +68,7 @@ export const galleryItems: readonly DemoItem[] = [
   },
 ];
 
+export const CHART_COUNT = galleryItems.length;
+
 export const findGalleryItem = (id: string | undefined): DemoItem | undefined =>
   galleryItems.find((i) => i.id === id);
