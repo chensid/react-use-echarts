@@ -3,7 +3,8 @@ import { Link } from "react-router-dom";
 import { useEcharts } from "../../src";
 import { useTheme } from "./theme-context";
 import Icon from "./Icon";
-import { APP_VERSION, ECHARTS_MAJOR, REACT_MAJOR } from "../data/meta";
+import { CHART_COUNT } from "../data/gallery";
+import { APP_VERSION, BUNDLE_SIZE, ECHARTS_MAJOR, REACT_MAJOR } from "../data/meta";
 import type { EChartsOption } from "echarts";
 import styles from "./Hero.module.css";
 
@@ -164,7 +165,7 @@ const Hero: React.FC = () => {
 
         <div className={styles.ctaRow}>
           <Link to="/gallery" className="cta-primary">
-            Browse 8 charts
+            Browse {CHART_COUNT} charts
             <Icon name="arrow-right" size={14} />
           </Link>
           <Link to="/playground" className="cta-secondary">
@@ -185,7 +186,7 @@ const Hero: React.FC = () => {
           <div>
             <dt>Bundle</dt>
             <dd>
-              2.1 kB <span>min+gzip</span>
+              {BUNDLE_SIZE} <span>min+gzip</span>
             </dd>
           </div>
           <div>

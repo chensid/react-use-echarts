@@ -1,4 +1,6 @@
 import React from "react";
+import { CHART_COUNT } from "../data/gallery";
+import { BUNDLE_SIZE } from "../data/meta";
 import styles from "./StatsStrip.module.css";
 
 interface Stat {
@@ -8,10 +10,10 @@ interface Stat {
 }
 
 const STATS: readonly Stat[] = [
-  { label: "Bundle size", value: "2.1 kB", note: "min + gzip · zero runtime deps" },
+  { label: "Bundle size", value: BUNDLE_SIZE, note: "min + gzip · zero runtime deps" },
   {
     label: "Chart types",
-    value: "8",
+    value: String(CHART_COUNT),
     note: "bar, line, radar, gauge, ohlc, heat, funnel, treemap",
   },
   { label: "Features", value: "8", note: "themes, renderer, linkage, lazy, events, ref…" },

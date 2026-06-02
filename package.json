@@ -4,20 +4,25 @@
   "private": false,
   "description": "React hooks & component for Apache ECharts — TypeScript, auto-resize, themes, lazy init",
   "keywords": [
+    "apache-echarts",
     "chart-linkage",
     "charts",
     "data-visualization",
     "echarts",
+    "echarts-for-react",
+    "echarts-react",
     "esm",
     "hooks",
     "lazy-loading",
     "react",
+    "react-component",
+    "react-hooks",
     "resize-observer",
     "themes",
     "typescript",
     "vite-plus"
   ],
-  "homepage": "https://github.com/chensid/react-use-echarts#readme",
+  "homepage": "https://chensid.github.io/react-use-echarts/",
   "bugs": {
     "url": "https://github.com/chensid/react-use-echarts/issues"
   },

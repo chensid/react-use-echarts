@@ -1,4 +1,5 @@
 import React from "react";
+import { BUNDLE_SIZE } from "../data/meta";
 import Icon from "./Icon";
 import styles from "./CompareTable.module.css";
 
@@ -10,7 +11,7 @@ interface Row {
 }
 
 const ROWS: readonly Row[] = [
-  { label: "Bundle (min+gzip)", hook: "2.1 kB", raw: "—", other: "8–14 kB" },
+  { label: "Bundle (min+gzip)", hook: BUNDLE_SIZE, raw: "—", other: "varies" },
   { label: "Auto-resize on container change", hook: true, raw: false, other: "varies" },
   { label: "Lazy init via IntersectionObserver", hook: true, raw: false, other: false },
   { label: "Theme switching at runtime", hook: true, raw: "manual", other: "varies" },

@@ -9,8 +9,14 @@
 [![GitHub issues](https://img.shields.io/github/issues/chensid/react-use-echarts)](https://github.com/chensid/react-use-echarts/issues)
 [![GitHub pull requests](https://img.shields.io/github/issues-pr/chensid/react-use-echarts)](https://github.com/chensid/react-use-echarts/pulls)
 [![GitHub license](https://img.shields.io/github/license/chensid/react-use-echarts.svg)](https://github.com/chensid/react-use-echarts/blob/main/LICENSE.txt)
+[![minzipped size](https://img.shields.io/bundlephobia/minzip/react-use-echarts?label=minzipped)](https://bundlephobia.com/package/react-use-echarts)
+[![types included](https://img.shields.io/npm/types/react-use-echarts)](https://www.npmjs.com/package/react-use-echarts)
 
 React hooks & component for Apache ECharts — TypeScript, auto-resize, themes, lazy init.
+
+**[📊 Live demo & interactive playground →](https://chensid.github.io/react-use-echarts/)**
+
+[![react-use-echarts — the minimal hook for Apache ECharts](https://raw.githubusercontent.com/chensid/react-use-echarts/main/.github/assets/hero.webp)](https://chensid.github.io/react-use-echarts/)
 
 ## Features
 
@@ -22,6 +28,22 @@ React hooks & component for Apache ECharts — TypeScript, auto-resize, themes, 
 - **Chart linkage** — connect multiple charts for synchronized interactions
 - **Lazy initialization** — defer chart init until element enters viewport
 - **StrictMode safe** — instance cache with reference counting handles double mount/unmount
+
+## Why react-use-echarts?
+
+A modern, hook-first wrapper for teams on **React 19 + ECharts 6**. ECharts stays the single source of truth — you pass `EChartsOption` straight through, with no abstraction layer to re-learn.
+
+|               | react-use-echarts                                | echarts-for-react        |
+| ------------- | ------------------------------------------------ | ------------------------ |
+| API           | `useEcharts` hook **and** `<EChart />` component | Component only           |
+| Built for     | React 19 — callback ref, StrictMode-safe         | React 16–18 era          |
+| Auto-resize   | `ResizeObserver` + RAF, on by default            | ✓                        |
+| Lazy init     | Built-in `lazyInit` (IntersectionObserver)       | Manual                   |
+| Chart linkage | Built-in `group` prop                            | Manual `echarts.connect` |
+| Error routing | `onError` for init / setOption / dispatch        | Manual try/catch         |
+| Format & deps | ESM-only, tree-shakeable, zero runtime deps      | CJS + ESM, zero deps     |
+
+Already using `echarts-for-react`? Most props map 1:1 — see [Migrating from echarts-for-react](#migrating-from-echarts-for-react).
 
 ## Requirements
 
