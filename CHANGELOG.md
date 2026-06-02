@@ -1,5 +1,11 @@
 # react-use-echarts
 
+## 2.1.4
+
+### Patch Changes
+
+- 1058e7d: Docs & npm metadata: add a README hero image, minzipped-size and types badges, a live-demo link, and an `echarts-for-react` comparison table. Point `homepage` at the live showcase and expand `keywords` for discoverability. No library code changes.
+
 ## 2.1.3
 
 ### Patch Changes
