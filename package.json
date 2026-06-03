@@ -87,24 +87,24 @@
     "@size-limit/file": "^12.1.0",
     "@testing-library/react": "^16.3.2",
     "@types/node": "^25.9.1",
-    "@types/react": "^19.2.15",
+    "@types/react": "^19.2.16",
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^6.0.2",
-    "@vitest/coverage-v8": "^4.1.7",
+    "@vitest/coverage-v8": "^4.1.8",
     "babel-plugin-react-compiler": "^1.0.0",
     "echarts": "^6.1.0",
     "happy-dom": "^20.9.0",
     "playwright": "^1.60.0",
     "publint": "^0.3.21",
-    "react": "^19.2.6",
-    "react-dom": "^19.2.6",
+    "react": "^19.2.7",
+    "react-dom": "^19.2.7",
     "react-router-dom": "^7.16.0",
     "shiki": "^4.1.0",
     "size-limit": "^12.1.0",
     "typescript": "~6.0.3",
-    "vite": "npm:@voidzero-dev/vite-plus-core@^0.1.23",
-    "vite-plus": "^0.1.23",
-    "vitest": "npm:@voidzero-dev/vite-plus-test@^0.1.23"
+    "vite": "npm:@voidzero-dev/vite-plus-core@^0.1.24",
+    "vite-plus": "^0.1.24",
+    "vitest": "npm:@voidzero-dev/vite-plus-test@^0.1.24"
   },
   "peerDependencies": {
     "echarts": "^6.0.0",
@@ -144,5 +144,5 @@
   "engines": {
     "node": ">=22.0.0"
   },
-  "packageManager": "pnpm@11.0.3"
+  "packageManager": "pnpm@11.5.1"
 }
