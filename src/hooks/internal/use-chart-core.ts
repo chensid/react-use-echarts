@@ -23,7 +23,11 @@ import {
 } from "../../themes";
 import { shallowEqual } from "../../utils/shallow-equal";
 import { computeStableKey } from "../../utils/stable-key";
-import { warnedThemeNames, warnedZeroSizeContainers } from "../../utils/dev-warnings";
+import {
+  warnedThemeNames,
+  warnedZeroSizeContainers,
+  warnedMissingRegistration,
+} from "../../utils/dev-warnings";
 import { routeImperativeError } from "../../utils/error";
 import { bindEvents, unbindEvents, eventsEqual } from "./event-utils";
 
@@ -112,6 +116,46 @@ function warnZeroSizeContainer(element: HTMLElement): void {
     "react-use-echarts: chart container has zero width or height during initialization. " +
       "Give the container an explicit size; <EChart /> defaults to height: 100%, " +
       "so its parent also needs an explicit height.",
+  );
+}
+
+/**
+ * Dev-only hint for the single most common modular-entry pitfall: calling
+ * `useEcharts()` before any chart/renderer/component is registered. echarts
+ * (via zrender) then throws a minifier-mangled "<X> is not a constructor"
+ * TypeError that gives the consumer no clue. Detect that signature and point
+ * them at registration. Routed alongside (not instead of) the real error, so
+ * onError / console.error still see the original.
+ * dev 专用引导：未注册任何图表/渲染器/组件就调用 `useEcharts()` 是 modular 入口最
+ * 常见的坑，echarts 会抛出混淆后的 "... is not a constructor"，毫无指引。识别该特征
+ * 并引导用户去注册；与真实错误并行输出，不替代它。
+ */
+function warnMissingRegistration(error: unknown): void {
+  // NODE_ENV checks FIRST so a consumer's production build folds this to
+  // `if (true) return;` and dead-code-eliminates the whole dev-only body
+  // (including the hint string), mirroring warnZeroSizeContainer. Keeping
+  // `warnedMissingRegistration.has(...)` last leaves the early-return
+  // non-constant so minifiers can't strip the guard in dev.
+  if (
+    process.env.NODE_ENV === "production" ||
+    process.env.NODE_ENV === "test" ||
+    warnedMissingRegistration.has("init")
+  ) {
+    return;
+  }
+
+  // String(err) yields e.g. "TypeError: ka[a] is not a constructor" — the
+  // signature substring survives, and non-Error throws stringify safely too.
+  const message = String(error);
+  if (!message.includes("is not a constructor")) return;
+
+  warnedMissingRegistration.add("init");
+  console.warn(
+    'react-use-echarts: ECharts init failed with a "... is not a constructor" error. ' +
+      "This usually means no charts/renderers/components are registered yet. " +
+      'Call registerEchartsFull() from "react-use-echarts/preset-full" at your app entry, ' +
+      "or echarts.use([...]) selectively — both must run before the first useEcharts() render. " +
+      'See the README "Register ECharts modules" section.',
   );
 }
 
@@ -282,6 +326,7 @@ export function useChartCore(
           ...initOpts,
         });
       } catch (error) {
+        warnMissingRegistration(error);
         handleEffectError(error, "ECharts init failed:");
         return;
       }
@@ -327,7 +372,15 @@ export function useChartCore(
     }
 
     if (group) {
-      updateGroup(instance, undefined, group);
+      // Routed like every other instance call in this effect. echarts.connect
+      // is near-certain not to throw, but a bare call here would be the lone
+      // un-instrumented instance op — an escaped throw could disrupt React
+      // commit, so keep it consistent with setOption/bindEvents above.
+      try {
+        updateGroup(instance, undefined, group);
+      } catch (error) {
+        handleEffectError(error, "ECharts group assignment failed:");
+      }
     }
 
     setLiveInstance(instance);
@@ -474,7 +527,11 @@ export function useChartCore(
     const currentGroup = getInstanceGroup(instance);
     if (currentGroup === group) return;
 
-    updateGroup(instance, currentGroup, group);
+    try {
+      updateGroup(instance, currentGroup, group);
+    } catch (error) {
+      handleEffectError(error, "ECharts group switch failed:");
+    }
   }, [element, group]);
 
   // =====================================================================

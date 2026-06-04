@@ -272,7 +272,7 @@ export default function Page() {
 ## Gotchas
 
 - **Container needs explicit size** — the chart won't render in a zero-height div; give the container `height` (and `width` if not 100%).
-- **Forgetting to register ECharts modules** — `useEcharts()` initializes a chart against ECharts' shared global registry, so charts/components/renderers/features must be registered (via `registerEchartsFull()` or `echarts.use([...])`) **before** the first render. A missing registration usually shows up as `Renderer 'undefined' is not imported` or a chart that silently never paints; see [Register ECharts modules](#register-echarts-modules).
+- **Forgetting to register ECharts modules** — `useEcharts()` initializes a chart against ECharts' shared global registry, so charts/components/renderers/features must be registered (via `registerEchartsFull()` or `echarts.use([...])`) **before** the first render. A missing registration usually shows up as `Renderer 'undefined' is not imported` or a chart that silently never paints; see [Register ECharts modules](#register-echarts-modules). In dev, if init throws `… is not a constructor`, the library also prints a one-time hint pointing you here.
 - **Keep `onEvents` reference stable** — a new `onEvents` object on each render triggers a full rebind. Memoize it with `useMemo` (or hoist) when handlers don't change.
 - **Don't share one DOM element across multiple `useEcharts` hooks** — the instance cache reuses a single ECharts instance and emits a dev warning; updates from different hooks will overwrite each other.
 - **`initOpts` and custom `theme` objects recreate the instance on reference change** — pass memoized or module-level constants unless recreation is intended.
@@ -373,7 +373,9 @@ import { registerEchartsFull } from "react-use-echarts/preset-full"; // one-line
 // EChartProps, EChartHandle, EChartsEvents, EChartsEventConfig, EChartsEventHandler,
 // EChartsEventPayloadMap, EChartsInitOpts, BuiltinTheme, LoadingOption,
 // ChartFinder, ChartScaleValue, Payload.
-// EChartsOption, SetOptionOpts, ResizeOpts come from the "echarts" package directly.
+// EChartsOption, SetOptionOpts, ResizeOpts are also re-exported here for
+// convenience (they originate in the "echarts" package), so you can import them
+// from react-use-echarts alongside the types above instead of reaching into echarts.
 ```
 
 > `react-use-echarts/core` is a deprecated alias of the default entry as of v2.1 — both are now identical modular entries. The `/core` alias will be removed in v4; migrate any `from "react-use-echarts/core"` imports to `from "react-use-echarts"`.
