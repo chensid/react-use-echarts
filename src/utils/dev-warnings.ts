@@ -6,6 +6,9 @@
 
 export const warnedThemeNames = new Set<string>();
 export const warnedZeroSizeContainers = new WeakSet<HTMLElement>();
+// "Warn once" guard for the missing-registration init hint. A single global
+// flag; the "init" sentinel key keeps the same .clear()-able shape as above.
+export const warnedMissingRegistration = new Set<string>();
 
 /**
  * Reset dev warning state (for testing).
@@ -13,4 +16,5 @@ export const warnedZeroSizeContainers = new WeakSet<HTMLElement>();
  */
 export function resetDevWarnings(): void {
   warnedThemeNames.clear();
+  warnedMissingRegistration.clear();
 }

@@ -65,6 +65,21 @@ export type {
 export type { Payload } from "echarts/core";
 
 /**
+ * Re-exported ECharts option types, so consumers can import them from
+ * `react-use-echarts` alongside the library's own types instead of reaching
+ * into the `echarts` package separately (a frequent TypeScript friction point).
+ * Pure `export type` — erased at build time: zero runtime, no `echarts`
+ * side-effect import, no impact on the modular/registration design.
+ * `EChartsOption` is only exported by the full `echarts` package;
+ * `SetOptionOpts` / `ResizeOpts` ship from `echarts/core`.
+ * 从 echarts 转出的 option 相关类型，便于与本库自有类型从同一处导入（这是 TS 用户
+ * 最常见的困惑点）。纯类型导出，编译期擦除：零运行时、不引入 echarts 副作用、不影响
+ * modular 设计。
+ */
+export type { EChartsOption } from "echarts";
+export type { SetOptionOpts, ResizeOpts } from "echarts/core";
+
+/**
  * Theme utilities (lightweight, no JSON bundled)
  * 主题工具函数（轻量，不含 JSON）
  */

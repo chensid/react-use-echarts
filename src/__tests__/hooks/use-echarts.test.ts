@@ -14,6 +14,7 @@ import { __clearThemeCacheForTesting__ } from "../../themes";
 import { registerBuiltinThemes } from "../../themes/registry";
 import { __resetVisibilityCoordinatorForTesting__ } from "../../utils/visibility-coordinator";
 import { createMockInstance, MockResizeObserver, MockIntersectionObserver } from "../helpers";
+import { resetDevWarnings } from "../../utils/dev-warnings";
 
 // Mock ECharts
 vi.mock("echarts/core", () => ({
@@ -1080,6 +1081,62 @@ describe("useEcharts", () => {
       });
 
       globalThis.IntersectionObserver = originalIntersectionObserver;
+    });
+
+    it("should route initial group assignment errors through onError", async () => {
+      const element = document.createElement("div");
+      const mockInstance = createMockInstance(element);
+      (echarts.init as ReturnType<typeof vi.fn>).mockReturnValue(mockInstance);
+
+      const connectError = new Error("connect failed");
+      (echarts.connect as ReturnType<typeof vi.fn>).mockImplementation(() => {
+        throw connectError;
+      });
+      const onError = vi.fn();
+
+      const { result } = renderHook(() =>
+        useEcharts({ option: baseOption, group: "errGroup", onError }),
+      );
+      act(() => {
+        result.current.ref(element);
+      });
+
+      await waitFor(() => {
+        expect(onError).toHaveBeenCalledWith(connectError);
+      });
+    });
+
+    it("should route dynamic group switch errors through onError", async () => {
+      const element = document.createElement("div");
+      const mockInstance = createMockInstance(element);
+      (echarts.init as ReturnType<typeof vi.fn>).mockReturnValue(mockInstance);
+
+      // First connect (initial group) succeeds; the switch's connect throws.
+      const switchError = new Error("connect failed on switch");
+      (echarts.connect as ReturnType<typeof vi.fn>)
+        .mockImplementationOnce(() => {})
+        .mockImplementationOnce(() => {
+          throw switchError;
+        });
+      const onError = vi.fn();
+
+      const { rerender, result } = renderHook(
+        ({ group }) => useEcharts({ option: baseOption, group, onError }),
+        { initialProps: { group: "g1" } },
+      );
+      act(() => {
+        result.current.ref(element);
+      });
+
+      await waitFor(() => {
+        expect(getGroupInstances("g1")).toContain(mockInstance);
+      });
+
+      rerender({ group: "g2" });
+
+      await waitFor(() => {
+        expect(onError).toHaveBeenCalledWith(switchError);
+      });
     });
   });
 
@@ -2667,6 +2724,93 @@ describe("useEcharts", () => {
 
       expect(errorSpy).toHaveBeenCalledWith("ECharts init failed:", initError);
       errorSpy.mockRestore();
+    });
+
+    it("should hint about missing registration when init fails with 'not a constructor' in dev", () => {
+      const previousNodeEnv = process.env.NODE_ENV;
+      process.env.NODE_ENV = "development";
+      resetDevWarnings();
+      const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+      const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+
+      try {
+        const element = document.createElement("div");
+        (echarts.init as ReturnType<typeof vi.fn>).mockImplementation(() => {
+          throw new TypeError("ka[a] is not a constructor");
+        });
+
+        const { result } = renderHook(() => useEcharts({ option: baseOption }));
+        act(() => {
+          result.current.ref(element);
+        });
+
+        expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining("registerEchartsFull()"));
+      } finally {
+        warnSpy.mockRestore();
+        errorSpy.mockRestore();
+        process.env.NODE_ENV = previousNodeEnv;
+        resetDevWarnings();
+      }
+    });
+
+    it("should not hint about registration for unrelated init errors in dev", () => {
+      const previousNodeEnv = process.env.NODE_ENV;
+      process.env.NODE_ENV = "development";
+      resetDevWarnings();
+      const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+      const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+
+      try {
+        const element = document.createElement("div");
+        (echarts.init as ReturnType<typeof vi.fn>).mockImplementation(() => {
+          throw new Error("some unrelated boom");
+        });
+
+        const { result } = renderHook(() => useEcharts({ option: baseOption }));
+        act(() => {
+          result.current.ref(element);
+        });
+
+        expect(warnSpy).not.toHaveBeenCalledWith(expect.stringContaining("registerEchartsFull()"));
+      } finally {
+        warnSpy.mockRestore();
+        errorSpy.mockRestore();
+        process.env.NODE_ENV = previousNodeEnv;
+        resetDevWarnings();
+      }
+    });
+
+    it("should hint about missing registration only once in dev", () => {
+      const previousNodeEnv = process.env.NODE_ENV;
+      process.env.NODE_ENV = "development";
+      resetDevWarnings();
+      const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+      const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+
+      try {
+        (echarts.init as ReturnType<typeof vi.fn>).mockImplementation(() => {
+          throw new TypeError("Ctor is not a constructor");
+        });
+
+        const first = renderHook(() => useEcharts({ option: baseOption }));
+        act(() => {
+          first.result.current.ref(document.createElement("div"));
+        });
+        const second = renderHook(() => useEcharts({ option: baseOption }));
+        act(() => {
+          second.result.current.ref(document.createElement("div"));
+        });
+
+        const hintCalls = warnSpy.mock.calls.filter(
+          ([msg]) => typeof msg === "string" && msg.includes("registerEchartsFull()"),
+        );
+        expect(hintCalls).toHaveLength(1);
+      } finally {
+        warnSpy.mockRestore();
+        errorSpy.mockRestore();
+        process.env.NODE_ENV = previousNodeEnv;
+        resetDevWarnings();
+      }
     });
 
     it("should call onError when initial setOption throws", () => {
