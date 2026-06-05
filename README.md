@@ -365,7 +365,7 @@ Declarative component wrapping `useEcharts`. Accepts all hook options as props p
 ```tsx
 import { useLazyInit } from "react-use-echarts"; // standalone lazy init hook -> { ref, isInView }
 import { mergeRefs } from "react-use-echarts"; // compose multiple refs into one callback ref
-import { isBuiltinTheme, registerCustomTheme } from "react-use-echarts"; // theme utils (no JSON)
+import { isBuiltinTheme, isKnownTheme, registerCustomTheme } from "react-use-echarts"; // theme utils (no JSON)
 import { registerBuiltinThemes } from "react-use-echarts/themes/registry"; // ~20KB theme JSON
 import { registerEchartsFull } from "react-use-echarts/preset-full"; // one-line full-set registrar (see Register ECharts modules)
 
