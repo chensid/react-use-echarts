@@ -296,7 +296,7 @@ export default function Page() {
 | 选项            | 类型                                  | 默认值     | 说明                                                                                   |
 | --------------- | ------------------------------------- | ---------- | -------------------------------------------------------------------------------------- |
 | `option`        | `EChartsOption`                       | （必需）   | ECharts 配置选项                                                                       |
-| `theme`         | `string \| object \| null`            | `null`     | 任意已注册主题名或自定义主题对象                                                       |
+| `theme`         | `string \| object`                    | —          | 任意已注册主题名或自定义主题对象                                                       |
 | `renderer`      | `'canvas' \| 'svg'`                   | `'canvas'` | 渲染器类型                                                                             |
 | `lazyInit`      | `boolean \| IntersectionObserverInit` | `false`    | 基于 IntersectionObserver 的懒加载                                                     |
 | `group`         | `string`                              | —          | 图表联动组 ID                                                                          |
@@ -364,7 +364,7 @@ export default function Page() {
 ```tsx
 import { useLazyInit } from "react-use-echarts"; // 独立的懒加载 Hook -> { ref, isInView }
 import { mergeRefs } from "react-use-echarts"; // 将多个 ref 合并为一个 callback ref
-import { isBuiltinTheme, registerCustomTheme } from "react-use-echarts"; // 主题工具（不含 JSON）
+import { isBuiltinTheme, isKnownTheme, registerCustomTheme } from "react-use-echarts"; // 主题工具（不含 JSON）
 import { registerBuiltinThemes } from "react-use-echarts/themes/registry"; // 内置主题 JSON（~20KB）
 import { registerEchartsFull } from "react-use-echarts/preset-full"; // 一行注册全套（参见「注册 ECharts 模块」）
 
