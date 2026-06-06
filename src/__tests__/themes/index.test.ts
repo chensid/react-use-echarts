@@ -172,6 +172,37 @@ describe("themes utilities", () => {
     });
   });
 
+  describe("shared global registry state", () => {
+    it("keeps mutable registry state on a globalThis singleton so duplicate library copies share it", () => {
+      const theme = { color: ["#shared"] };
+      const name = getOrRegisterCustomTheme(theme);
+
+      // A second bundled copy of the library would read this same global key
+      // and continue the same counter sequence instead of restarting at
+      // __custom_theme_0 and colliding in echarts' shared theme registry.
+      const globalState = (globalThis as Record<string, unknown>)[
+        "__react_use_echarts_theme_state__"
+      ] as
+        | {
+            customThemeCounter: number;
+            knownThemeNames: Set<string>;
+            contentHashCache: Map<string, string>;
+          }
+        | undefined;
+
+      expect(globalState).toBeDefined();
+      expect(globalState!.knownThemeNames.has(name)).toBe(true);
+      expect(globalState!.customThemeCounter).toBeGreaterThan(0);
+      expect(globalState!.contentHashCache.size).toBeGreaterThan(0);
+
+      // The state object is a persistent singleton: a further registration
+      // mutates the SAME object (not a freshly recreated one).
+      const counterBefore = globalState!.customThemeCounter;
+      getOrRegisterCustomTheme({ color: ["#shared-2"] });
+      expect(globalState!.customThemeCounter).toBe(counterBefore + 1);
+    });
+  });
+
   describe("__clearThemeCacheForTesting__", () => {
     it("should reset counter so next theme gets __custom_theme_0", () => {
       getOrRegisterCustomTheme({ reset: ["#000"] });
