@@ -37,12 +37,39 @@ function pruneDisposed(group: Set<ECharts>): void {
 }
 
 /**
+ * Best-effort sweep: drop disposed instances from every group and tear down any
+ * left empty (disconnect + bookkeeping). The normal unmount path already cleans
+ * up via leaveGroup, but a consumer that disposes an instance directly
+ * (bypassing the cache) strands it in `groupMembers`; running this on every join
+ * bounds that leak. It can't reclaim a group after ALL group activity stops —
+ * that needs WeakRef/FinalizationRegistry, overkill for a misuse edge case.
+ * 尽力清扫：剔除各组已 dispose 的实例并拆除空组。正常卸载路径已能清理；消费者绕过缓存直接
+ * dispose 会留下孤儿，此清扫把泄漏限定在「应用彻底停止组活动」之前。
+ */
+function sweepDisposedGroups(): void {
+  for (const [groupId, members] of groupMembers) {
+    pruneDisposed(members);
+    if (members.size > 0) continue;
+    // Deleting the current key mid-iteration is safe for a Map; disconnect is
+    // bare like removeFromGroup / clearGroups.
+    groupMembers.delete(groupId);
+    connectedGroupIds.delete(groupId);
+    echarts.disconnect(groupId);
+  }
+}
+
+/**
  * Add chart instance to group
  * 将图表实例添加到组
  * @param instance ECharts instance
  * @param groupId Group ID
  */
 export function addToGroup(instance: ECharts, groupId: string): void {
+  // Reclaim groups orphaned by a cache-bypassing instance.dispose() before we
+  // add (see sweepDisposedGroups). May drop+recreate this groupId, correctly
+  // forcing a fresh echarts.connect below.
+  sweepDisposedGroups();
+
   let members = groupMembers.get(groupId);
   if (!members) {
     members = new Set();

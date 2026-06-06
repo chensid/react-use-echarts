@@ -7,46 +7,71 @@ import { resetDevWarnings } from "../utils/dev-warnings";
  * 内置主题名称硬编码集合（不依赖 JSON 数据）
  */
 const BUILTIN_THEME_NAMES: ReadonlySet<string> = new Set<string>(["light", "dark", "macarons"]);
-const REGISTERED_BUILTIN_THEME_NAMES_KEY = "__react_use_echarts_registered_builtin_theme_names__";
 
 /**
- * Names known to be registered via this library's API. Used by `isKnownTheme`
- * for dev-time validation. External `echarts.registerTheme(...)` calls are
- * invisible here — route through `registerCustomTheme` to suppress warnings.
- * 通过本库 API 注册过的主题名。外部直接调用 `echarts.registerTheme` 的名字不会被记录，
- * 若要消除 dev 警告请改用 `registerCustomTheme`。
- */
-const knownThemeNames: Set<string> = new Set<string>();
-type ThemeGlobal = typeof globalThis & {
-  [REGISTERED_BUILTIN_THEME_NAMES_KEY]?: Set<BuiltinTheme>;
-};
-const themeGlobal = globalThis as ThemeGlobal;
-const registeredBuiltinThemeNames: Set<BuiltinTheme> =
-  themeGlobal[REGISTERED_BUILTIN_THEME_NAMES_KEY] ?? new Set<BuiltinTheme>();
-themeGlobal[REGISTERED_BUILTIN_THEME_NAMES_KEY] = registeredBuiltinThemeNames;
-
-/**
- * Cache for custom theme names (theme object -> registered theme name)
- * 自定义主题名称缓存（主题对象 -> 已注册的主题名称）
- * Uses WeakMap to allow garbage collection of theme objects
- */
-const customThemeCache = new WeakMap<object, string>();
-
-/**
- * Content-based cache for custom theme deduplication
- * 基于内容的缓存，用于自定义主题去重
- * Prevents ECharts global registry from growing when different
- * object references carry identical theme content.
- * Capped at MAX_CONTENT_CACHE_SIZE — oldest entries evicted on overflow (FIFO).
+ * Maximum entries kept in the content-hash cache before FIFO eviction.
+ * 内容哈希缓存的上限，超出后按 FIFO 淘汰最旧条目。
  */
 const MAX_CONTENT_CACHE_SIZE = 100;
-const contentHashCache = new Map<string, string>();
+
+const THEME_STATE_KEY = "__react_use_echarts_theme_state__";
 
 /**
- * Counter for generating unique custom theme names
- * 用于生成唯一自定义主题名称的计数器
+ * All mutable theme-registry state, kept in one object so it can live as a
+ * single `globalThis` singleton. echarts' theme registry is a process-wide
+ * singleton, so two bundled copies of this library MUST share this state —
+ * otherwise each keeps its own `customThemeCounter` starting at 0 and both emit
+ * `echarts.registerTheme("__custom_theme_0", ...)` for different objects, the
+ * second silently clobbering the first. Sharing `knownThemeNames` /
+ * `contentHashCache` likewise keeps dev warnings and content dedup coherent
+ * across copies. Extends the rationale that previously kept only the built-in
+ * registration set global.
+ * 所有可变主题状态收进一个对象，作为单一 globalThis 单例。echarts 主题注册表是进程级
+ * 单例，两份打包的库副本必须共享此状态，否则各自的 customThemeCounter 都从 0 开始，会
+ * 向共享注册表写入同名的 `__custom_theme_0`，后者静默覆盖前者；共享 knownThemeNames /
+ * contentHashCache 也让 dev 警告与内容去重在多副本间保持一致。
  */
-let customThemeCounter = 0;
+interface ThemeRegistryState {
+  /** Built-in theme names registered via the registry subpath. */
+  registeredBuiltinThemeNames: Set<BuiltinTheme>;
+  /**
+   * Names known to be registered via this library's API. Used by `isKnownTheme`
+   * for dev-time validation. External `echarts.registerTheme(...)` calls are
+   * invisible here — route through `registerCustomTheme` to suppress warnings.
+   * 通过本库 API 注册过的主题名。外部直接调用 `echarts.registerTheme` 的名字不会被
+   * 记录，若要消除 dev 警告请改用 `registerCustomTheme`。
+   */
+  knownThemeNames: Set<string>;
+  /**
+   * Custom theme name cache (theme object -> registered name). Uses WeakMap to
+   * allow garbage collection of theme objects.
+   * 自定义主题名称缓存（主题对象 -> 已注册名称）；WeakMap 以允许主题对象被回收。
+   */
+  customThemeCache: WeakMap<object, string>;
+  /**
+   * Content-based cache for custom theme deduplication. Prevents ECharts global
+   * registry from growing when different object references carry identical
+   * content. Capped at MAX_CONTENT_CACHE_SIZE — oldest evicted on overflow (FIFO).
+   * 基于内容的去重缓存，避免不同引用、相同内容重复注册；FIFO，上限 100。
+   */
+  contentHashCache: Map<string, string>;
+  /** Monotonic counter for generated custom theme names. */
+  customThemeCounter: number;
+}
+
+type ThemeGlobal = typeof globalThis & {
+  [THEME_STATE_KEY]?: ThemeRegistryState;
+};
+const themeGlobal = globalThis as ThemeGlobal;
+const state: ThemeRegistryState =
+  themeGlobal[THEME_STATE_KEY] ??
+  (themeGlobal[THEME_STATE_KEY] = {
+    registeredBuiltinThemeNames: new Set<BuiltinTheme>(),
+    knownThemeNames: new Set<string>(),
+    customThemeCache: new WeakMap<object, string>(),
+    contentHashCache: new Map<string, string>(),
+    customThemeCounter: 0,
+  });
 
 /**
  * Check if a theme name is a built-in theme
@@ -66,7 +91,7 @@ export function isBuiltinTheme(themeName: string): themeName is BuiltinTheme {
  * `echarts.registerTheme` 注册的名称会返回 `false`。
  */
 export function isKnownTheme(themeName: string): boolean {
-  return BUILTIN_THEME_NAMES.has(themeName) || knownThemeNames.has(themeName);
+  return BUILTIN_THEME_NAMES.has(themeName) || state.knownThemeNames.has(themeName);
 }
 
 /**
@@ -74,14 +99,14 @@ export function isKnownTheme(themeName: string): boolean {
  * Used internally for dev-time warnings without importing preset JSON.
  */
 export function isBuiltinThemeRegistered(themeName: BuiltinTheme): boolean {
-  return registeredBuiltinThemeNames.has(themeName);
+  return state.registeredBuiltinThemeNames.has(themeName);
 }
 
 /**
  * Mark a built-in theme as registered by the optional registry entry.
  */
 export function markBuiltinThemeRegistered(themeName: BuiltinTheme): void {
-  registeredBuiltinThemeNames.add(themeName);
+  state.registeredBuiltinThemeNames.add(themeName);
 }
 
 /**
@@ -92,7 +117,7 @@ export function markBuiltinThemeRegistered(themeName: BuiltinTheme): void {
  */
 export function registerCustomTheme(themeName: string, themeConfig: object): void {
   echarts.registerTheme(themeName, themeConfig);
-  knownThemeNames.add(themeName);
+  state.knownThemeNames.add(themeName);
 }
 
 /**
@@ -114,7 +139,7 @@ export function registerCustomTheme(themeName: string, themeConfig: object): voi
  */
 export function getOrRegisterCustomTheme(themeConfig: object, precomputedHash?: string): string {
   // Fast path: same object reference
-  const cachedName = customThemeCache.get(themeConfig);
+  const cachedName = state.customThemeCache.get(themeConfig);
   if (cachedName) {
     return cachedName;
   }
@@ -131,26 +156,26 @@ export function getOrRegisterCustomTheme(themeConfig: object, precomputedHash?: 
   }
 
   if (contentHash) {
-    const existingName = contentHashCache.get(contentHash);
+    const existingName = state.contentHashCache.get(contentHash);
     if (existingName) {
       // Cache the reference for fast lookup next time
-      customThemeCache.set(themeConfig, existingName);
+      state.customThemeCache.set(themeConfig, existingName);
       return existingName;
     }
   }
 
   // Register new theme
-  const themeName = `__custom_theme_${customThemeCounter++}`;
+  const themeName = `__custom_theme_${state.customThemeCounter++}`;
   echarts.registerTheme(themeName, themeConfig);
-  knownThemeNames.add(themeName);
-  customThemeCache.set(themeConfig, themeName);
+  state.knownThemeNames.add(themeName);
+  state.customThemeCache.set(themeConfig, themeName);
   if (contentHash) {
-    if (contentHashCache.size >= MAX_CONTENT_CACHE_SIZE) {
+    if (state.contentHashCache.size >= MAX_CONTENT_CACHE_SIZE) {
       // Evict oldest entry (first inserted key in Map iteration order)
-      const oldest = contentHashCache.keys().next().value!;
-      contentHashCache.delete(oldest);
+      const oldest = state.contentHashCache.keys().next().value!;
+      state.contentHashCache.delete(oldest);
     }
-    contentHashCache.set(contentHash, themeName);
+    state.contentHashCache.set(contentHash, themeName);
   }
 
   return themeName;
@@ -166,9 +191,9 @@ export function getOrRegisterCustomTheme(themeConfig: object, precomputedHash?: 
  * @internal Test hook; not part of the public API.
  */
 export function __clearThemeCacheForTesting__(): void {
-  contentHashCache.clear();
-  knownThemeNames.clear();
-  registeredBuiltinThemeNames.clear();
-  customThemeCounter = 0;
+  state.contentHashCache.clear();
+  state.knownThemeNames.clear();
+  state.registeredBuiltinThemeNames.clear();
+  state.customThemeCounter = 0;
   resetDevWarnings();
 }

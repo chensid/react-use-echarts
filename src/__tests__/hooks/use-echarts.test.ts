@@ -1138,6 +1138,39 @@ describe("useEcharts", () => {
         expect(onError).toHaveBeenCalledWith(switchError);
       });
     });
+
+    it("should switch group by library intent even if instance.group was tampered with", async () => {
+      const element = document.createElement("div");
+      const mockInstance = createMockInstance(element);
+      (echarts.init as ReturnType<typeof vi.fn>).mockReturnValue(mockInstance);
+
+      const { rerender, result } = renderHook(
+        ({ group }) => useEcharts({ option: baseOption, group }),
+        { initialProps: { group: "g1" } },
+      );
+      act(() => {
+        result.current.ref(element);
+      });
+
+      await waitFor(() => {
+        expect(getGroupInstances("g1")).toContain(mockInstance);
+      });
+
+      // A consumer reaches into the live instance and overwrites the writable
+      // `group` property out from under the hook.
+      (mockInstance as unknown as { group: string }).group = "tampered";
+
+      rerender({ group: "g2" });
+
+      await waitFor(() => {
+        expect(getGroupInstances("g2")).toContain(mockInstance);
+      });
+      // Must have been removed from the group WE assigned ("g1"), not from the
+      // tampered id — otherwise it leaks in g1's bookkeeping. (Reading
+      // instance.group instead of lastGroupRef would removeFromGroup("tampered")
+      // and leave the instance stranded in g1.)
+      expect(getGroupInstances("g1")).not.toContain(mockInstance);
+    });
   });
 
   describe("setOption", () => {

@@ -275,6 +275,43 @@ describe("connect utilities", () => {
     });
   });
 
+  describe("externally-disposed group reclamation", () => {
+    it("reclaims an orphaned group (all members disposed externally) on the next addToGroup", () => {
+      const orphan = createMockInstance();
+      addToGroup(orphan, "orphanGroup");
+      expect(echarts.connect).toHaveBeenCalledWith("orphanGroup");
+
+      // Consumer disposes the instance directly, bypassing removeFromGroup, so
+      // it stays stranded (disposed) in groupMembers["orphanGroup"].
+      orphan.isDisposed.mockReturnValue(true);
+      vi.clearAllMocks();
+
+      // Activity on ANY other group sweeps the orphan: disconnect + drop it.
+      const other = createMockInstance();
+      addToGroup(other, "otherGroup");
+
+      expect(echarts.disconnect).toHaveBeenCalledWith("orphanGroup");
+      expect(getGroupInstances("orphanGroup")).toHaveLength(0);
+
+      // Fully torn down, so re-adding to the same id reconnects.
+      const fresh = createMockInstance();
+      addToGroup(fresh, "orphanGroup");
+      expect(echarts.connect).toHaveBeenCalledWith("orphanGroup");
+    });
+
+    it("does not disconnect a group that still has live members during the sweep", () => {
+      const alive = createMockInstance();
+      addToGroup(alive, "liveGroup");
+      vi.clearAllMocks();
+
+      const other = createMockInstance();
+      addToGroup(other, "otherGroup");
+
+      expect(echarts.disconnect).not.toHaveBeenCalled();
+      expect(getGroupInstances("liveGroup")).toContain(alive);
+    });
+  });
+
   describe("clearGroups", () => {
     it("should disconnect all groups and clear registry", () => {
       const instance1 = createMockInstance();

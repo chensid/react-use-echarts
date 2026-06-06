@@ -14,7 +14,7 @@ import {
   setCachedInstance,
   releaseCachedInstance,
 } from "../../utils/instance-cache";
-import { updateGroup, getInstanceGroup } from "../../utils/connect";
+import { updateGroup } from "../../utils/connect";
 import {
   getOrRegisterCustomTheme,
   isBuiltinTheme,
@@ -265,6 +265,11 @@ export function useChartCore(
   const lastBoundRef = useRef<EChartsEvents | undefined>(undefined);
   const lastAppliedRef = useRef<LastApplied | null>(null);
   const lastLoadingRef = useRef<LastLoading | null>(null);
+  // The group this hook last assigned the instance to — the single source of
+  // truth for *our* group intent. Read by the Group Switch effect to dedup
+  // instead of the externally-writable `instance.group`, so a consumer mutating
+  // that property can't desync groupMembers bookkeeping.
+  const lastGroupRef = useRef<string | undefined>(undefined);
 
   // Reactive view of the current instance. Set inside the lifecycle effect
   // after init/share succeeds and cleared on cleanup, so downstream consumers
@@ -382,6 +387,11 @@ export function useChartCore(
         handleEffectError(error, "ECharts group assignment failed:");
       }
     }
+    // Record what this fresh instance was assigned to (including `undefined`),
+    // so the Group Switch effect dedups against our own intent. A structural
+    // recreation captures the latest `group` here; a plain group-prop change
+    // (no recreation) is handled by the Group Switch effect updating this ref.
+    lastGroupRef.current = group;
 
     setLiveInstance(instance);
 
@@ -524,13 +534,23 @@ export function useChartCore(
     const instance = getCachedInstance(element);
     if (!instance) return;
 
-    const currentGroup = getInstanceGroup(instance);
+    // Dedup against the group WE last assigned (lastGroupRef), not the live
+    // instance.group: that property is writable at runtime, so a consumer
+    // mutating it would otherwise make updateGroup removeFromGroup the wrong id
+    // and desync groupMembers. lastGroupRef is our single source of truth.
+    const currentGroup = lastGroupRef.current;
     if (currentGroup === group) return;
 
     try {
       updateGroup(instance, currentGroup, group);
     } catch (error) {
       handleEffectError(error, "ECharts group switch failed:");
+    } finally {
+      // Record the attempt even on failure: updateGroup may have partially
+      // moved the instance before throwing, so lastGroupRef must reflect the
+      // new intent to avoid removeFromGroup-ing a stale id next time (mirrors
+      // the Option-Sync / Loading-Toggle try/finally dedup pattern).
+      lastGroupRef.current = group;
     }
   }, [element, group]);
 
