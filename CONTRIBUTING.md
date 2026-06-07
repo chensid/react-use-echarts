@@ -19,22 +19,22 @@ Thanks for your interest in improving `react-use-echarts`!
 ## Development Commands
 
 - `vp dev` – run the Vite dev server with the examples under `examples/`.
-- `vp lint .` – run Oxlint to check for issues.
-- `vp check` – run format + lint + typecheck in one command.
-- `vp run typecheck` – run dedicated TypeScript type validation (`tsc -b`).
-- `vp test` – execute the Vitest suite (watch mode by default).
-- `vp test run --coverage` – generate coverage reports.
+- `vp lint` – run Oxlint to check for issues.
+- `vp check` – run format + lint + typecheck (via tsgolint) in one command.
+- `vp test` – execute the Vitest suite once (single run by default).
+- `vp test watch` – run the suite in watch mode while developing.
+- `vp test --coverage` – generate coverage reports.
 - `vp build` – build the examples application with Vite.
 - `vp pack` – build the library (ESM) and type declarations into `dist/`. Runs `publint` + `attw` automatically.
 
-Run `vp check && vp test run` before opening a pull request. This is the same set of checks we rely on for releases.
+Run `vp check && vp test` before opening a pull request. This is the same set of checks we rely on for releases.
 
 ## Pull Request Guidelines
 
 - Keep each PR focused on a single feature or fix.
 - Update documentation in **both** `README.md` **and** `README-zh_CN.md` (and `examples/`, API comments) when behavior or public APIs change.
 - Add or update tests in `src/__tests__` for any logic changes.
-- Ensure `vp check` and `vp test run` pass locally.
+- Ensure `vp check` and `vp test` pass locally.
 - Describe the motivation, solution, and validation steps in the PR body.
 - **Add a changeset** (`pnpm changeset`) for any user-visible change — pick `patch` for fixes, `minor` for additive features, `major` for breaking changes. Internal-only refactors that don't affect the published API may skip this with a note in the PR description.
 
