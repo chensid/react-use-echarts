@@ -25,10 +25,10 @@ importers:
         specifier: ^0.2.3
         version: 0.2.3(@babel/core@7.29.7)(@babel/runtime@7.29.7)(@voidzero-dev/vite-plus-core@0.1.24(@arethetypeswrong/core@0.18.3)(@types/node@25.9.2)(publint@0.3.21)(typescript@6.0.3))(rolldown@1.0.0-rc.18)
       '@shikijs/langs':
-        specifier: ^4.1.0
+        specifier: ^4.2.0
         version: 4.2.0
       '@shikijs/themes':
-        specifier: ^4.1.0
+        specifier: ^4.2.0
         version: 4.2.0
       '@size-limit/file':
         specifier: ^12.1.0
@@ -37,10 +37,10 @@ importers:
         specifier: ^16.3.2
         version: 16.3.2(@testing-library/dom@10.4.1)(@types/react-dom@19.2.3(@types/react@19.2.17))(@types/react@19.2.17)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
       '@types/node':
-        specifier: ^25.9.1
+        specifier: ^25.9.2
         version: 25.9.2
       '@types/react':
-        specifier: ^19.2.16
+        specifier: ^19.2.17
         version: 19.2.17
       '@types/react-dom':
         specifier: ^19.2.3
@@ -58,7 +58,7 @@ importers:
         specifier: ^6.1.0
         version: 6.1.0
       happy-dom:
-        specifier: ^20.9.0
+        specifier: ^20.10.2
         version: 20.10.2
       playwright:
         specifier: ^1.60.0
@@ -73,10 +73,10 @@ importers:
         specifier: ^19.2.7
         version: 19.2.7(react@19.2.7)
       react-router-dom:
-        specifier: ^7.16.0
+        specifier: ^7.17.0
         version: 7.17.0(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
       shiki:
-        specifier: ^4.1.0
+        specifier: ^4.2.0
         version: 4.2.0
       size-limit:
         specifier: ^12.1.0
