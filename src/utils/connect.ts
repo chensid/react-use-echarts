@@ -25,14 +25,15 @@ const groupMembers = new Map<string, Set<ECharts>>();
 const connectedGroupIds = new Set<string>();
 
 function pruneDisposed(group: Set<ECharts>): void {
-  const disposed: ECharts[] = [];
+  // Deleting the current element mid-iteration is spec-safe for a Set (the slot
+  // is tombstoned and the iterator skips it — no missed or revisited entries),
+  // so prune in a single pass. Avoids allocating a scratch array on every call,
+  // and this runs on each group join/leave/query. Same safety relied on by
+  // sweepDisposedGroups' mid-iteration Map delete.
   for (const inst of group) {
     if (inst.isDisposed()) {
-      disposed.push(inst);
+      group.delete(inst);
     }
-  }
-  for (const inst of disposed) {
-    group.delete(inst);
   }
 }
 
