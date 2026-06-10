@@ -145,6 +145,8 @@ const customTheme = useMemo(() => ({ color: ["#fc8452", "#9a60b4", "#ea7ccc"] })
 useEcharts({ option, theme: customTheme });
 ```
 
+> Note: theme names registered directly via `echarts.registerTheme()` (like `"vintage"` above) work, but trigger a one-time dev-only warning because the library cannot see that registration. Prefer `registerCustomTheme(name, config)` from `react-use-echarts` — it registers the theme by name through the library, which silences the warning. If you must register via `echarts.registerTheme()` (e.g. a third-party package does it for you), the warning is safe to ignore as long as registration happens before the chart mounts; it never appears in production builds.
+
 ### Event Handling
 
 Supports shorthand (function) and full config (object with query/context). Known echarts events have their `params` type auto-inferred from `EChartsEventPayloadMap` — no manual cast needed.
@@ -209,6 +211,8 @@ useEcharts({
   lazyInit: { rootMargin: "200px", threshold: 0.5 },
 });
 ```
+
+> Note: lazy init is a one-shot latch — "lazy" means "defer until first visible", not "track visibility". Once the element has intersected, the chart stays initialized for the hook's lifetime: replacing the container DOM node or toggling `lazyInit` off and back on does not re-arm observation. To start deferring again, remount the component.
 
 ### Tree-shaking
 

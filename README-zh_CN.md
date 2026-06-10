@@ -145,6 +145,8 @@ const customTheme = useMemo(() => ({ color: ["#fc8452", "#9a60b4", "#ea7ccc"] })
 useEcharts({ option, theme: customTheme });
 ```
 
+> 注意：直接通过 `echarts.registerTheme()` 注册的主题名（如上面的 `"vintage"`）可以正常使用，但由于本库无法感知这类注册，dev 环境下会触发一次性的警告。推荐改用本库导出的 `registerCustomTheme(name, config)` 按名称注册——注册会被本库跟踪，从而消除该警告。若必须使用 `echarts.registerTheme()`（例如由第三方包代为注册），只要注册发生在图表挂载之前，该警告可以安全忽略；生产构建中不会出现此警告。
+
 ### 事件处理
 
 支持简写（函数）和完整配置（带 query/context 的对象）两种写法。已知 echarts 事件的 `params` 类型会从 `EChartsEventPayloadMap` 自动推导，无需手动断言。
@@ -209,6 +211,8 @@ useEcharts({
   lazyInit: { rootMargin: "200px", threshold: 0.5 },
 });
 ```
+
+> 注意：懒加载是一次性锁存——「懒」指「首次可见前推迟初始化」，而非持续追踪可见性。一旦元素相交过，图表在该 Hook 的生命周期内保持已初始化：更换容器 DOM 节点或将 `lazyInit` 关闭后再开启都不会重新观察。若需重新进入推迟状态，请重新挂载组件。
 
 ### Tree-shaking
 
