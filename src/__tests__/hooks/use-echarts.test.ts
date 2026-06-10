@@ -325,6 +325,40 @@ describe("useEcharts", () => {
       }
     });
 
+    it("should warn in development when a string theme is neither built-in nor registered", () => {
+      const previousNodeEnv = process.env.NODE_ENV;
+      process.env.NODE_ENV = "development";
+      const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+
+      try {
+        const element = document.createElement("div");
+        const mockInstance = createMockInstance(element);
+        (echarts.init as ReturnType<typeof vi.fn>).mockReturnValue(mockInstance);
+
+        const { result } = renderHook(() =>
+          useEcharts({ option: baseOption, theme: "externally-registered-theme" }),
+        );
+        act(() => {
+          result.current.ref(element);
+        });
+
+        expect(warnSpy).toHaveBeenCalledWith(
+          expect.stringContaining(
+            'theme "externally-registered-theme" is not built-in and was not registered',
+          ),
+        );
+        // The name still reaches echarts.init untouched — the warning is advisory.
+        expect(echarts.init).toHaveBeenCalledWith(
+          element,
+          "externally-registered-theme",
+          expect.any(Object),
+        );
+      } finally {
+        warnSpy.mockRestore();
+        process.env.NODE_ENV = previousNodeEnv;
+      }
+    });
+
     it("should not warn for a builtin theme after registry registration", () => {
       const previousNodeEnv = process.env.NODE_ENV;
       process.env.NODE_ENV = "development";
