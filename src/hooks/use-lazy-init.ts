@@ -10,15 +10,11 @@ import type { UseLazyInitReturn } from "../types";
  * reactive `isInView` boolean. Pass `false` (default) to disable
  * lazy mode — `isInView` is then always `true`.
  *
- * Latching semantics: "lazy" means "defer until first visible", not
- * "track visibility". Once the element has intersected, the hook latches
- * permanently for its lifetime — replacing the DOM node (re-attaching `ref`
- * to a different element) or toggling lazy mode off and back on does NOT
- * re-arm observation; `isInView` stays `true`. Consumers wanting per-element
- * or repeated visibility tracking should remount the component (fresh hook
- * state) or use a visibility-tracking hook instead.
- * 锁存语义：「懒加载」=「首次可见前推迟」，并非持续追踪可见性。一旦相交过即终身锁存——
- * 更换 DOM 节点或重新开启 lazy 模式都不会重新观察，`isInView` 保持 `true`。
+ * Latching semantics: lazy means "defer until first visible", not "track
+ * visibility". Once intersected the hook latches for its lifetime — neither
+ * DOM-node replacement nor toggling lazy mode off/on re-arms observation.
+ * Remount the component for fresh per-element tracking.
+ * 锁存语义：一旦相交过即终身锁存——更换 DOM 节点或重新开启 lazy 模式都不会重新观察。
  *
  * @example
  * ```tsx
@@ -54,12 +50,9 @@ export function useLazyInitForElement(
   // first mount, so flipping `lazyInit` from false→true at runtime would
   // otherwise leave the value permanently `true` and skip observation.
   //
-  // hasIntersected deliberately NEVER resets for the hook's lifetime: lazy
-  // init means "defer work until first visible", so once the verdict is in,
-  // neither a DOM-node replacement (new `element`) nor lazyInit flipping
-  // false→true re-arms the observer — the effect below early-returns on
-  // hasIntersected. Re-observing would re-defer (i.e. tear down) an
-  // already-initialized chart, which is never what lazy *init* wants.
+  // hasIntersected deliberately NEVER resets (the effect below early-returns
+  // on it): re-observing after a node swap or lazyInit false→true would
+  // re-defer — i.e. tear down — an already-initialized chart.
   const [hasIntersected, setHasIntersected] = useState(false);
 
   // Extract config values for stable dependency comparison
