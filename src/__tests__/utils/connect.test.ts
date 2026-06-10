@@ -208,7 +208,7 @@ describe("connect utilities", () => {
   });
 
   describe("getInstanceGroup edge cases", () => {
-    it("should skip non-matching groups and find the correct one", () => {
+    it("should report each instance's own group when multiple groups coexist", () => {
       const instance1 = createMockInstance();
       const instance2 = createMockInstance();
       const target = createMockInstance();
@@ -217,8 +217,12 @@ describe("connect utilities", () => {
       addToGroup(instance2, "groupB");
       addToGroup(target, "groupC");
 
-      // getInstanceGroup must iterate past groupA and groupB to find target in groupC
+      // getInstanceGroup reads `instance.group` directly (assigned by
+      // addToGroup) — there is no registry iteration — so membership in other
+      // groups must not bleed into an instance's reported group.
       expect(getInstanceGroup(target)).toBe("groupC");
+      expect(getInstanceGroup(instance1)).toBe("groupA");
+      expect(getInstanceGroup(instance2)).toBe("groupB");
     });
   });
 

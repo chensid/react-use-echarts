@@ -10,6 +10,12 @@ import type { UseLazyInitReturn } from "../types";
  * reactive `isInView` boolean. Pass `false` (default) to disable
  * lazy mode — `isInView` is then always `true`.
  *
+ * Latching semantics: lazy means "defer until first visible", not "track
+ * visibility". Once intersected the hook latches for its lifetime — neither
+ * DOM-node replacement nor toggling lazy mode off/on re-arms observation.
+ * Remount the component for fresh per-element tracking.
+ * 锁存语义：一旦相交过即终身锁存——更换 DOM 节点或重新开启 lazy 模式都不会重新观察。
+ *
  * @example
  * ```tsx
  * const { ref, isInView } = useLazyInit({ rootMargin: "100px" });
@@ -43,6 +49,10 @@ export function useLazyInitForElement(
   // NOT seeded via useState(!isLazyMode) — that initializer only runs on
   // first mount, so flipping `lazyInit` from false→true at runtime would
   // otherwise leave the value permanently `true` and skip observation.
+  //
+  // hasIntersected deliberately NEVER resets (the effect below early-returns
+  // on it): re-observing after a node swap or lazyInit false→true would
+  // re-defer — i.e. tear down — an already-initialized chart.
   const [hasIntersected, setHasIntersected] = useState(false);
 
   // Extract config values for stable dependency comparison
