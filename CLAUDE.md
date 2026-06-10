@@ -2,7 +2,7 @@
 
 React hooks library for Apache ECharts. Hook + declarative component, TypeScript, zero runtime deps.
 
-- **Peer deps:** React 19+ (`react` + `react-dom`), ECharts 6.x | **Runtime:** Node 22+ | **CSR only** | **ESM-only** | **Package manager:** pnpm
+- **Peer deps:** React 19.2+ (`react` + `react-dom`; `useEffectEvent` requires 19.2), ECharts 6.x | **Runtime:** Node 22+ | **CSR only** | **ESM-only** | **Package manager:** pnpm
 
 ## Vite+ Toolchain
 
@@ -101,7 +101,7 @@ All instance-related state lives in `useChartCore`; the orchestrator (`useEchart
 
 ### Test Gotchas
 
-- Always `vi.mock("echarts")` before importing modules that depend on echarts
+- Always `vi.mock("echarts/core")` before importing modules that depend on echarts
 - Mock instance shape must match `createMockInstance` from helpers
 - `MockIntersectionObserver.observe` triggers callback immediately with `isIntersecting: true`
 
@@ -124,7 +124,7 @@ All instance-related state lives in `useChartCore`; the orchestrator (`useEchart
 
 | Problem                                                              | Cause                                   | Fix                                                                                          |
 | -------------------------------------------------------------------- | --------------------------------------- | -------------------------------------------------------------------------------------------- |
-| Test fails: "echarts not mocked"                                     | Missing `vi.mock("echarts")`            | Add mock before imports                                                                      |
+| Test fails: "echarts not mocked"                                     | Missing `vi.mock("echarts/core")`       | Add mock before imports                                                                      |
 | Test lint errors                                                     | `tsconfig.test.json` not correct        | Check `include` patterns                                                                     |
 | Build fails with `vp pack`                                           | External peer not configured            | Check `pack.outputOptions.globals` in `vite.config.ts`                                       |
 | StrictMode double-mount issues                                       | Instance cache refCount mismatch        | Check `src/utils/instance-cache.ts` logic                                                    |
