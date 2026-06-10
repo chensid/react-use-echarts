@@ -49,7 +49,11 @@ export function setCachedInstance(element: HTMLElement, instance: ECharts): ECha
   const existing = instanceCache.get(element);
 
   if (existing) {
-    if (process.env.NODE_ENV !== "production" && existing.instance !== instance) {
+    if (
+      process.env.NODE_ENV !== "production" &&
+      process.env.NODE_ENV !== "test" &&
+      existing.instance !== instance
+    ) {
       console.warn(
         "react-use-echarts: setCachedInstance called with a different instance for an already-cached element; " +
           "the new instance is ignored and the cached one is reused.",

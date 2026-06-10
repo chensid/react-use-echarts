@@ -65,6 +65,7 @@ function resolveThemeName(
       );
     } else if (
       process.env.NODE_ENV !== "production" &&
+      process.env.NODE_ENV !== "test" &&
       !isKnownTheme(theme) &&
       !warnedThemeNames.has(theme)
     ) {
@@ -315,7 +316,7 @@ export function useChartCore(
     const existing = getCachedInstance(element);
     let instance: ECharts;
     if (existing) {
-      if (process.env.NODE_ENV !== "production") {
+      if (process.env.NODE_ENV !== "production" && process.env.NODE_ENV !== "test") {
         console.warn(
           "react-use-echarts: multiple hooks share the same DOM element. " +
             "The shared instance is reused; theme/renderer/initOpts changes from later hooks are ignored, " +
