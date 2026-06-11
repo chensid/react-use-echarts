@@ -1,5 +1,11 @@
 # react-use-echarts
 
+## 2.2.1
+
+### Patch Changes
+
+- a179fd6: Dependency maintenance: bump transitive `ws` to 8.21.0 (fixes GHSA-58qx-3vcg-4xpx, moderate — test toolchain only) and update `packageManager` to pnpm 11.5.3. No runtime changes.
+
 ## 2.2.0
 
 ### Minor Changes
