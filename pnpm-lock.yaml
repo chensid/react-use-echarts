@@ -2008,18 +2008,6 @@ packages:
     resolution: {integrity: sha512-YVGIj2kamLSTxw6NsZjoBxfSwsn0ycdesmc4p+Q21c5zPuZ1pl+NfxVdxPtdHvmNVOQ6XSYG4AUtyt/Fi7D16Q==}
     engines: {node: '>=10'}
 
-  ws@8.20.0:
-    resolution: {integrity: sha512-sAt8BhgNbzCtgGbt2OxmpuryO63ZoDk/sqaB/znQm94T4fCEsy/yV+7CdC1kJhOU9lboAEU7R3kquuycDoibVA==}
-    engines: {node: '>=10.0.0'}
-    peerDependencies:
-      bufferutil: ^4.0.1
-      utf-8-validate: '>=5.0.2'
-    peerDependenciesMeta:
-      bufferutil:
-        optional: true
-      utf-8-validate:
-        optional: true
-
   ws@8.21.0:
     resolution: {integrity: sha512-Vsp28b7DRcimFQvrqu2Wek3z1iYxDCWqHYB8Qsnk/S4RfaCQzPGPyBNuVjJV3cd6UiKtUtp6sNM77gWvzcCH+g==}
     engines: {node: '>=10.0.0'}
@@ -2823,7 +2811,7 @@ snapshots:
       tinyexec: 1.1.2
       tinyglobby: 0.2.16
       vite: '@voidzero-dev/vite-plus-core@0.1.24(@arethetypeswrong/core@0.18.3)(@types/node@25.9.2)(publint@0.3.21)(typescript@6.0.3)'
-      ws: 8.20.0
+      ws: 8.21.0
     optionalDependencies:
       '@types/node': 25.9.2
       '@vitest/coverage-v8': 4.1.8(@voidzero-dev/vite-plus-test@0.1.24)
@@ -3822,8 +3810,6 @@ snapshots:
       ansi-styles: 4.3.0
       string-width: 4.2.3
       strip-ansi: 6.0.1
-
-  ws@8.20.0: {}
 
   ws@8.21.0: {}
 
