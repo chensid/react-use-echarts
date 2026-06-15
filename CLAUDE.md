@@ -53,7 +53,7 @@ src/
 │   ├── dev-warnings.ts         # Shared dev-mode warning sets (unknown theme, zero-size container)
 │   └── visibility-coordinator.ts # Module-level `document.visibilitychange` coordinator — single shared DOM listener serving all charts (`subscribeVisibilityResume`); attaches on first subscriber, detaches on last
 ├── types/index.ts              # All type definitions
-└── __tests__/                  # Mirror structure: components/, hooks/, themes/, utils/
+└── __tests__/                  # Mirror structure: components/, hooks/, themes/, utils/ + browser/ (real-chromium smoke tests)
 ```
 
 ## Architecture
@@ -93,7 +93,7 @@ All instance-related state lives in `useChartCore`; the orchestrator (`useEchart
 
 ## Testing
 
-- Vitest + jsdom, ECharts API fully mocked
+- Two Vitest projects (`test.projects` in `vite.config.ts`): **`unit`** — happy-dom + ECharts API fully mocked (`src/__tests__/**`, excludes `browser/`); **`browser`** — real chromium via the playwright provider (`src/__tests__/browser/**`), for what happy-dom can't simulate (IntersectionObserver/ResizeObserver + RAF in a real viewport, real layout). Smoke level: assert effects are observable, not exact frame counts.
 - Tests in `src/__tests__/` mirror `src/` layout
 - Shared mocks in `src/__tests__/helpers.ts`: `createMockInstance`, `MockResizeObserver`, `MockIntersectionObserver`
 - Config: `test` block in `vite.config.ts` — `clearMocks` / `mockReset` / `restoreMocks` all enabled
