@@ -2526,7 +2526,7 @@ describe("useEcharts", () => {
         });
 
         // Reset resize calls from initial mount (e.g. from ResizeObserver firing
-        // on observe() in jsdom).
+        // on observe() in happy-dom).
         mockInstance.resize.mockClear();
 
         hiddenValue = true;

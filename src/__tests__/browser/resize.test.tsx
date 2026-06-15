@@ -1,6 +1,6 @@
 /**
  * Browser smoke test: ResizeObserver-driven auto-resize.
- * jsdom doesn't run a real layout, so its ResizeObserver mock can't observe
+ * happy-dom doesn't run a real layout, so its ResizeObserver mock can't observe
  * actual size changes. Real chromium does — this verifies the RAF-throttled
  * resize loop is wired up end-to-end.
  *

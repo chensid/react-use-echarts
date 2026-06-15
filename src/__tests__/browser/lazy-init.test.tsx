@@ -1,6 +1,6 @@
 /**
  * Browser smoke test: lazy initialization triggered by IntersectionObserver.
- * jsdom can't simulate viewport/scroll geometry, so this exercises the real
+ * happy-dom can't simulate viewport/scroll geometry, so this exercises the real
  * IntersectionObserver against a chromium frame.
  *
  * Smoke-level: assert that scrolling the chart into view causes
