@@ -79,7 +79,7 @@
   },
   "devDependencies": {
     "@arethetypeswrong/cli": "^0.18.3",
-    "@babel/core": "^8.0.0",
+    "@babel/core": "^8.0.1",
     "@changesets/cli": "^2.31.0",
     "@rolldown/plugin-babel": "^0.2.3",
     "@shikijs/langs": "^4.2.0",
@@ -93,7 +93,7 @@
     "@vitest/coverage-v8": "^4.1.9",
     "babel-plugin-react-compiler": "^1.0.0",
     "echarts": "^6.1.0",
-    "happy-dom": "^20.10.5",
+    "happy-dom": "^20.10.6",
     "playwright": "^1.61.0",
     "publint": "^0.3.21",
     "react": "^19.2.7",
