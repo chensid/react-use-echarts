@@ -1,9 +1,10 @@
 import { defineConfig } from "vite-plus";
 import babel from "@rolldown/plugin-babel";
 import react, { reactCompilerPreset } from "@vitejs/plugin-react";
-// Use the provider bundled with vite-plus-test so the browser runner and
-// Vitest core stay on the same Vite+ managed version.
-import { playwright } from "vite-plus/test/browser/providers/playwright";
+// Playwright browser provider — opt-in in Vite+ 0.2.x (installed via the
+// @vitest/browser-playwright peer), pinned to the bundled Vitest version so the
+// browser runner and Vitest core stay aligned.
+import { playwright } from "vite-plus/test/browser-playwright";
 
 const repositoryName = process.env.GITHUB_REPOSITORY?.split("/")[1];
 const base = process.env.GITHUB_ACTIONS === "true" && repositoryName ? `/${repositoryName}/` : "/";
