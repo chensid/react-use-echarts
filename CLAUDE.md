@@ -24,6 +24,13 @@ vp check                      # format + lint + typecheck (typecheck via tsgolin
 
 **Pre-PR checklist:** `vp check && vp test`
 
+### Vite+ 0.2.x toolchain (since #458)
+
+Vite+ 0.2.x bundles **Vite 8 + Rolldown 1.1.1 + Vitest 4.1.9** inside a single `vite-plus` install — the separate `@voidzero-dev/vite-plus-test` (`vitest`) package is **dead** (no 0.2.x exists). Consequences for dep management:
+
+- Only the `vite` → `@voidzero-dev/vite-plus-core` alias+override survives, in **both** `package.json` devDeps **and** `pnpm-workspace.yaml` overrides; the old `vitest` alias/override is removed. Bump the `vite` alias+override in lockstep on every upgrade, or the dep tree splits into two `vite-plus-core` versions.
+- Tests still import from `vite-plus/test`. Browser-mode providers are **opt-in peers**: `@vitest/browser-playwright` (its `playwright` peer is installed too), imported from `vite-plus/test/browser-playwright`. Pin it — and `@vitest/coverage-v8` — to the **exact** bundled Vitest version (`4.1.9`) so they never float above the bundled runner (#459).
+
 ## Codebase Structure
 
 ```
@@ -88,12 +95,12 @@ All instance-related state lives in `useChartCore`; the orchestrator (`useEchart
 - `eventsEqual` on event rebinding — avoids unnecessary unbind/rebind when inline event objects have identical handlers
 - `setOption` / `showLoading` lifecycle attempts are recorded into `lastAppliedRef` / `lastLoadingRef` via `try/finally` even on failure — Option-Sync / Loading-Toggle dedup against the same (option, opts) pair instead of replaying a known-bad call and double-firing `onError`
 - Memoized return value — `useChartCore` manually wraps its imperative API in `useMemo([element])` (since React Compiler does not memoize this hook); `useEcharts` is compiler-cached, so `{ ref, ...chart }` is stable when `chart` is stable
-- React Compiler enabled via `@vitejs/plugin-react` + `@rolldown/plugin-babel` (`reactCompilerPreset()`). **TODO (native, Babel-free path):** the Rust port of React Compiler landed in oxc v0.135.0 (2026-06-08, oxc-project/oxc#22942), exposed as a `reactCompiler` transform option — still experimental. Once it's de-experimentalized AND vite-plus bundles a rolldown carrying oxc ≥ 0.135 (today's vite-plus 0.1.24 → rolldown 1.0.0-rc.18 → oxc-parser 0.128, too old) AND `@vitejs/plugin-react` surfaces it as a first-class option, drop `@rolldown/plugin-babel` + `reactCompilerPreset()` (and the `@babel/core` devDep) in favor of the native transform. No upstream date committed — watch oxc release notes, the `@vitejs/plugin-react` CHANGELOG, and the vite-plus changelog.
+- React Compiler enabled via `@vitejs/plugin-react` + `@rolldown/plugin-babel` (`reactCompilerPreset()`). **TODO (native, Babel-free path):** the Rust port of React Compiler landed in oxc v0.135.0 (2026-06-08, oxc-project/oxc#22942), exposed as a `reactCompiler` transform option — still experimental. Three gates remain — the **oxc ≥ 0.135 gate is now cleared** (✓ since #458: vite-plus 0.2.1 bundles rolldown 1.1.1 → oxc 0.135; was 0.1.24 → rolldown 1.0.0-rc.18 → oxc 0.128, too old). Still blocked on: (1) the `reactCompiler` transform being de-experimentalized, and (2) `@vitejs/plugin-react` surfacing it as a first-class option. Once both land, drop `@rolldown/plugin-babel` + `reactCompilerPreset()` (and the `@babel/core` devDep) in favor of the native transform. (Note: `@rolldown/plugin-babel` still drags a stray npm `rolldown@1.0.0-rc.18` (oxc 0.128) into the tree as its peer, but the build uses vite-plus-core's bundled rolldown 1.1.1.) No upstream date committed — watch oxc release notes, the `@vitejs/plugin-react` CHANGELOG, and the vite-plus changelog.
 - `<EChart>` imperative handle exposes `EChartHandle = Omit<UseEchartsReturn, "ref">` — `ref` is intentionally stripped so external callers cannot reassign the container via `handle.ref(otherNode)`
 
 ## Testing
 
-- Two Vitest projects (`test.projects` in `vite.config.ts`): **`unit`** — happy-dom + ECharts API fully mocked (`src/__tests__/**`, excludes `browser/`); **`browser`** — real chromium via the playwright provider (`src/__tests__/browser/**`), for what happy-dom can't simulate (IntersectionObserver/ResizeObserver + RAF in a real viewport, real layout). Smoke level: assert effects are observable, not exact frame counts.
+- Two Vitest projects (`test.projects` in `vite.config.ts`): **`unit`** — happy-dom + ECharts API fully mocked (`src/__tests__/**`, excludes `browser/`); **`browser`** — real chromium via the opt-in `@vitest/browser-playwright` provider (imported from `vite-plus/test/browser-playwright`; `src/__tests__/browser/**`), for what happy-dom can't simulate (IntersectionObserver/ResizeObserver + RAF in a real viewport, real layout). Smoke level: assert effects are observable, not exact frame counts.
 - Tests in `src/__tests__/` mirror `src/` layout
 - Shared mocks in `src/__tests__/helpers.ts`: `createMockInstance`, `MockResizeObserver`, `MockIntersectionObserver`
 - Config: `test` block in `vite.config.ts` — `clearMocks` / `mockReset` / `restoreMocks` all enabled
@@ -119,13 +126,15 @@ All instance-related state lives in `useChartCore`; the orchestrator (`useEchart
 - **DO NOT** pass un-memoized theme objects (two-level cache is a safety net, not a guarantee)
 - **DO NOT** duplicate API reference from `README.md` into this file
 - **DO NOT** re-add `import "echarts"` to `src/index.ts` — production minifiers DCE its top-level `use([...])` registrations. Registration belongs in consumer-side code (their app entry or `registerEchartsFull()`).
+- **DO NOT** add a `vitest` / `@voidzero-dev/vite-plus-test` dependency or override — Vite+ 0.2.x bundles Vitest. A stale `vitest` alias shadows the bundled runner and breaks `vp test` (`Could not find 'vitest' bin entry`).
 
 ## Troubleshooting
 
-| Problem                                                              | Cause                                   | Fix                                                                                          |
-| -------------------------------------------------------------------- | --------------------------------------- | -------------------------------------------------------------------------------------------- |
-| Test fails: "echarts not mocked"                                     | Missing `vi.mock("echarts/core")`       | Add mock before imports                                                                      |
-| Test lint errors                                                     | `tsconfig.test.json` not correct        | Check `include` patterns                                                                     |
-| Build fails with `vp pack`                                           | External peer not configured            | Check `pack.outputOptions.globals` in `vite.config.ts`                                       |
-| StrictMode double-mount issues                                       | Instance cache refCount mismatch        | Check `src/utils/instance-cache.ts` logic                                                    |
-| `TypeError: ka[a] is not a constructor` at first `useEcharts()` init | App forgot to register charts/renderers | Call `registerEchartsFull()` at app entry, or `echarts.use([...])` selectively before render |
+| Problem                                                              | Cause                                                                           | Fix                                                                                               |
+| -------------------------------------------------------------------- | ------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------- |
+| Test fails: "echarts not mocked"                                     | Missing `vi.mock("echarts/core")`                                               | Add mock before imports                                                                           |
+| Test lint errors                                                     | `tsconfig.test.json` not correct                                                | Check `include` patterns                                                                          |
+| Build fails with `vp pack`                                           | External peer not configured                                                    | Check `pack.outputOptions.globals` in `vite.config.ts`                                            |
+| StrictMode double-mount issues                                       | Instance cache refCount mismatch                                                | Check `src/utils/instance-cache.ts` logic                                                         |
+| `TypeError: ka[a] is not a constructor` at first `useEcharts()` init | App forgot to register charts/renderers                                         | Call `registerEchartsFull()` at app entry, or `echarts.use([...])` selectively before render      |
+| `vp test`: `Could not find 'vitest' bin entry`                       | Stale `vitest`/`vite-plus-test` alias shadows the Vitest bundled by Vite+ 0.2.x | Remove the `vitest` alias from `package.json` + `pnpm-workspace.yaml`; keep only the `vite` alias |
