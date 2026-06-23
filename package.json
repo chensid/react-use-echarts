@@ -78,7 +78,7 @@
     "prepare": "vp config"
   },
   "devDependencies": {
-    "@arethetypeswrong/cli": "^0.18.3",
+    "@arethetypeswrong/cli": "^0.18.4",
     "@babel/core": "^8.0.1",
     "@changesets/cli": "^2.31.0",
     "@rolldown/plugin-babel": "^0.2.3",
@@ -89,7 +89,7 @@
     "@types/node": "^26.0.0",
     "@types/react": "^19.2.17",
     "@types/react-dom": "^19.2.3",
-    "@vitejs/plugin-react": "^6.0.2",
+    "@vitejs/plugin-react": "^6.0.3",
     "@vitest/browser-playwright": "4.1.9",
     "@vitest/coverage-v8": "4.1.9",
     "babel-plugin-react-compiler": "^1.0.0",
