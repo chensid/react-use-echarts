@@ -45,10 +45,6 @@
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
     },
-    "./core": {
-      "types": "./dist/core.d.ts",
-      "default": "./dist/core.js"
-    },
     "./themes/registry": {
       "types": "./dist/themes/registry.d.ts",
       "default": "./dist/themes/registry.js"
@@ -115,13 +111,6 @@
     {
       "name": "dist/index.js (gzip, unminified dist — incl. dev-only warnings, DCE'd in consumer prod builds)",
       "path": "dist/index.js",
-      "limit": "13 KB",
-      "gzip": true,
-      "brotli": false
-    },
-    {
-      "name": "dist/core.js (gzip, unminified dist — incl. dev-only warnings, DCE'd in consumer prod builds)",
-      "path": "dist/core.js",
       "limit": "13 KB",
       "gzip": true,
       "brotli": false

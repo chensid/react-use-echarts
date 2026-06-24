@@ -81,9 +81,22 @@ Or, for tree-shake-friendly production builds, register only what you actually r
 
 ## Quick Start
 
-### `<EChart />` Component
+### 1. Register ECharts Once
 
-The simplest way — no ref needed:
+For the fastest start, register the full ECharts surface at your app entry:
+
+```ts
+// main.tsx / index.tsx
+import { registerEchartsFull } from "react-use-echarts/preset-full";
+
+registerEchartsFull();
+```
+
+For production bundles that only render a few chart types, replace this with selective `echarts.use([...])` registration later; the chart API stays the same.
+
+### 2. Render a Chart
+
+The simplest component path — no ref needed:
 
 ```tsx
 import { EChart } from "react-use-echarts";
@@ -91,6 +104,7 @@ import { EChart } from "react-use-echarts";
 function MyChart() {
   return (
     <EChart
+      style={{ width: "100%", height: 400 }}
       option={{
         xAxis: { type: "category", data: ["Mon", "Tue", "Wed", "Thu", "Fri"] },
         yAxis: { type: "value" },
@@ -101,11 +115,11 @@ function MyChart() {
 }
 ```
 
-`<EChart />` defaults to `width: 100%` and `height: 100%`, so the parent container still needs an explicit height.
+The chart container must have an explicit size. The example above sets it on `<EChart />`; if you keep the default `{ width: "100%", height: "100%" }`, make sure the parent has an explicit height.
 
 Pass `ref` to access the imperative API — see [Returns](#returns) for the full list (`setOption`, `dispatchAction`, `clear`, `resize`, `appendData`, `getDataURL`, `convertToPixel`, …).
 
-### `useEcharts` Hook
+### 3. Use the Hook Directly
 
 For full control, use the hook directly. It returns a callback `ref` to attach to your container plus a reactive `instance` field and the full imperative API:
 
@@ -114,7 +128,11 @@ import { useEcharts } from "react-use-echarts";
 
 function MyChart() {
   const { ref, instance, setOption, resize } = useEcharts({
-    option: { series: [{ type: "line", data: [150, 230, 224, 218, 135] }] },
+    option: {
+      xAxis: { type: "category", data: ["Mon", "Tue", "Wed", "Thu", "Fri"] },
+      yAxis: { type: "value" },
+      series: [{ data: [150, 230, 224, 218, 135], type: "line" }],
+    },
   });
   return <div ref={ref} style={{ width: "100%", height: "400px" }} />;
 }
@@ -235,7 +253,7 @@ import { CanvasRenderer } from "echarts/renderers";
 echarts.use([LineChart, GridComponent, TooltipComponent, CanvasRenderer]);
 ```
 
-See [`examples/core-entry/CoreEntryChart.tsx`](./examples/core-entry/CoreEntryChart.tsx) for a runnable demo.
+See [`examples/selective-registration/SelectiveRegistrationChart.tsx`](./examples/selective-registration/SelectiveRegistrationChart.tsx) for a runnable demo.
 
 **Tier 3 — Webpack-only legacy.** Webpack tolerates ECharts' non-conforming `sideEffects` field, so plain `import "echarts";` still works in webpack apps but **fails silently under Rolldown/Vite/Rollup** (chart never paints, console shows `TypeError` from zrender's empty painter registry). Prefer Tier 1 or Tier 2 instead.
 
@@ -243,18 +261,30 @@ See [`examples/core-entry/CoreEntryChart.tsx`](./examples/core-entry/CoreEntryCh
 
 ### Use with Next.js (App Router)
 
-The package entry and `themes/registry` are marked with `"use client"`, so
-importing them inside any React Server Component file does **not** bundle
-ECharts into the server payload. Wrap the chart in your own client
-component and import it from any Server Component:
+The default package entry, `preset-full`, and `themes/registry` are marked
+with `"use client"`, so importing them inside any React Server Component file
+does **not** bundle ECharts into the server payload. Wrap the chart in your own
+client component and import it from any Server Component:
 
 ```tsx
 // app/components/MyChart.tsx
 "use client";
 import { EChart } from "react-use-echarts";
+import { registerEchartsFull } from "react-use-echarts/preset-full";
+
+registerEchartsFull();
 
 export function MyChart() {
-  return <EChart option={{ series: [{ type: "line", data: [1, 2, 3] }] }} />;
+  return (
+    <EChart
+      style={{ height: 400 }}
+      option={{
+        xAxis: { type: "category", data: ["A", "B", "C"] },
+        yAxis: { type: "value" },
+        series: [{ type: "line", data: [1, 2, 3] }],
+      }}
+    />
+  );
 }
 ```
 
@@ -382,8 +412,6 @@ import { registerEchartsFull } from "react-use-echarts/preset-full"; // one-line
 // from react-use-echarts alongside the types above instead of reaching into echarts.
 ```
 
-> `react-use-echarts/core` is a deprecated alias of the default entry as of v2.1 — both are now identical modular entries. The `/core` alias will be removed in v4; migrate any `from "react-use-echarts/core"` imports to `from "react-use-echarts"`.
-
 `mergeRefs` returns a callback ref that fans the node out to every input — `RefObject`, legacy callback ref, or React 19 callback ref with cleanup — and isolates each invocation so a throwing 3rd-party ref can't strand the chart. Reach for it when you need both the hook-provided ref and your own:
 
 ```tsx
@@ -445,9 +473,9 @@ Side-by-side example:
 // chartRef.current?.instance replaces onChartReady
 ```
 
-## Migrating from v2.0
+## Migrating from v2.x
 
-v2.1 stops side-effect-importing `"echarts"` from the default entry — the library is now fully modular, matching `vue-echarts` / `nuxt-echarts` / `react-chartjs-2`. The hook/component API is unchanged; you only need to add **one line** at your application entry:
+The library is fully modular, matching `vue-echarts` / `nuxt-echarts` / `react-chartjs-2`. It does not side-effect-import `"echarts"` from the default entry; add **one line** at your application entry:
 
 ```ts
 // app entry (e.g. main.tsx, index.tsx)
@@ -457,7 +485,7 @@ registerEchartsFull();
 
 That call is equivalent to v2.0's automatic `import "echarts"` and gives you the same ~290KB-gzip everything-included experience. For production builds that only render a few chart types, replace it with a selective `echarts.use([...])` — see [Tree-shaking](#tree-shaking).
 
-The `react-use-echarts/core` subpath is deprecated as of v2.1 and now behaves identically to the default entry (both are modular). Existing `from "react-use-echarts/core"` imports keep working but will be removed in v4; migrate to the default entry at your convenience.
+The old `react-use-echarts/core` subpath has been removed. It was only a deprecated alias of the default modular entry since v2.1, so replace any `from "react-use-echarts/core"` imports with `from "react-use-echarts"`.
 
 ## Migrating from v1
 

@@ -22,10 +22,10 @@ const base = process.env.GITHUB_ACTIONS === "true" && repositoryName ? `/${repos
 // IMPORTANT: keep this scoped to the pack (library) entries below — do NOT
 // hoist it to a top-level `define`, which would also rewrite the examples app
 // (`vp dev`/`vp build`) and leave `process.env.NODE_ENV` undefined at runtime
-// there. Applied uniformly to every JS-logic entry (index, its alias core, and
-// preset-full) — not only the two that emit warnings today — so a dev warning
-// added to any of them later is automatically consumer-strippable instead of
-// silently baked in. themes/registry is pure preset JSON with no guarded code.
+// there. Applied uniformly to every JS-logic entry (index and preset-full) —
+// not only the one that emits warnings today — so a dev warning added to any of
+// them later is automatically consumer-strippable instead of silently baked in.
+// themes/registry is pure preset JSON with no guarded code.
 const preserveProcessEnvNodeEnv = { "process.env.NODE_ENV": "process.env.NODE_ENV" };
 
 // https://viteplus.dev/config/
@@ -87,24 +87,13 @@ export default defineConfig({
       plugins: [babel({ presets: [reactCompilerPreset()] })],
     },
     {
-      // publint/attw validate the whole package (tarball + exports map) once
-      // from the index entry above — they're not per-entry, so re-declaring
-      // them here re-runs attw redundantly on the same tarball.
-      entry: { core: "src/core.ts" },
-      format: ["esm"],
-      dts: { build: true },
-      platform: "browser",
-      define: preserveProcessEnvNodeEnv,
-      plugins: [babel({ presets: [reactCompilerPreset()] })],
-    },
-    {
       entry: { "themes/registry": "src/themes/registry.ts" },
       format: ["esm"],
       dts: { build: true },
       platform: "browser",
     },
     {
-      // publint/attw run once from the index entry (see core entry note).
+      // publint/attw run once from the index entry.
       entry: { "preset-full": "src/preset-full.ts" },
       format: ["esm"],
       dts: { build: true },
