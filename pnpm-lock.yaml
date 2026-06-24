@@ -49,7 +49,7 @@ importers:
         version: 6.0.3(@rolldown/plugin-babel@0.2.3(@babel/core@8.0.1)(@babel/runtime@7.29.7)(@voidzero-dev/vite-plus-core@0.2.1(@arethetypeswrong/core@0.18.4)(@types/node@26.0.0)(publint@0.3.21)(typescript@6.0.3))(rolldown@1.0.0-rc.18))(@voidzero-dev/vite-plus-core@0.2.1(@arethetypeswrong/core@0.18.4)(@types/node@26.0.0)(publint@0.3.21)(typescript@6.0.3))(babel-plugin-react-compiler@1.0.0)
       '@vitest/browser-playwright':
         specifier: 4.1.9
-        version: 4.1.9(@voidzero-dev/vite-plus-core@0.2.1(@arethetypeswrong/core@0.18.4)(@types/node@26.0.0)(publint@0.3.21)(typescript@6.0.3))(playwright@1.61.0)(vitest@4.1.9)
+        version: 4.1.9(@voidzero-dev/vite-plus-core@0.2.1(@arethetypeswrong/core@0.18.4)(@types/node@26.0.0)(publint@0.3.21)(typescript@6.0.3))(playwright@1.61.1)(vitest@4.1.9)
       '@vitest/coverage-v8':
         specifier: 4.1.9
         version: 4.1.9(@vitest/browser@4.1.9)(vitest@4.1.9)
@@ -63,8 +63,8 @@ importers:
         specifier: ^20.10.6
         version: 20.10.6
       playwright:
-        specifier: ^1.61.0
-        version: 1.61.0
+        specifier: ^1.61.1
+        version: 1.61.1
       publint:
         specifier: ^0.3.21
         version: 0.3.21
@@ -1721,13 +1721,13 @@ packages:
     resolution: {integrity: sha512-uB80kBFb/tfd68bVleG9T5GGsGPjJrLAUpR5PZIrhBnIaRTQRjqdJSsIKkOP6OAIFbj7GOrcudc5pNjZ+geV2g==}
     engines: {node: '>=6'}
 
-  playwright-core@1.61.0:
-    resolution: {integrity: sha512-caX7TrY3Ml6egyDX0WUcTHDxodl/b51y5wJOdCEA36QviK/s2g081hvmGs8eaE3DWb6NYZQ6BjO/QkNRPenoPA==}
+  playwright-core@1.61.1:
+    resolution: {integrity: sha512-h7Qlt6m4REp25qvIdvbDtVmD4LqVXfpRxhORv9L0jzETM05p4fuPJ3dKyuSXQxDSbXnmS79HAgi9589lGSpLkg==}
     engines: {node: '>=18'}
     hasBin: true
 
-  playwright@1.61.0:
-    resolution: {integrity: sha512-Z+7BeeqQPRRzklHsVFP4KTGIyMxKUmfeRA4WisM6G3/XW6nwGeX6fX9qYaDa+CiUqpOkb2f6X3nar05R3kSuJQ==}
+  playwright@1.61.1:
+    resolution: {integrity: sha512-DWnY5o3YbLWK4GovuAVwpqL+1VwGNdUGrRr++8j8PtQQzvAVZUIMjKQ90fY689sEJZJBbZVw1rXaOKSTitkzPQ==}
     engines: {node: '>=18'}
     hasBin: true
 
@@ -2850,11 +2850,11 @@ snapshots:
       '@rolldown/plugin-babel': 0.2.3(@babel/core@8.0.1)(@babel/runtime@7.29.7)(@voidzero-dev/vite-plus-core@0.2.1(@arethetypeswrong/core@0.18.4)(@types/node@26.0.0)(publint@0.3.21)(typescript@6.0.3))(rolldown@1.0.0-rc.18)
       babel-plugin-react-compiler: 1.0.0
 
-  '@vitest/browser-playwright@4.1.9(@voidzero-dev/vite-plus-core@0.2.1(@arethetypeswrong/core@0.18.4)(@types/node@26.0.0)(publint@0.3.21)(typescript@6.0.3))(playwright@1.61.0)(vitest@4.1.9)':
+  '@vitest/browser-playwright@4.1.9(@voidzero-dev/vite-plus-core@0.2.1(@arethetypeswrong/core@0.18.4)(@types/node@26.0.0)(publint@0.3.21)(typescript@6.0.3))(playwright@1.61.1)(vitest@4.1.9)':
     dependencies:
       '@vitest/browser': 4.1.9(@voidzero-dev/vite-plus-core@0.2.1(@arethetypeswrong/core@0.18.4)(@types/node@26.0.0)(publint@0.3.21)(typescript@6.0.3))(vitest@4.1.9)
       '@vitest/mocker': 4.1.9(@voidzero-dev/vite-plus-core@0.2.1(@arethetypeswrong/core@0.18.4)(@types/node@26.0.0)(publint@0.3.21)(typescript@6.0.3))
-      playwright: 1.61.0
+      playwright: 1.61.1
       tinyrainbow: 3.1.0
       vitest: 4.1.9(@types/node@26.0.0)(@vitest/browser-playwright@4.1.9)(@vitest/browser-preview@4.1.9)(@vitest/coverage-v8@4.1.9)(@voidzero-dev/vite-plus-core@0.2.1(@arethetypeswrong/core@0.18.4)(@types/node@26.0.0)(publint@0.3.21)(typescript@6.0.3))(happy-dom@20.10.6)
     transitivePeerDependencies:
@@ -3604,11 +3604,11 @@ snapshots:
 
   pify@4.0.1: {}
 
-  playwright-core@1.61.0: {}
+  playwright-core@1.61.1: {}
 
-  playwright@1.61.0:
+  playwright@1.61.1:
     dependencies:
-      playwright-core: 1.61.0
+      playwright-core: 1.61.1
     optionalDependencies:
       fsevents: 2.3.2
 
@@ -3923,7 +3923,7 @@ snapshots:
       oxlint-tsgolint: 0.23.0
       vitest: 4.1.9(@types/node@26.0.0)(@vitest/browser-playwright@4.1.9)(@vitest/browser-preview@4.1.9)(@vitest/coverage-v8@4.1.9)(@voidzero-dev/vite-plus-core@0.2.1(@arethetypeswrong/core@0.18.4)(@types/node@26.0.0)(publint@0.3.21)(typescript@6.0.3))(happy-dom@20.10.6)
     optionalDependencies:
-      '@vitest/browser-playwright': 4.1.9(@voidzero-dev/vite-plus-core@0.2.1(@arethetypeswrong/core@0.18.4)(@types/node@26.0.0)(publint@0.3.21)(typescript@6.0.3))(playwright@1.61.0)(vitest@4.1.9)
+      '@vitest/browser-playwright': 4.1.9(@voidzero-dev/vite-plus-core@0.2.1(@arethetypeswrong/core@0.18.4)(@types/node@26.0.0)(publint@0.3.21)(typescript@6.0.3))(playwright@1.61.1)(vitest@4.1.9)
       '@voidzero-dev/vite-plus-darwin-arm64': 0.2.1
       '@voidzero-dev/vite-plus-darwin-x64': 0.2.1
       '@voidzero-dev/vite-plus-linux-arm64-gnu': 0.2.1
@@ -3989,7 +3989,7 @@ snapshots:
       why-is-node-running: 2.3.0
     optionalDependencies:
       '@types/node': 26.0.0
-      '@vitest/browser-playwright': 4.1.9(@voidzero-dev/vite-plus-core@0.2.1(@arethetypeswrong/core@0.18.4)(@types/node@26.0.0)(publint@0.3.21)(typescript@6.0.3))(playwright@1.61.0)(vitest@4.1.9)
+      '@vitest/browser-playwright': 4.1.9(@voidzero-dev/vite-plus-core@0.2.1(@arethetypeswrong/core@0.18.4)(@types/node@26.0.0)(publint@0.3.21)(typescript@6.0.3))(playwright@1.61.1)(vitest@4.1.9)
       '@vitest/browser-preview': 4.1.9(@voidzero-dev/vite-plus-core@0.2.1(@arethetypeswrong/core@0.18.4)(@types/node@26.0.0)(publint@0.3.21)(typescript@6.0.3))(vitest@4.1.9)
       '@vitest/coverage-v8': 4.1.9(@vitest/browser@4.1.9)(vitest@4.1.9)
       happy-dom: 20.10.6
