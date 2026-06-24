@@ -42,8 +42,7 @@ jobs:
       # step keeps package-export regressions out of the pack log and visible in
       # the PR checks UI. Match `vp pack`'s `attw: { profile: "esm-only" }`
       # config in vite.config.ts — the library has been ESM-only since 1.3.0,
-      # so checking node10 resolutions is out of scope and would always fail
-      # for the `/core` and `/themes/registry` subpath exports.
+      # so checking node10 resolutions is out of scope for subpath exports.
       - name: Verify published package (publint + attw)
         run: |
           pnpm exec publint

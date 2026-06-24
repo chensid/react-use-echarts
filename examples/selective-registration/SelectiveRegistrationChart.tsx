@@ -3,9 +3,8 @@
  * all-in-one `registerEchartsFull()` sugar from
  * `react-use-echarts/preset-full`.
  *
- * Since v2.1 the library is fully modular: neither the default
- * `react-use-echarts` entry nor the (now deprecated) `/core` alias auto-
- * registers any chart/component. Production apps that only render a handful
+ * The library is fully modular: the default `react-use-echarts` entry does not
+ * auto-register any chart/component. Production apps that only render a handful
  * of chart types can skip `registerEchartsFull()` and instead call
  * `echarts.use([...])` with just the modules they need — bundlers then
  * tree-shake the rest of ECharts away.
@@ -30,7 +29,7 @@ import type { EChartsOption } from "echarts";
 // application.
 echarts.use([LineChart, GridComponent, TooltipComponent, TitleComponent, CanvasRenderer]);
 
-const CoreEntryChart: React.FC = () => {
+const SelectiveRegistrationChart: React.FC = () => {
   const { mode } = useTheme();
 
   const options: EChartsOption = {
@@ -56,4 +55,4 @@ const CoreEntryChart: React.FC = () => {
   return <div ref={ref} className="chart-container" />;
 };
 
-export default CoreEntryChart;
+export default SelectiveRegistrationChart;

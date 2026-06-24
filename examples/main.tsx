@@ -9,8 +9,8 @@ import "./global.css";
 // Register the full ECharts surface (charts + components + renderers + features).
 // The library itself is modular and does not auto-register anything, so this
 // call (or an equivalent selective `echarts.use([...])`) must run before the
-// first `useEcharts()` render. See `examples/core-entry/` for a tree-shake-
-// friendly alternative that only registers what's actually rendered.
+// first `useEcharts()` render. See `examples/selective-registration/` for a
+// tree-shake-friendly alternative that only registers what's actually rendered.
 registerEchartsFull();
 
 registerBuiltinThemes();

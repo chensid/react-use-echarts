@@ -98,14 +98,14 @@ export const featureItems: readonly FeatureItem[] = [
     sourcePath: "examples/error/OnErrorDemo.tsx",
   },
   {
-    id: "core-entry",
+    id: "selective-registration",
     title: "Selective Registration",
     description:
       "Register only the chart/component/renderer modules you actually render via echarts.use([...]) — tree-shake-friendly alternative to registerEchartsFull().",
     icon: "layers",
-    component: React.lazy(() => import("../core-entry/CoreEntryChart")),
-    source: () => import("../core-entry/CoreEntryChart.tsx?raw"),
-    sourcePath: "examples/core-entry/CoreEntryChart.tsx",
+    component: React.lazy(() => import("../selective-registration/SelectiveRegistrationChart")),
+    source: () => import("../selective-registration/SelectiveRegistrationChart.tsx?raw"),
+    sourcePath: "examples/selective-registration/SelectiveRegistrationChart.tsx",
   },
 ];
 
