@@ -1,4 +1,5 @@
 import React from "react";
+import { featureItems } from "../data/features";
 import { CHART_COUNT } from "../data/gallery";
 import { BUNDLE_SIZE } from "../data/meta";
 import styles from "./StatsStrip.module.css";
@@ -16,7 +17,11 @@ const STATS: readonly Stat[] = [
     value: String(CHART_COUNT),
     note: "bar, line, radar, gauge, ohlc, heat, funnel, treemap",
   },
-  { label: "Features", value: "8", note: "themes, renderer, linkage, lazy, events, ref…" },
+  {
+    label: "Features",
+    value: String(featureItems.length),
+    note: "themes, renderer, linkage, lazy, events, ref, errors…",
+  },
   { label: "TypeScript", value: "100%", note: "strict mode · full ECharts option types" },
 ];
 

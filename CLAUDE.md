@@ -15,7 +15,7 @@ vp install                    # Install dependencies
 vp dev                        # Dev server (localhost:3000, serves examples/)
 vp build                      # Build examples app
 vp pack                       # Library build → dist/
-vp test                       # Single run (default since vite-plus 0.1.x)
+vp test                       # Single run
 vp test watch                 # Watch mode
 vp test --coverage            # Coverage report (v8)
 vp lint                       # Oxlint
@@ -35,8 +35,7 @@ Vite+ 0.2.x bundles **Vite 8 + Rolldown 1.1.1 + Vitest 4.1.9** inside a single `
 
 ```
 src/
-├── index.ts                    # Package entry, re-exports everything. Modular — does NOT side-effect-import "echarts" (since v2.1; previously did, but Rolldown/Oxc DCE breaks that path)
-├── core.ts                     # DEPRECATED alias of index.ts (removed in v4); identical re-exports for v2.0-era `from "react-use-echarts/core"` imports
+├── index.ts                    # Package entry, re-exports everything. Modular — does NOT side-effect-import "echarts" (legacy `/core` subpath was removed in v3)
 ├── preset-full.ts              # `registerEchartsFull()` sugar — one-call namespace-spread of echarts/charts + components + renderers + features, registered via `echarts.use(...)`. Consumer-side replacement for `import "echarts"`.
 ├── components/EChart.tsx       # Declarative component wrapping useEcharts
 ├── hooks/
@@ -117,7 +116,7 @@ All instance-related state lives in `useChartCore`; the orchestrator (`useEchart
 - **Commit format:** `feat|fix|docs|test|refactor|chore: <subject>`
 - **Types-first:** define types in `src/types/index.ts` before implementing
 - **Paired cleanup:** all side effects must have cleanup functions
-- **Build outputs:** `dist/{index,core,preset-full}.js` + `.d.ts` (ESM), `dist/themes/registry.js` + `.d.ts` (theme subpath). `publint` + `attw` (`esm-only` profile) run automatically via `vp pack`.
+- **Build outputs:** `dist/index.js`, `dist/preset-full.js`, and `dist/themes/registry.js` + matching `.d.ts` files (ESM). `publint` + `attw` (`esm-only` profile) run automatically via `vp pack`.
 - **ECharts registration is the consumer's responsibility** — this library does NOT auto-register charts/components/renderers/features. Apps call `registerEchartsFull()` (from `react-use-echarts/preset-full`) for the everything-included path, or `echarts.use([...])` selectively. Mirrors `vue-echarts` / `nuxt-echarts` / `react-chartjs-2`. See `src/preset-full.ts` for the why.
 
 ## Anti-patterns
@@ -125,6 +124,7 @@ All instance-related state lives in `useChartCore`; the orchestrator (`useEchart
 - **DO NOT** create effects without paired cleanup functions
 - **DO NOT** pass un-memoized theme objects (two-level cache is a safety net, not a guarantee)
 - **DO NOT** duplicate API reference from `README.md` into this file
+- **DO NOT** re-add the removed `react-use-echarts/core` subpath — v3 consumers should import from `react-use-echarts`.
 - **DO NOT** re-add `import "echarts"` to `src/index.ts` — production minifiers DCE its top-level `use([...])` registrations. Registration belongs in consumer-side code (their app entry or `registerEchartsFull()`).
 - **DO NOT** add a `vitest` / `@voidzero-dev/vite-plus-test` dependency or override — Vite+ 0.2.x bundles Vitest. A stale `vitest` alias shadows the bundled runner and breaks `vp test` (`Could not find 'vitest' bin entry`).
 

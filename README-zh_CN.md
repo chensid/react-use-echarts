@@ -473,7 +473,9 @@ return <div ref={mergeRefs(ref, myRef)} style={{ height: 400 }} />;
 
 ## 从 v2.x 迁移
 
-本库已完全 modular，与 `vue-echarts` / `nuxt-echarts` / `react-chartjs-2` 立场一致。默认入口不会副作用 import `"echarts"`；只需在应用入口**加一行**：
+v3 移除了旧的 `react-use-echarts/core` 子入口。如果你的代码已经从 `react-use-echarts` 导入，并且已经在首个图表渲染前注册 ECharts 模块，则无需改动。
+
+如果你是从 v2.0 的全量默认入口升级，或应用仍依赖 `import "echarts"` 的副作用注册，请在应用入口**加一次注册调用**：
 
 ```ts
 // 应用入口（如 main.tsx, index.tsx）
@@ -481,9 +483,9 @@ import { registerEchartsFull } from "react-use-echarts/preset-full";
 registerEchartsFull();
 ```
 
-该调用与 v2.0 的自动 `import "echarts"` 等价，同样的 ~290KB-gzip 全套体验。生产构建若只渲染少数图表类型，请改用 `echarts.use([...])` 按需注册 —— 参见 [Tree-shaking](#tree-shaking)。
+该调用与 v2.0 的自动 ECharts 注册等价，同样的 ~290KB-gzip 全套体验。生产构建若只渲染少数图表类型，请改用 `echarts.use([...])` 按需注册 —— 参见 [Tree-shaking](#tree-shaking)。
 
-旧的 `react-use-echarts/core` 子入口已移除。它自 v2.1 起只是默认 modular 入口的废弃别名；请把所有 `from "react-use-echarts/core"` 替换为 `from "react-use-echarts"`。
+请把所有残留的 `from "react-use-echarts/core"` 替换为 `from "react-use-echarts"`。
 
 ## 从 v1 迁移
 

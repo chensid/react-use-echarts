@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from "react";
 import PageHeader from "./PageHeader";
 import ThumbCard from "../components/ThumbCard";
-import { galleryItems } from "../data/gallery";
+import { CHART_COUNT, galleryItems } from "../data/gallery";
 import { thumbOptions } from "../data/thumbs";
 import styles from "./GalleryIndex.module.css";
 
@@ -24,7 +24,7 @@ const GalleryIndex: React.FC = () => {
     <>
       <PageHeader
         eyebrow="Gallery"
-        title="8 chart types"
+        title={`${CHART_COUNT} chart types`}
         description="Single-component examples for the most common ECharts series. Click any card for full source."
         meta={
           <>
