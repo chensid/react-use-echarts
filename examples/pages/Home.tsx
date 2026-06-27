@@ -23,8 +23,8 @@ const Home: React.FC = () => (
           <span className={styles.kicker}>Capabilities</span>
           <h2 className={styles.sectionTitle}>Built for real ECharts use</h2>
           <p className={styles.sectionLead}>
-            Eight features cover the gaps people fill manually: reactivity, themes, renderer choice,
-            group linkage, events, loading, ref API, and lazy initialization.
+            {featureItems.length} features cover the gaps people fill manually: reactivity, themes,
+            renderer choice, group linkage, events, loading, ref API, and lazy initialization.
           </p>
         </div>
         <Link to="/features" className={styles.headLink}>

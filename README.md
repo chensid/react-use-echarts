@@ -475,7 +475,9 @@ Side-by-side example:
 
 ## Migrating from v2.x
 
-The library is fully modular, matching `vue-echarts` / `nuxt-echarts` / `react-chartjs-2`. It does not side-effect-import `"echarts"` from the default entry; add **one line** at your application entry:
+v3 removes the legacy `react-use-echarts/core` subpath. If you already import from `react-use-echarts` and already register ECharts modules before the first chart render, no code changes are needed.
+
+If you are upgrading from v2.0's everything-included default entry, or from an app that still relied on `import "echarts"` side effects, add **one registration call** at your application entry:
 
 ```ts
 // app entry (e.g. main.tsx, index.tsx)
@@ -483,9 +485,9 @@ import { registerEchartsFull } from "react-use-echarts/preset-full";
 registerEchartsFull();
 ```
 
-That call is equivalent to v2.0's automatic `import "echarts"` and gives you the same ~290KB-gzip everything-included experience. For production builds that only render a few chart types, replace it with a selective `echarts.use([...])` — see [Tree-shaking](#tree-shaking).
+That call is equivalent to v2.0's automatic ECharts registration and gives you the same ~290KB-gzip everything-included experience. For production builds that only render a few chart types, replace it with a selective `echarts.use([...])` — see [Tree-shaking](#tree-shaking).
 
-The old `react-use-echarts/core` subpath has been removed. It was only a deprecated alias of the default modular entry since v2.1, so replace any `from "react-use-echarts/core"` imports with `from "react-use-echarts"`.
+Replace any remaining `from "react-use-echarts/core"` imports with `from "react-use-echarts"`.
 
 ## Migrating from v1
 

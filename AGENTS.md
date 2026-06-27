@@ -29,12 +29,12 @@ All `useEcharts` options as props + `style` (default `{ width: '100%', height: '
 - `registerBuiltinThemes()` — from `'react-use-echarts/themes/registry'` (separate entry, ~20KB theme JSON)
 - `registerEchartsFull()` — from `'react-use-echarts/preset-full'`; one-line registrar that calls `echarts.use(...)` with every built-in chart, component, renderer and feature. Call once at app entry.
 - `useLazyInit(options)` → `{ ref, isInView }` — standalone lazy-init hook
-- `'react-use-echarts/core'` — **deprecated since v2.1**, plain alias of the default entry (both are now modular). Will be removed in v4.
 
 ## Gotchas
 
 - **Container needs explicit width/height** — chart won't render in a zero-size div
 - **ECharts modules must be registered before first render** — the library is fully modular and does **not** auto-register anything. Call `registerEchartsFull()` (from `'react-use-echarts/preset-full'`) at app entry for an everything-included experience, or call `echarts.use([...])` selectively for tree-shake-friendly builds. Forgetting this shows up as `Renderer 'undefined' is not imported` or a silently blank chart.
+- **Legacy `/core` imports are gone in v3** — use `from 'react-use-echarts'`; the old `react-use-echarts/core` alias was removed.
 - **`option` is reactive** — changes auto-trigger `setOption`, no manual call needed
 - **Custom theme objects must be memoized** — use `useMemo` to avoid instance recreation
 - **`initOpts` changes recreate the instance** — don't pass inline objects
