@@ -1,5 +1,11 @@
 # react-use-echarts
 
+## 3.0.1
+
+### Patch Changes
+
+- 4a969f5: Publish documentation and example polish together with Shiki and Node types maintenance updates.
+
 ## 3.0.0
 
 ### Major Changes
