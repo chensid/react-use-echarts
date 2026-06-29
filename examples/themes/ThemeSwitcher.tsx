@@ -1,6 +1,5 @@
 import React, { useState, useMemo } from "react";
-import { useEcharts } from "../../src";
-import type { EChartsOption } from "echarts";
+import { useEcharts, type EChartsOption } from "../../src";
 
 const THEMES = ["light", "dark", "macarons", "custom"] as const;
 

@@ -1,11 +1,10 @@
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
-import { useEcharts } from "../../src";
+import { useEcharts, type EChartsOption } from "../../src";
 import { useTheme } from "./theme-context";
 import Icon from "./Icon";
 import { CHART_COUNT } from "../data/gallery";
 import { APP_VERSION, BUNDLE_SIZE, ECHARTS_MAJOR, REACT_MAJOR } from "../data/meta";
-import type { EChartsOption } from "echarts";
 import styles from "./Hero.module.css";
 
 const INSTALL_CMD = "npm install react-use-echarts echarts";

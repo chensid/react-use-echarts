@@ -1,7 +1,6 @@
 import React from "react";
-import { useEcharts } from "../../src";
+import { useEcharts, type EChartsOption } from "../../src";
 import { useTheme } from "../components/theme-context";
-import type { EChartsOption } from "echarts";
 
 const CHART_CONFIGS: (() => EChartsOption)[] = [
   () => ({

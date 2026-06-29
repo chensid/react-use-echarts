@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from "react";
-import { useEcharts, type EChartsEvents } from "../../src";
+import { useEcharts, type EChartsEvents, type EChartsOption } from "../../src";
 import { useTheme } from "../components/theme-context";
-import type { ECElementEvent, EChartsOption } from "echarts";
+import type { ECElementEvent } from "echarts";
 
 const option: EChartsOption = {
   backgroundColor: "transparent",

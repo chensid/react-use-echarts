@@ -33,15 +33,15 @@ React hooks & component for Apache ECharts — TypeScript, auto-resize, themes, 
 
 A modern, hook-first wrapper for teams on **React 19 + ECharts 6**. ECharts stays the single source of truth — you pass `EChartsOption` straight through, with no abstraction layer to re-learn.
 
-|               | react-use-echarts                                | echarts-for-react        |
-| ------------- | ------------------------------------------------ | ------------------------ |
-| API           | `useEcharts` hook **and** `<EChart />` component | Component only           |
-| Built for     | React 19 — callback ref, StrictMode-safe         | React 16–18 era          |
-| Auto-resize   | `ResizeObserver` + RAF, on by default            | ✓                        |
-| Lazy init     | Built-in `lazyInit` (IntersectionObserver)       | Manual                   |
-| Chart linkage | Built-in `group` prop                            | Manual `echarts.connect` |
-| Error routing | `onError` for init / setOption / dispatch        | Manual try/catch         |
-| Format & deps | ESM-only, tree-shakeable, zero runtime deps      | CJS + ESM, zero deps     |
+|               | react-use-echarts                                 | echarts-for-react        |
+| ------------- | ------------------------------------------------- | ------------------------ |
+| API           | `useEcharts` hook **and** `<EChart />` component  | Component only           |
+| Built for     | React 19 — callback ref, StrictMode-safe          | React 16–18 era          |
+| Auto-resize   | `ResizeObserver` + RAF, on by default             | ✓                        |
+| Lazy init     | Built-in `lazyInit` (IntersectionObserver)        | Manual                   |
+| Chart linkage | Built-in `group` prop                             | Manual `echarts.connect` |
+| Error routing | `onError` for chart operations and imperative API | Manual try/catch         |
+| Format & deps | ESM-only, tree-shakeable, zero runtime deps       | CJS + ESM, zero deps     |
 
 Already using `echarts-for-react`? Most props map 1:1 — see [Migrating from echarts-for-react](#migrating-from-echarts-for-react).
 
@@ -328,20 +328,20 @@ Declarative component wrapping `useEcharts`. Accepts all hook options as props p
 
 #### Options
 
-| Option          | Type                                  | Default    | Description                                                                                                     |
-| --------------- | ------------------------------------- | ---------- | --------------------------------------------------------------------------------------------------------------- |
-| `option`        | `EChartsOption`                       | (required) | ECharts configuration                                                                                           |
-| `theme`         | `string \| object`                    | —          | Any registered theme name, or custom theme object                                                               |
-| `renderer`      | `'canvas' \| 'svg'`                   | `'canvas'` | Renderer type                                                                                                   |
-| `lazyInit`      | `boolean \| IntersectionObserverInit` | `false`    | Lazy initialization via IntersectionObserver                                                                    |
-| `group`         | `string`                              | —          | Chart linkage group ID                                                                                          |
-| `setOptionOpts` | `SetOptionOpts`                       | —          | Default options for `setOption` calls                                                                           |
-| `showLoading`   | `boolean`                             | `false`    | Show loading indicator                                                                                          |
-| `loadingOption` | `object`                              | —          | Loading indicator configuration                                                                                 |
-| `onEvents`      | `EChartsEvents`                       | —          | Event handlers (`fn` or `{ handler, query?, context? }`)                                                        |
-| `autoResize`    | `boolean`                             | `true`     | Auto-resize via ResizeObserver                                                                                  |
-| `initOpts`      | `EChartsInitOpts`                     | —          | Passed to `echarts.init()` (devicePixelRatio, locale, width, etc.)                                              |
-| `onError`       | `(error: unknown) => void`            | —          | Error handler — effect failures logged via `console.error` without it; imperative `setOption` throws without it |
+| Option          | Type                                  | Default    | Description                                                                                                                                  |
+| --------------- | ------------------------------------- | ---------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| `option`        | `EChartsOption`                       | (required) | ECharts configuration                                                                                                                        |
+| `theme`         | `string \| object`                    | —          | Any registered theme name, or custom theme object                                                                                            |
+| `renderer`      | `'canvas' \| 'svg'`                   | `'canvas'` | Renderer type                                                                                                                                |
+| `lazyInit`      | `boolean \| IntersectionObserverInit` | `false`    | Lazy initialization via IntersectionObserver                                                                                                 |
+| `group`         | `string`                              | —          | Chart linkage group ID                                                                                                                       |
+| `setOptionOpts` | `SetOptionOpts`                       | —          | Default options for `setOption` calls                                                                                                        |
+| `showLoading`   | `boolean`                             | `false`    | Show loading indicator                                                                                                                       |
+| `loadingOption` | `object`                              | —          | Loading indicator configuration                                                                                                              |
+| `onEvents`      | `EChartsEvents`                       | —          | Event handlers (`fn` or `{ handler, query?, context? }`)                                                                                     |
+| `autoResize`    | `boolean`                             | `true`     | Auto-resize via ResizeObserver                                                                                                               |
+| `initOpts`      | `EChartsInitOpts`                     | —          | Passed to `echarts.init()` (devicePixelRatio, locale, width, etc.)                                                                           |
+| `onError`       | `(error: unknown) => void`            | —          | Error handler for chart operations and imperative API calls. Without it, effect failures log via `console.error`; imperative methods rethrow |
 
 #### Returns
 
@@ -442,7 +442,7 @@ Most props map 1:1; a few are folded into existing options. Quick reference:
 | `autoResize` (4.x)        | `autoResize`                              | Same default (`true`); resize uses ResizeObserver + RAF                                                                                                                                |
 | _none_                    | `lazyInit`                                | New: defer init until the container scrolls into viewport                                                                                                                              |
 | _none_                    | `group`                                   | New: chart linkage via shared group ID                                                                                                                                                 |
-| _none_                    | `onError`                                 | New: route init / setOption / dispatchAction errors through a callback                                                                                                                 |
+| _none_                    | `onError`                                 | New: route chart operation errors through a callback (`init`, `setOption`, events, loading, resize, group linkage, and imperative calls)                                               |
 
 Side-by-side example:
 
