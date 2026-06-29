@@ -1,7 +1,6 @@
 import React, { useMemo } from "react";
-import { useEcharts } from "../../src";
+import { useEcharts, type EChartsOption } from "../../src";
 import { useTheme } from "../components/theme-context";
-import type { EChartsOption } from "echarts";
 
 const HOURS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 const SLOTS = ["Morning", "Afternoon", "Evening", "Night"];

@@ -1,7 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
-import { useEcharts } from "../../src";
+import { useEcharts, type EChartsOption } from "../../src";
 import { useTheme } from "../components/theme-context";
-import type { EChartsOption } from "echarts";
 
 function formatTime(date: Date) {
   return date.toLocaleTimeString("en-US", { hour12: false });

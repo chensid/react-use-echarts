@@ -20,9 +20,8 @@ import * as echarts from "echarts/core";
 import { LineChart } from "echarts/charts";
 import { GridComponent, TooltipComponent, TitleComponent } from "echarts/components";
 import { CanvasRenderer } from "echarts/renderers";
-import { useEcharts } from "../../src";
+import { useEcharts, type EChartsOption } from "../../src";
 import { useTheme } from "../components/theme-context";
-import type { EChartsOption } from "echarts";
 
 // Register only the pieces this chart needs. ECharts maintains a single
 // global registry, so `use()` calls compose across modules in the consumer

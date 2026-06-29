@@ -1,9 +1,8 @@
 import React from "react";
 import { Link } from "react-router-dom";
-import { useEcharts } from "../../src";
+import { useEcharts, type EChartsOption } from "../../src";
 import { useTheme } from "./theme-context";
 import Icon from "./Icon";
-import type { EChartsOption } from "echarts";
 import styles from "./ThumbCard.module.css";
 
 interface ThumbCardProps {

@@ -1,7 +1,6 @@
 import React, { useCallback, useState } from "react";
-import { useEcharts } from "../../src";
+import { useEcharts, type EChartsOption, type Payload } from "../../src";
 import { useTheme } from "../components/theme-context";
-import type { EChartsOption, Payload } from "echarts";
 
 const validOption: EChartsOption = {
   backgroundColor: "transparent",

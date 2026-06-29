@@ -1,4 +1,4 @@
-import type { EChartsOption } from "echarts";
+import type { EChartsOption } from "../../src";
 
 const baseGrid = { top: 14, bottom: 14, left: 28, right: 14 };
 

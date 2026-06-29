@@ -1,9 +1,8 @@
 import React, { useMemo, useState } from "react";
-import { useEcharts } from "../../src";
+import { useEcharts, type EChartsOption } from "../../src";
 import { useTheme } from "../components/theme-context";
 import PageHeader from "./PageHeader";
 import Icon from "../components/Icon";
-import type { EChartsOption } from "echarts";
 import styles from "./Playground.module.css";
 
 const SERIES_TYPES = ["bar", "line", "scatter"] as const;

@@ -1,8 +1,6 @@
 import React, { useRef, useState } from "react";
-import { EChart } from "../../src";
-import type { EChartHandle } from "../../src";
+import { EChart, type EChartHandle, type EChartsOption } from "../../src";
 import { useTheme } from "../components/theme-context";
-import type { EChartsOption } from "echarts";
 
 const baseOption: EChartsOption = {
   backgroundColor: "transparent",
