@@ -19,3 +19,5 @@ minimumReleaseAgeExclude:
   - "@shikijs/themes@4.3.0"
   - "@shikijs/types@4.3.0"
   - shiki@4.3.0
+  - react-router-dom@7.18.1
+  - react-router@7.18.1
