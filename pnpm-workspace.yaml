@@ -10,7 +10,7 @@ minimumReleaseAgeExclude:
   - "@vitejs/plugin-react@6.0.3"
   - playwright-core@1.61.1
   - playwright@1.61.1
-  - "@types/node@26.0.1"
+  - "@types/node@26.0.1 || 26.1.0"
   - "@shikijs/core@4.3.0"
   - "@shikijs/engine-javascript@4.3.0"
   - "@shikijs/engine-oniguruma@4.3.0"
