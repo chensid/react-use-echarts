@@ -1,5 +1,11 @@
 # react-use-echarts
 
+## 3.0.2
+
+### Patch Changes
+
+- cb66554: Move the examples/showcase build output to `site-dist/` so it no longer shares `dist/` with the published library build.
+
 ## 3.0.1
 
 ### Patch Changes
