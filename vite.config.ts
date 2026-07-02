@@ -31,13 +31,16 @@ const preserveProcessEnvNodeEnv = { "process.env.NODE_ENV": "process.env.NODE_EN
 // https://viteplus.dev/config/
 export default defineConfig({
   base,
+  build: {
+    outDir: "site-dist",
+  },
   lint: {
     plugins: ["oxc", "typescript", "unicorn", "react", "promise", "import"],
     categories: {
       correctness: "error",
     },
     env: { builtin: true },
-    ignorePatterns: ["dist", "coverage"],
+    ignorePatterns: ["dist", "site-dist", "coverage"],
     overrides: [
       {
         files: ["**/*.{ts,tsx}"],
