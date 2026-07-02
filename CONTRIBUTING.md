@@ -24,7 +24,7 @@ Thanks for your interest in improving `react-use-echarts`!
 - `vp test` – execute the Vitest suite once (single run by default).
 - `vp test watch` – run the suite in watch mode while developing.
 - `vp test --coverage` – generate coverage reports.
-- `vp build` – build the examples application with Vite.
+- `vp build` – build the examples application with Vite into `site-dist/`.
 - `vp pack` – build the library (ESM) and type declarations into `dist/`. Runs `publint` + `attw` automatically.
 
 Run `vp check && vp test` before opening a pull request. This is the same set of checks we rely on for releases.

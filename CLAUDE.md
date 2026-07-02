@@ -13,7 +13,7 @@ Project-specific commands:
 ```bash
 vp install                    # Install dependencies
 vp dev                        # Dev server (localhost:3000, serves examples/)
-vp build                      # Build examples app
+vp build                      # Build examples app → site-dist/
 vp pack                       # Library build → dist/
 vp test                       # Single run
 vp test watch                 # Watch mode
