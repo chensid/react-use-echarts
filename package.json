@@ -86,8 +86,8 @@
     "@types/react": "^19.2.17",
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^6.0.3",
-    "@vitest/browser-playwright": "4.1.9",
-    "@vitest/coverage-v8": "4.1.9",
+    "@vitest/browser-playwright": "catalog:",
+    "@vitest/coverage-v8": "catalog:",
     "babel-plugin-react-compiler": "^1.0.0",
     "echarts": "^6.1.0",
     "happy-dom": "^20.10.6",
@@ -99,8 +99,9 @@
     "shiki": "^4.3.0",
     "size-limit": "^12.1.0",
     "typescript": "~6.0.3",
-    "vite": "npm:@voidzero-dev/vite-plus-core@^0.2.1",
-    "vite-plus": "^0.2.1"
+    "vite": "catalog:",
+    "vite-plus": "catalog:",
+    "vitest": "catalog:"
   },
   "peerDependencies": {
     "echarts": "^6.0.0",
