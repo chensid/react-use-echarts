@@ -1,5 +1,6 @@
 overrides:
-  vite: npm:@voidzero-dev/vite-plus-core@^0.2.1
+  vite: "catalog:"
+  vitest: "catalog:"
 
 allowBuilds:
   esbuild: true
@@ -21,3 +22,26 @@ minimumReleaseAgeExclude:
   - shiki@4.3.0
   - react-router-dom@7.18.1
   - react-router@7.18.1
+  - "@voidzero-dev/vite-plus-core@0.2.2"
+  - "@voidzero-dev/vite-plus-darwin-arm64@0.2.2"
+  - "@voidzero-dev/vite-plus-darwin-x64@0.2.2"
+  - "@voidzero-dev/vite-plus-linux-arm64-gnu@0.2.2"
+  - "@voidzero-dev/vite-plus-linux-arm64-musl@0.2.2"
+  - "@voidzero-dev/vite-plus-linux-x64-gnu@0.2.2"
+  - "@voidzero-dev/vite-plus-linux-x64-musl@0.2.2"
+  - "@voidzero-dev/vite-plus-win32-arm64-msvc@0.2.2"
+  - "@voidzero-dev/vite-plus-win32-x64-msvc@0.2.2"
+  - vite-plus@0.2.2
+catalog:
+  vite: npm:@voidzero-dev/vite-plus-core@0.2.2
+  vitest: 4.1.9
+  vite-plus: 0.2.2
+  "@vitest/browser-playwright": 4.1.9
+  "@vitest/coverage-v8": 4.1.9
+peerDependencyRules:
+  allowAny:
+    - vite
+    - vitest
+  allowedVersions:
+    vite: "*"
+    vitest: "*"

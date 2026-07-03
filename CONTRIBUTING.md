@@ -29,6 +29,10 @@ Thanks for your interest in improving `react-use-echarts`!
 
 Run `vp check && vp test` before opening a pull request. This is the same set of checks we rely on for releases.
 
+## Toolchain Updates
+
+Vite+ owns the local Vite/Vitest/Oxlint/Oxfmt/Rolldown toolchain. To align this repo with a new Vite+ release, upgrade the global CLI first (`vp upgrade`), then run `vp migrate --full --no-interactive` from the repository root and review the diff. The migration updates the pnpm catalog, Vite/Vitest overrides, lockfile, and Vite+ hook/editor/agent setup.
+
 ## Pull Request Guidelines
 
 - Keep each PR focused on a single feature or fix.
