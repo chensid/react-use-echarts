@@ -1,5 +1,11 @@
 # react-use-echarts
 
+## 3.0.3
+
+### Patch Changes
+
+- 27abd1b: Publish maintenance updates for the Vite+ toolchain, pnpm package manager declaration, Shiki packages, and refreshed transitive dependency resolutions.
+
 ## 3.0.2
 
 ### Patch Changes
