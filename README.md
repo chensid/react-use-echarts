@@ -53,7 +53,7 @@ Already using `echarts-for-react`? Most props map 1:1 — see [Migrating from ec
 
 > **CSR only.** ECharts needs a live DOM; SSR is not supported.
 >
-> **ESM-only since 1.3.0.** The package publishes a single ESM build (`dist/index.js`). Every modern bundler (Vite, Next.js, webpack 5+, Rspack, Parcel, Turbopack) and Node 22+ (`require(ESM)`) consume it natively. If you still depend on CJS-only tooling, pin to `1.2.x`.
+> **ESM-only since 1.3.0.** The package publishes ESM entries for the main API (`dist/index.js`) plus the `preset-full` and `themes/registry` subpaths. Every modern bundler (Vite, Next.js, webpack 5+, Rspack, Parcel, Turbopack) and Node 22+ (`require(ESM)`) consume them natively. If you still depend on CJS-only tooling, pin to `1.2.x`.
 
 ## Installation
 
