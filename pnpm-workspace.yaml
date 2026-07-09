@@ -11,7 +11,7 @@ minimumReleaseAgeExclude:
   - "@vitejs/plugin-react@6.0.3"
   - playwright-core@1.61.1
   - playwright@1.61.1
-  - "@types/node@26.0.1 || 26.1.0"
+  - "@types/node@26.1.1"
   - "@shikijs/core@4.3.1"
   - "@shikijs/engine-javascript@4.3.1"
   - "@shikijs/engine-oniguruma@4.3.1"
@@ -22,22 +22,22 @@ minimumReleaseAgeExclude:
   - shiki@4.3.1
   - react-router-dom@7.18.1
   - react-router@7.18.1
-  - "@voidzero-dev/vite-plus-core@0.2.3"
-  - "@voidzero-dev/vite-plus-darwin-arm64@0.2.3"
-  - "@voidzero-dev/vite-plus-darwin-x64@0.2.3"
-  - "@voidzero-dev/vite-plus-linux-arm64-gnu@0.2.3"
-  - "@voidzero-dev/vite-plus-linux-arm64-musl@0.2.3"
-  - "@voidzero-dev/vite-plus-linux-x64-gnu@0.2.3"
-  - "@voidzero-dev/vite-plus-linux-x64-musl@0.2.3"
-  - "@voidzero-dev/vite-plus-win32-arm64-msvc@0.2.3"
-  - "@voidzero-dev/vite-plus-win32-x64-msvc@0.2.3"
-  - vite-plus@0.2.3
+  - "@voidzero-dev/vite-plus-core@0.2.4"
+  - "@voidzero-dev/vite-plus-darwin-arm64@0.2.4"
+  - "@voidzero-dev/vite-plus-darwin-x64@0.2.4"
+  - "@voidzero-dev/vite-plus-linux-arm64-gnu@0.2.4"
+  - "@voidzero-dev/vite-plus-linux-arm64-musl@0.2.4"
+  - "@voidzero-dev/vite-plus-linux-x64-gnu@0.2.4"
+  - "@voidzero-dev/vite-plus-linux-x64-musl@0.2.4"
+  - "@voidzero-dev/vite-plus-win32-arm64-msvc@0.2.4"
+  - "@voidzero-dev/vite-plus-win32-x64-msvc@0.2.4"
+  - vite-plus@0.2.4
 catalog:
-  vite: npm:@voidzero-dev/vite-plus-core@0.2.3
-  vitest: 4.1.9
-  vite-plus: 0.2.3
-  "@vitest/browser-playwright": 4.1.9
-  "@vitest/coverage-v8": 4.1.9
+  vite: npm:@voidzero-dev/vite-plus-core@0.2.4
+  vitest: 4.1.10
+  vite-plus: 0.2.4
+  "@vitest/browser-playwright": 4.1.10
+  "@vitest/coverage-v8": 4.1.10
 peerDependencyRules:
   allowAny:
     - vite
