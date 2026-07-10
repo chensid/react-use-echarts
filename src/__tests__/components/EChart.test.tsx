@@ -1,11 +1,11 @@
 import { describe, it, expect, vi, beforeEach } from "vite-plus/test";
-import { render } from "@testing-library/react";
+import { fireEvent, render } from "@testing-library/react";
 import { createRef } from "react";
 import * as echarts from "echarts/core";
 import { EChart } from "../../components/EChart";
 import { clearInstanceCache, getCachedInstance } from "../../utils/instance-cache";
 import { clearGroups } from "../../utils/connect";
-import type { EChartHandle } from "../../types";
+import type { EChartHandle, EChartProps } from "../../types";
 import { createMockInstance, MockResizeObserver, MockIntersectionObserver } from "../helpers";
 
 // Mock ECharts
@@ -85,6 +85,57 @@ describe("EChart component", () => {
 
     const div = container.firstChild as HTMLDivElement;
     expect(div.className).toBe("my-chart");
+  });
+
+  it("should forward native div attributes and DOM event handlers", () => {
+    (echarts.init as ReturnType<typeof vi.fn>).mockImplementation((el: HTMLElement) =>
+      createMockInstance(el),
+    );
+    const onClick = vi.fn();
+
+    const { container } = render(
+      <EChart
+        option={{ series: [{ type: "line", data: [1, 2, 3] }] }}
+        id="sales-chart"
+        role="img"
+        aria-label="Quarterly sales"
+        data-chart-kind="line"
+        tabIndex={0}
+        onClick={onClick}
+      />,
+    );
+
+    const div = container.firstChild as HTMLDivElement;
+    expect(div.id).toBe("sales-chart");
+    expect(div.getAttribute("role")).toBe("img");
+    expect(div.getAttribute("aria-label")).toBe("Quarterly sales");
+    expect(div.getAttribute("data-chart-kind")).toBe("line");
+    expect(div.tabIndex).toBe(0);
+
+    fireEvent.click(div);
+    expect(onClick).toHaveBeenCalledTimes(1);
+  });
+
+  it("should discard out-of-type container content props at runtime", () => {
+    (echarts.init as ReturnType<typeof vi.fn>).mockImplementation((el: HTMLElement) =>
+      createMockInstance(el),
+    );
+    const UnsafeEChart = EChart as unknown as React.ComponentType<
+      Omit<EChartProps, "children" | "dangerouslySetInnerHTML"> & {
+        children?: React.ReactNode;
+        dangerouslySetInnerHTML?: { __html: string };
+      }
+    >;
+
+    const option = { series: [{ type: "line" as const, data: [1, 2, 3] }] };
+    const first = render(<UnsafeEChart option={option}>unexpected child</UnsafeEChart>);
+    expect((first.container.firstChild as HTMLDivElement).innerHTML).toBe("");
+    first.unmount();
+
+    const second = render(
+      <UnsafeEChart option={option} dangerouslySetInnerHTML={{ __html: "<span>unsafe</span>" }} />,
+    );
+    expect((second.container.firstChild as HTMLDivElement).innerHTML).toBe("");
   });
 
   it("should expose chart methods via ref", () => {

@@ -323,6 +323,10 @@ export default function Page() {
 | `className` | `string`              | —                                   | 容器 CSS 类名                                                                                                     |
 | `ref`       | `Ref<EChartHandle>`   | —                                   | 以 `EChartHandle`（`Omit<UseEchartsReturn, 'ref'>` —— 容器 ref 由 `<EChart>` 自管，不再暴露给外部）暴露命令式 API |
 
+其余原生 `div` 属性会透传到图表容器，包括 `id`、`role`、`aria-*`、`data-*`、
+`tabIndex` 和 DOM 事件。由于 ECharts 自行管理容器内容，`children` 和
+`dangerouslySetInnerHTML` 不被接受；`onError` 仍表示图表错误处理器。
+
 ### `useEcharts(options)`
 
 #### Options
@@ -356,13 +360,13 @@ export default function Page() {
 
 **生命周期 / 更新**
 
-| 方法             | 类型                                                                                 | 说明                                                                                                                 |
-| ---------------- | ------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------- |
-| `setOption`      | `(option: EChartsOption, opts?: SetOptionOpts) => void`                              | 动态更新图表配置                                                                                                     |
-| `dispatchAction` | `(payload: Payload, opt?: boolean \| { silent?: boolean; flush?: boolean }) => void` | 派发 ECharts 动作（`highlight`、`downplay`、`showTip` 等）                                                           |
-| `clear`          | `() => void`                                                                         | 清空当前图表内容                                                                                                     |
-| `resize`         | `(opts?: ResizeOpts) => void`                                                        | 手动触发 resize；`ResizeOpts` 支持 `width`/`height`/`animation`/`silent`                                             |
-| `appendData`     | `(params: { seriesIndex: number; data: ArrayLike<unknown> }) => void`                | 向 series 流式追加数据。带漂移感知：会清掉去重缓存，使下次浅相等但新引用的 `option` rerender 重新调用 setOption 同步 |
+| 方法             | 类型                                                                                 | 说明                                                                                     |
+| ---------------- | ------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------- |
+| `setOption`      | `(option: EChartsOption, opts?: SetOptionOpts) => void`                              | 动态更新图表配置                                                                         |
+| `dispatchAction` | `(payload: Payload, opt?: boolean \| { silent?: boolean; flush?: boolean }) => void` | 派发 ECharts 动作（`highlight`、`downplay`、`showTip` 等）                               |
+| `clear`          | `() => void`                                                                         | 清空当前图表内容                                                                         |
+| `resize`         | `(opts?: ResizeOpts) => void`                                                        | 手动触发 resize；`ResizeOpts` 支持 `width`/`height`/`animation`/`silent`                 |
+| `appendData`     | `(params: { seriesIndex: number; data: ArrayLike<unknown> }) => void`                | 向 series 流式追加数据；会使 prop 同步记录失效，以便下一次相关的响应式更新恢复声明式状态 |
 
 **读取 / 内省**
 
@@ -436,7 +440,7 @@ return <div ref={mergeRefs(ref, myRef)} style={{ height: 400 }} />;
 | `style`                   | `style`                                   | `<EChart />` 默认 `{ width: '100%', height: '100%' }`，父容器仍需显式高度                                                                          |
 | `className`               | `className`                               | 一致                                                                                                                                               |
 | `lazyUpdate`（顶层）      | `setOptionOpts: { lazyUpdate: true }`     | 见 `notMerge` 行                                                                                                                                   |
-| `shouldSetOption`         | 在父组件中自行控制 `option`               | 顶层键自动经 `shallowEqual` 去重；如需自定义判断（深比较、节流、按应用状态门控），请在父组件中 memoize 或跳过 `option` prop                        |
+| `shouldSetOption`         | 在父组件中自行控制 `option`               | 新的 `option` 引用会触发 `setOption`；如需自定义判断（深比较、节流、按应用状态门控），请在父组件中 memoize 或跳过 `option` prop                    |
 | `autoResize`（4.x）       | `autoResize`                              | 默认值同为 `true`；底层使用 ResizeObserver + RAF                                                                                                   |
 | _无_                      | `lazyInit`                                | 新增：容器进入视口时再初始化                                                                                                                       |
 | _无_                      | `group`                                   | 新增：通过组 ID 实现图表联动                                                                                                                       |
