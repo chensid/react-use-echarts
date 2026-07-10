@@ -1,5 +1,15 @@
 # react-use-echarts
 
+## 3.1.0
+
+### Minor Changes
+
+- ff8efdc: Apply every new `option` reference so nested ECharts data mutations exposed through a
+  new top-level object are not skipped by shallow comparison.
+
+  Forward native `div` attributes from `<EChart />` to its container, including ARIA,
+  data attributes, focus properties, and DOM event handlers.
+
 ## 3.0.3
 
 ### Patch Changes
