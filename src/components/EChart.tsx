@@ -16,11 +16,40 @@ import type { EChartHandle, EChartProps } from "../types";
  */
 export function EChart({
   ref,
+  option,
+  theme,
+  renderer,
+  lazyInit,
+  group,
+  setOptionOpts,
+  showLoading,
+  loadingOption,
+  onEvents,
+  autoResize,
+  initOpts,
+  onError,
   style,
   className,
-  ...options
+  children: _children,
+  dangerouslySetInnerHTML: _dangerouslySetInnerHTML,
+  ...containerProps
 }: EChartProps & { ref?: Ref<EChartHandle> }) {
-  const chart = useEcharts(options);
+  // Runtime JS callers can bypass the TypeScript exclusions; discard both
+  // content-owning props so React never competes with ECharts for this div.
+  const chart = useEcharts({
+    option,
+    theme,
+    renderer,
+    lazyInit,
+    group,
+    setOptionOpts,
+    showLoading,
+    loadingOption,
+    onEvents,
+    autoResize,
+    initOpts,
+    onError,
+  });
   // Strip the container `ref` field from the imperative handle so external
   // callers can't reassign the chart's DOM element via `handle.ref(otherNode)`.
   // The handle only exposes the reactive `instance` + imperative methods.
@@ -30,6 +59,7 @@ export function EChart({
   }, [chart]);
   return (
     <div
+      {...containerProps}
       ref={chart.ref}
       style={{ width: "100%", height: "100%", ...style }}
       className={className}

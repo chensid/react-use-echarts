@@ -21,9 +21,49 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  quality:
+    if: github.repository == 'chensid/react-use-echarts'
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        node: ["22", "24"]
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: voidzero-dev/setup-vp@v1
+        with:
+          node-version: ${{ matrix.node }}
+          cache: true
+
+      - name: Install dependencies
+        run: vp install --frozen-lockfile
+
+      - name: Static checks
+        run: vp check
+
+      - name: Build library
+        run: vp pack
+
+      - name: Test with coverage (unit project)
+        run: vp test run --coverage --project unit
+
+      - name: Install Playwright Chromium
+        if: matrix.node == '24'
+        run: vp exec playwright install --with-deps chromium
+
+      - name: Test (browser project)
+        if: matrix.node == '24'
+        run: vp test run --project browser
+
+      - name: Bundle size budget
+        if: matrix.node == '24'
+        run: vp run size
+
   release:
     # Only run on the canonical repo so forks don't try to publish.
     if: github.repository == 'chensid/react-use-echarts'
+    needs: quality
     runs-on: ubuntu-latest
     permissions:
       contents: write

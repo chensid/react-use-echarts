@@ -324,6 +324,11 @@ Declarative component wrapping `useEcharts`. Accepts all hook options as props p
 | `className` | `string`              | —                                   | Container CSS class                                                                                                              |
 | `ref`       | `Ref<EChartHandle>`   | —                                   | Exposes the imperative API as `EChartHandle` (`Omit<UseEchartsReturn, 'ref'>` — the container ref is owned by `<EChart>` itself) |
 
+All other native `div` attributes are forwarded to the chart container, including `id`,
+`role`, `aria-*`, `data-*`, `tabIndex`, and DOM event handlers. `children` and
+`dangerouslySetInnerHTML` are excluded because ECharts owns the container contents;
+`onError` remains the chart error handler.
+
 ### `useEcharts(options)`
 
 #### Options
@@ -357,13 +362,13 @@ Declarative component wrapping `useEcharts`. Accepts all hook options as props p
 
 **Lifecycle / updates**
 
-| Method           | Type                                                                                 | Description                                                                                                                                           |
-| ---------------- | ------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `setOption`      | `(option: EChartsOption, opts?: SetOptionOpts) => void`                              | Update chart configuration                                                                                                                            |
-| `dispatchAction` | `(payload: Payload, opt?: boolean \| { silent?: boolean; flush?: boolean }) => void` | Dispatch an ECharts action (`highlight`, `downplay`, `showTip`, etc.)                                                                                 |
-| `clear`          | `() => void`                                                                         | Clear current chart content                                                                                                                           |
-| `resize`         | `(opts?: ResizeOpts) => void`                                                        | Manually trigger chart resize. `ResizeOpts` accepts `width`/`height`/`animation`/`silent`                                                             |
-| `appendData`     | `(params: { seriesIndex: number; data: ArrayLike<unknown> }) => void`                | Append data to a series (streaming). Drift-aware: drops dedup memory so a subsequent shallow-equal-but-new-ref `option` rerender re-applies setOption |
+| Method           | Type                                                                                 | Description                                                                                                                               |
+| ---------------- | ------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| `setOption`      | `(option: EChartsOption, opts?: SetOptionOpts) => void`                              | Update chart configuration                                                                                                                |
+| `dispatchAction` | `(payload: Payload, opt?: boolean \| { silent?: boolean; flush?: boolean }) => void` | Dispatch an ECharts action (`highlight`, `downplay`, `showTip`, etc.)                                                                     |
+| `clear`          | `() => void`                                                                         | Clear current chart content                                                                                                               |
+| `resize`         | `(opts?: ResizeOpts) => void`                                                        | Manually trigger chart resize. `ResizeOpts` accepts `width`/`height`/`animation`/`silent`                                                 |
+| `appendData`     | `(params: { seriesIndex: number; data: ArrayLike<unknown> }) => void`                | Append data to a series (streaming). Invalidates prop-sync bookkeeping so the next relevant reactive update can restore declarative state |
 
 **Read / introspect**
 
@@ -424,25 +429,25 @@ return <div ref={mergeRefs(ref, myRef)} style={{ height: 400 }} />;
 
 Most props map 1:1; a few are folded into existing options. Quick reference:
 
-| `echarts-for-react`       | `react-use-echarts`                       | Notes                                                                                                                                                                                  |
-| ------------------------- | ----------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `option`                  | `option`                                  | Same                                                                                                                                                                                   |
-| `theme`                   | `theme`                                   | Same; built-in themes need `registerBuiltinThemes()` first (see [Themes](#themes))                                                                                                     |
-| `notMerge` / `lazyUpdate` | `setOptionOpts: { notMerge, lazyUpdate }` | Folded into a single object passed to `setOption`                                                                                                                                      |
-| `showLoading`             | `showLoading`                             | Same                                                                                                                                                                                   |
-| `loadingOption`           | `loadingOption`                           | Same                                                                                                                                                                                   |
-| `onEvents`                | `onEvents`                                | Same shape; also accepts `{ handler, query?, context? }` for query/context binding                                                                                                     |
-| `onChartReady`            | Subscribe to the reactive `instance`      | `useEffect(() => { if (instance) onReady(instance); }, [instance])` — the returned `instance` is `undefined` before init and re-renders when init/dispose completes                    |
-| `opts.renderer`           | `renderer: 'canvas' \| 'svg'`             | Promoted to a top-level option                                                                                                                                                         |
-| `opts` (rest)             | `initOpts`                                | Same shape (`devicePixelRatio`, `locale`, `width`, `height`, `useDirtyRect`, etc.)                                                                                                     |
-| `style`                   | `style`                                   | `<EChart />` defaults to `{ width: '100%', height: '100%' }` so the parent needs size                                                                                                  |
-| `className`               | `className`                               | Same                                                                                                                                                                                   |
-| `lazyUpdate` (top-level)  | `setOptionOpts: { lazyUpdate: true }`     | See `notMerge` row                                                                                                                                                                     |
-| `shouldSetOption`         | Gate the `option` prop yourself           | Top-level keys are deduped via `shallowEqual` automatically; for custom predicates (deep compare, throttling, app-state gating) memoize/skip the `option` prop in the parent component |
-| `autoResize` (4.x)        | `autoResize`                              | Same default (`true`); resize uses ResizeObserver + RAF                                                                                                                                |
-| _none_                    | `lazyInit`                                | New: defer init until the container scrolls into viewport                                                                                                                              |
-| _none_                    | `group`                                   | New: chart linkage via shared group ID                                                                                                                                                 |
-| _none_                    | `onError`                                 | New: route chart operation errors through a callback (`init`, `setOption`, events, loading, resize, group linkage, and imperative calls)                                               |
+| `echarts-for-react`       | `react-use-echarts`                       | Notes                                                                                                                                                                           |
+| ------------------------- | ----------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `option`                  | `option`                                  | Same                                                                                                                                                                            |
+| `theme`                   | `theme`                                   | Same; built-in themes need `registerBuiltinThemes()` first (see [Themes](#themes))                                                                                              |
+| `notMerge` / `lazyUpdate` | `setOptionOpts: { notMerge, lazyUpdate }` | Folded into a single object passed to `setOption`                                                                                                                               |
+| `showLoading`             | `showLoading`                             | Same                                                                                                                                                                            |
+| `loadingOption`           | `loadingOption`                           | Same                                                                                                                                                                            |
+| `onEvents`                | `onEvents`                                | Same shape; also accepts `{ handler, query?, context? }` for query/context binding                                                                                              |
+| `onChartReady`            | Subscribe to the reactive `instance`      | `useEffect(() => { if (instance) onReady(instance); }, [instance])` — the returned `instance` is `undefined` before init and re-renders when init/dispose completes             |
+| `opts.renderer`           | `renderer: 'canvas' \| 'svg'`             | Promoted to a top-level option                                                                                                                                                  |
+| `opts` (rest)             | `initOpts`                                | Same shape (`devicePixelRatio`, `locale`, `width`, `height`, `useDirtyRect`, etc.)                                                                                              |
+| `style`                   | `style`                                   | `<EChart />` defaults to `{ width: '100%', height: '100%' }` so the parent needs size                                                                                           |
+| `className`               | `className`                               | Same                                                                                                                                                                            |
+| `lazyUpdate` (top-level)  | `setOptionOpts: { lazyUpdate: true }`     | See `notMerge` row                                                                                                                                                              |
+| `shouldSetOption`         | Gate the `option` prop yourself           | A new `option` reference triggers `setOption`; for custom predicates (deep comparison, throttling, app-state gating), memoize or skip the `option` prop in the parent component |
+| `autoResize` (4.x)        | `autoResize`                              | Same default (`true`); resize uses ResizeObserver + RAF                                                                                                                         |
+| _none_                    | `lazyInit`                                | New: defer init until the container scrolls into viewport                                                                                                                       |
+| _none_                    | `group`                                   | New: chart linkage via shared group ID                                                                                                                                          |
+| _none_                    | `onError`                                 | New: route chart operation errors through a callback (`init`, `setOption`, events, loading, resize, group linkage, and imperative calls)                                        |
 
 Side-by-side example:
 

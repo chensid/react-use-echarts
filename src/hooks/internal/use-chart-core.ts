@@ -431,8 +431,10 @@ export function useChartCore(
   // OPTION SYNC
   //
   // Uses lastAppliedRef to skip the first run after the lifecycle effect
-  // (which already applied the same option). shallowEqual prevents
-  // unnecessary setOption when user creates new wrapper objects.
+  // (which already applied the same option). A new option reference always
+  // triggers setOption, even when its top-level keys are shallow-equal: the
+  // caller may have mutated shared nested ECharts data before cloning the
+  // wrapper, and shallow comparison cannot observe that change safely.
   // =====================================================================
   useEffect(() => {
     if (!element) return;
@@ -440,10 +442,11 @@ export function useChartCore(
     if (!instance) return;
 
     const last = lastAppliedRef.current;
-    if (last) {
-      // Fast path: identical refs skip shallowEqual's typeof/keys dispatch
-      if (last.option === option && last.opts === setOptionOpts) return;
-      if (shallowEqual(last.option, option) && shallowEqual(last.opts, setOptionOpts)) return;
+    if (last?.option === option) {
+      // Keep stable option references cheap. setOptionOpts is configuration
+      // metadata rather than chart data, so shallow-equal wrapper objects are
+      // safe to deduplicate here.
+      if (last.opts === setOptionOpts || shallowEqual(last.opts, setOptionOpts)) return;
     }
 
     try {
@@ -562,9 +565,8 @@ export function useChartCore(
   // contract. When the instance throws: with onError, route the error and
   // return the fallback; without onError, rethrow (readers do NOT silently
   // log-and-default — same policy as setOption / dispatchAction). clear()
-  // and appendData() additionally drop lastAppliedRef so a subsequent
-  // shallow-equal prop rerender re-applies setOption (the instance state
-  // has drifted from props).
+  // and appendData() additionally drop lastAppliedRef so a later prop-sync
+  // run re-applies setOption (the instance state has drifted from props).
   //
   // Wrapped in `useMemo([element])` so method identities stay stable across
   // renders for a given container. Mutables (lastAppliedRef, latestRef) are
@@ -600,9 +602,9 @@ export function useChartCore(
       clear: () =>
         withInstance((instance) => {
           instance.clear();
-          // Drop dedup memory: instance is now blank, so a subsequent prop
-          // rerender with a shallow-equal-but-new option ref must re-apply
-          // it instead of being skipped by Option-Sync Effect's fast path.
+          // Drop dedup memory: instance is now blank, so the next relevant
+          // prop-sync run must re-apply it instead of being skipped by the
+          // Option-Sync Effect's stable-option fast path.
           lastAppliedRef.current = null;
         }, undefined),
 
@@ -631,8 +633,8 @@ export function useChartCore(
         withInstance((instance) => {
           instance.appendData(params);
           // appendData drifts the instance from declarative `option`, same as
-          // clear(): drop dedup memory so the next shallow-equal-new-ref
-          // option prop re-applies setOption to resync.
+          // clear(): drop dedup memory so the next relevant option-prop sync
+          // re-applies setOption.
           lastAppliedRef.current = null;
         }, undefined),
     } satisfies Omit<ChartCoreReturn, "instance">;

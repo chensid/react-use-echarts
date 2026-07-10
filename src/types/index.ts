@@ -16,7 +16,7 @@ import type {
 // EChartsOption is the full pre-composed option type; only the full "echarts"
 // package exports it (echarts/core ships ComposeOption / EChartsCoreOption).
 import type { EChartsOption } from "echarts";
-import type { CSSProperties, RefCallback } from "react";
+import type { ComponentPropsWithoutRef, RefCallback } from "react";
 
 /**
  * Model finder accepted by `convertToPixel` / `convertFromPixel` / `containPixel`.
@@ -473,11 +473,10 @@ export interface UseEchartsReturn {
 
   /**
    * Append data to a series; useful for streaming. After a successful append,
-   * the chart's data has drifted from the declarative `option` — the next
-   * shallow-equal-but-new-reference `option` rerender re-applies setOption to
-   * resync.
+   * prop-sync bookkeeping is invalidated so the next relevant reactive update
+   * can restore the declarative option.
    * 向 series 追加数据，常用于流式更新。追加后内部数据会与声明式 option 偏离，
-   * 下一次浅相等但新引用的 option rerender 会重新应用 setOption 进行同步。
+   * 同步记录会失效，以便下一次相关的响应式更新恢复声明式状态。
    * @see https://echarts.apache.org/en/api.html#echartsInstance.appendData
    */
   appendData: (params: Parameters<ECharts["appendData"]>[0]) => void;
@@ -494,19 +493,21 @@ export interface UseEchartsReturn {
 export type EChartHandle = Omit<UseEchartsReturn, "ref">;
 
 /**
- * Props for the EChart declarative component
- * EChart 声明式组件的属性
+ * Props for the EChart declarative component. Accepts every chart option plus
+ * native `div` attributes such as `id`, `role`, `aria-*`, `data-*`, `tabIndex`
+ * and DOM event handlers. `children` is intentionally excluded because ECharts
+ * owns the container contents; conflicting native names (notably `onError`)
+ * retain their chart-option meaning.
+ *
+ * EChart 声明式组件的属性。除全部图表选项外，也接受 `id`、`role`、`aria-*`、
+ * `data-*`、`tabIndex` 和 DOM 事件等原生 div 属性。由于 ECharts 自行管理容器内容，
+ * `children` 被有意排除；冲突名称（尤其是 `onError`）保持图表选项语义。
  */
-export interface EChartProps extends UseEchartsOptions {
-  /**
-   * Inline style for the container div
-   * 容器 div 的内联样式
-   */
-  style?: CSSProperties;
-
-  /**
-   * CSS class name for the container div
-   * 容器 div 的 CSS 类名
-   */
-  className?: string;
-}
+export type EChartProps = UseEchartsOptions &
+  Omit<
+    ComponentPropsWithoutRef<"div">,
+    keyof UseEchartsOptions | "children" | "dangerouslySetInnerHTML"
+  > & {
+    children?: never;
+    dangerouslySetInnerHTML?: never;
+  };
