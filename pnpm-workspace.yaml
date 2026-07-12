@@ -6,8 +6,8 @@ allowBuilds:
   esbuild: true
 
 minimumReleaseAgeExclude:
-  - "@arethetypeswrong/cli@0.18.4"
-  - "@arethetypeswrong/core@0.18.4"
+  - "@arethetypeswrong/cli@0.18.5"
+  - "@arethetypeswrong/core@0.18.5"
   - "@vitejs/plugin-react@6.0.3"
   - playwright-core@1.61.1
   - playwright@1.61.1
