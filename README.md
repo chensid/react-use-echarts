@@ -49,7 +49,7 @@ Already using `echarts-for-react`? Most props map 1:1 — see [Migrating from ec
 
 - React 19.2+ (`react` + `react-dom`) — `useEffectEvent` is used internally and reached stable in 19.2
 - ECharts 6.x
-- Node.js 22+ (required only for tooling/SSR frameworks — the published bundle is browser ESM)
+- Node.js 22.13+ (required only for tooling/SSR frameworks — the published bundle is browser ESM)
 
 > **CSR only.** ECharts needs a live DOM; SSR is not supported.
 >
