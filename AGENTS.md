@@ -4,7 +4,7 @@ React hooks & component for Apache ECharts. CSR only — ECharts requires DOM ac
 
 Peer deps: `react` 19.2+ (for stable `useEffectEvent`), `react-dom` 19.2+, `echarts` 6.x
 
-Distribution: ESM-only (since 1.3.0). Requires Node.js 22+ on the tooling side.
+Distribution: ESM-only (since 1.3.0). Requires Node.js 22.13+ on the tooling side.
 
 ## API Quick Reference
 
