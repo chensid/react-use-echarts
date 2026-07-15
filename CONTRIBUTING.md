@@ -48,7 +48,7 @@ Releases are driven by [changesets](https://github.com/changesets/changesets):
 
 1. PRs include a `.changeset/*.md` file describing the change.
 2. Pushes to `main` keep an open "Version Packages" PR that aggregates pending changesets.
-3. Merging that PR triggers the release job in `ci.yml` to build, version, and publish via npm OIDC.
+3. Merging that PR runs `ci.yml`; after CI succeeds, `release.yml` builds and publishes via npm OIDC.
 
 For hotfixes, follow the same flow — open a PR with a `.changeset/*.md` describing the fix, then merge it and the resulting Version Packages PR. Don't include `changeset version` output (CHANGELOG / version bumps) in feature PRs; that belongs only in the auto-generated Version Packages PR.
 
