@@ -1,0 +1,56 @@
+# Keep publishing in this workflow file: npm trusted publishing binds the OIDC
+# identity to `.github/workflows/release.yml`.
+name: Release
+
+on:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+    branches: [main]
+
+concurrency:
+  group: release-main
+  cancel-in-progress: false
+
+jobs:
+  release:
+    # Publish only after a successful push-triggered CI run on the canonical repo.
+    if: >-
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.event == 'push' &&
+      github.repository == 'chensid/react-use-echarts'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+      id-token: write # Required for npm OIDC trusted publishing
+    env:
+      NPM_CONFIG_PROVENANCE: "true"
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Setup Vite+
+        uses: voidzero-dev/setup-vp@v1
+        with:
+          node-version: "24"
+          cache: true
+
+      - name: Install dependencies
+        run: vp install --frozen-lockfile
+
+      - name: Create release PR or publish
+        uses: changesets/action@v1
+        with:
+          # `vp run <script>` dispatches to package.json scripts:
+          # version → `changeset version` (bumps + writes CHANGELOG)
+          # release → `changeset publish`; prepublishOnly packs once before npm publish
+          version: vp run version
+          publish: vp run release
+          commit: "chore: release"
+          title: "chore: release"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
