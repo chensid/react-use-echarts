@@ -1,5 +1,11 @@
 # react-use-echarts
 
+## 3.1.1
+
+### Patch Changes
+
+- c968606: Correct axis-break event typings so action names are no longer advertised as events, and widen `convertToPixel` input typing to match ECharts coordinate tuples with nested or nullish values.
+
 ## 3.1.0
 
 ### Minor Changes
