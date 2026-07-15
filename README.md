@@ -49,7 +49,7 @@ Already using `echarts-for-react`? Most props map 1:1 — see [Migrating from ec
 
 - React 19.2+ (`react` + `react-dom`) — `useEffectEvent` is used internally and reached stable in 19.2
 - ECharts 6.x
-- Node.js 22.13+ (required only for tooling/SSR frameworks — the published bundle is browser ESM)
+- Node.js 22.13+ (required by the package metadata for installation and build tooling; the runtime chart code remains browser-only ESM)
 
 > **CSR only.** ECharts needs a live DOM; SSR is not supported.
 >
@@ -70,14 +70,15 @@ pnpm add react-use-echarts echarts
 Since v2.1 `react-use-echarts` is fully modular — it does not auto-register any ECharts chart, component, renderer or feature. Call one of the registrars below **once at your application entry**, before the first chart renders:
 
 ```ts
-// Simplest — registers everything ECharts ships with (~290KB gzip).
+// Simplest — registers everything ECharts ships with (~370 KB gzip with ECharts 6.1;
+// exact size varies by ECharts version and bundler).
 import { registerEchartsFull } from "react-use-echarts/preset-full";
 registerEchartsFull();
 ```
 
 Or, for tree-shake-friendly production builds, register only what you actually render — see [Tree-shaking](#tree-shaking) for the recipe.
 
-> **Why?** Production minifiers (Rolldown/Oxc, Rollup) drop ECharts' top-level `use([...])` side-effect registrations as pure because the upstream package's `sideEffects` field is non-conforming. Moving registration to the consumer side mirrors what `vue-echarts`, `nuxt-echarts` and `react-chartjs-2` do, and keeps `react-use-echarts` reliable across every modern bundler.
+> **Why?** The default `react-use-echarts` entry imports only `echarts/core`, so it does not force the full ECharts surface into every consumer bundle. Explicit registration lets each app choose the one-line full preset or a smaller selective module list.
 
 ## Quick Start
 
@@ -158,7 +159,7 @@ useEcharts({ option, theme: "dark" });
 // Any string registered via echarts.registerTheme
 useEcharts({ option, theme: "vintage" });
 
-// Custom theme object (use useMemo to keep reference stable)
+// Custom theme object (useMemo avoids repeated content-key serialization)
 const customTheme = useMemo(() => ({ color: ["#fc8452", "#9a60b4", "#ea7ccc"] }), []);
 useEcharts({ option, theme: customTheme });
 ```
@@ -236,7 +237,7 @@ useEcharts({
 
 The library is fully modular — pick the registration tier that matches your build target:
 
-**Tier 1 — All-in-one (development / prototyping).** One line, ~290KB gzip:
+**Tier 1 — All-in-one (development / prototyping).** One line, ~370 KB gzip with ECharts 6.1 (exact size varies by version and bundler):
 
 ```ts
 import { registerEchartsFull } from "react-use-echarts/preset-full";
@@ -255,7 +256,7 @@ echarts.use([LineChart, GridComponent, TooltipComponent, CanvasRenderer]);
 
 See [`examples/selective-registration/SelectiveRegistrationChart.tsx`](./examples/selective-registration/SelectiveRegistrationChart.tsx) for a runnable demo.
 
-**Tier 3 — Webpack-only legacy.** Webpack tolerates ECharts' non-conforming `sideEffects` field, so plain `import "echarts";` still works in webpack apps but **fails silently under Rolldown/Vite/Rollup** (chart never paints, console shows `TypeError` from zrender's empty painter registry). Prefer Tier 1 or Tier 2 instead.
+**Tier 3 — Existing full-entry registration.** If your app already imports the full `"echarts"` entry, ECharts performs its built-in registrations and you do not need to call `registerEchartsFull()` as well. Tier 1 makes the full-registration choice explicit; Tier 2 remains the smaller production path.
 
 > ECharts maintains a single global registry — `echarts.use([...])` and `registerEchartsFull()` compose freely. You can call them in any order, anywhere in your app, but they must run **before** the first `useEcharts()` render.
 
@@ -307,9 +308,10 @@ export default function Page() {
 
 - **Container needs explicit size** — the chart won't render in a zero-height div; give the container `height` (and `width` if not 100%).
 - **Forgetting to register ECharts modules** — `useEcharts()` initializes a chart against ECharts' shared global registry, so charts/components/renderers/features must be registered (via `registerEchartsFull()` or `echarts.use([...])`) **before** the first render. A missing registration usually shows up as `Renderer 'undefined' is not imported` or a chart that silently never paints; see [Register ECharts modules](#register-echarts-modules). In dev, if init throws `… is not a constructor`, the library also prints a one-time hint pointing you here.
-- **Keep `onEvents` reference stable** — a new `onEvents` object on each render triggers a full rebind. Memoize it with `useMemo` (or hoist) when handlers don't change.
+- **Keep `onEvents` contents stable** — inline wrapper objects are deduplicated when their handler/query/context references are unchanged, but inline lambdas create new handlers and trigger a rebind. Memoize or hoist handlers used in frequently-rendered charts.
 - **Don't share one DOM element across multiple `useEcharts` hooks** — the instance cache reuses a single ECharts instance and emits a dev warning; updates from different hooks will overwrite each other.
-- **`initOpts` and custom `theme` objects recreate the instance on reference change** — pass memoized or module-level constants unless recreation is intended.
+- **`initOpts` and custom `theme` objects are keyed by serialized content** — equivalent serializable objects do not recreate the instance, but memoizing avoids repeated serialization and makes intent clear. Never mutate either object in place: the same reference is treated as unchanged.
+- **`option` updates are reference-driven** — every new `option` reference calls `setOption`, while in-place mutation of the same object is not observed. Memoize expensive options when parent renders are frequent, and replace the wrapper object when chart data changes.
 - **StrictMode is safe** — double mount/unmount is handled by the reference-counted instance cache.
 
 ## API Reference
@@ -391,11 +393,11 @@ All other native `div` attributes are forwarded to the chart container, includin
 
 **Coordinate conversion**
 
-| Method             | Type                                                                                                    | Description                                                               |
-| ------------------ | ------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------- |
-| `convertToPixel`   | `(finder: ChartFinder, value: ChartScaleValue \| ChartScaleValue[]) => number \| number[] \| undefined` | Logical → pixel coordinates                                               |
-| `convertFromPixel` | `(finder: ChartFinder, value: number \| number[]) => number \| number[] \| undefined`                   | Pixel → logical coordinates                                               |
-| `containPixel`     | `(finder: ChartFinder, value: number[]) => boolean`                                                     | Whether a pixel point is inside the matched component (false when uninit) |
+| Method             | Type                                                                                                                                                   | Description                                                               |
+| ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------- |
+| `convertToPixel`   | `(finder: ChartFinder, value: ChartScaleValue \| Array<ChartScaleValue \| ChartScaleValue[] \| null \| undefined>) => number \| number[] \| undefined` | Logical → pixel coordinates                                               |
+| `convertFromPixel` | `(finder: ChartFinder, value: number \| number[]) => number \| number[] \| undefined`                                                                  | Pixel → logical coordinates                                               |
+| `containPixel`     | `(finder: ChartFinder, value: number[]) => boolean`                                                                                                    | Whether a pixel point is inside the matched component (false when uninit) |
 
 `ChartFinder` is `string | { seriesIndex?, seriesId?, …, geoIndex?, … }` — a string shorthand or a model finder object. `ChartScaleValue` is `number | string | Date`.
 
@@ -490,7 +492,7 @@ import { registerEchartsFull } from "react-use-echarts/preset-full";
 registerEchartsFull();
 ```
 
-That call is equivalent to v2.0's automatic ECharts registration and gives you the same ~290KB-gzip everything-included experience. For production builds that only render a few chart types, replace it with a selective `echarts.use([...])` — see [Tree-shaking](#tree-shaking).
+That call is equivalent to v2.0's automatic ECharts registration and gives you the same everything-included experience (~370 KB gzip with ECharts 6.1; exact size varies by version and bundler). For production builds that only render a few chart types, replace it with a selective `echarts.use([...])` — see [Tree-shaking](#tree-shaking).
 
 Replace any remaining `from "react-use-echarts/core"` imports with `from "react-use-echarts"`.
 

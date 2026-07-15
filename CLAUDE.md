@@ -2,7 +2,7 @@
 
 React hooks library for Apache ECharts. Hook + declarative component, TypeScript, zero runtime deps.
 
-- **Peer deps:** React 19.2+ (`react` + `react-dom`; `useEffectEvent` requires 19.2), ECharts 6.x | **Runtime:** Node 22.13+ | **CSR only** | **ESM-only** | **Package manager:** pnpm
+- **Peer deps:** React 19.2+ (`react` + `react-dom`; `useEffectEvent` requires 19.2), ECharts 6.x | **Tooling:** Node 22.13+ | **CSR only** | **ESM-only** | **Package manager:** pnpm
 
 ## Vite+ Toolchain
 
@@ -24,9 +24,9 @@ vp check                      # format + lint + typecheck (typecheck via tsgolin
 
 **Pre-PR checklist:** `vp check && vp test`
 
-### Vite+ 0.2.x toolchain (since #458; aligned to 0.2.2)
+### Vite+ 0.2.x toolchain (since #458; aligned to 0.2.4)
 
-Vite+ 0.2.2 bundles **Vite 8.1.2 + Rolldown 1.1.4 + Vitest 4.1.9 + Oxfmt 0.57.0 + Oxlint 1.72.0** inside the `vite-plus` toolchain. The separate `@voidzero-dev/vite-plus-test` package is **dead** (no 0.2.x exists). Consequences for dep management:
+Vite+ 0.2.4 bundles **Vite 8.1.3 + Rolldown 1.1.4 + Vitest 4.1.10 + Oxfmt 0.57.0 + Oxlint 1.72.0 + tsgolint 0.24.0** inside the `vite-plus` toolchain. The separate `@voidzero-dev/vite-plus-test` package is **dead** (no 0.2.x exists). Consequences for dep management:
 
 - Dependency versions live in the root `pnpm-workspace.yaml` `catalog`. `package.json` uses `catalog:` for `vite`, `vite-plus`, `vitest`, `@vitest/browser-playwright`, and `@vitest/coverage-v8`.
 - Keep `pnpm-workspace.yaml` overrides for both `vite` → `@voidzero-dev/vite-plus-core` and `vitest` → the exact bundled Vitest version. This keeps Vite+ internals, browser providers, coverage, and `vp test` on one runner copy.
@@ -38,7 +38,7 @@ Vite+ 0.2.2 bundles **Vite 8.1.2 + Rolldown 1.1.4 + Vitest 4.1.9 + Oxfmt 0.57.0 
 ```
 src/
 ├── index.ts                    # Package entry, re-exports everything. Modular — does NOT side-effect-import "echarts" (legacy `/core` subpath was removed in v3)
-├── preset-full.ts              # `registerEchartsFull()` sugar — one-call namespace-spread of echarts/charts + components + renderers + features, registered via `echarts.use(...)`. Consumer-side replacement for `import "echarts"`.
+├── preset-full.ts              # `registerEchartsFull()` sugar — one-call namespace-spread of echarts/charts + components + renderers + features, registered via `echarts.use(...)`. Explicit opt-in to the full registry.
 ├── components/EChart.tsx       # Declarative component wrapping useEcharts
 ├── hooks/
 │   ├── use-echarts.ts          # Orchestrator hook (zero effects of its own; delegates to internal hooks)
@@ -54,7 +54,7 @@ src/
 ├── utils/
 │   ├── instance-cache.ts       # WeakMap instance cache + reference counting (warns on mismatched setCachedInstance)
 │   ├── connect.ts              # Chart group linkage logic (one connect() per groupId; disconnect when last member leaves)
-│   ├── shallow-equal.ts        # Shallow equality for option / setOptionOpts / loadingOption deduplication
+│   ├── shallow-equal.ts        # Shallow equality for setOptionOpts / loadingOption deduplication
 │   ├── stable-key.ts           # Stable dependency keys via JSON.stringify (per-reference id fallback when not serializable; null only for nullish or unsupported primitives — strings/numbers pass through)
 │   ├── merge-refs.ts           # Compose multiple refs (RefObject / RefCallback / React 19 cleanup-callback) into one callback ref; per-ref try/catch isolation
 │   ├── error.ts                # Imperative-path error routing helper (`routeImperativeError`)
@@ -74,7 +74,7 @@ All instance-related state lives in `useChartCore`; the orchestrator (`useEchart
 
 - **Ref Sync** (`useLayoutEffect`, no deps) — sync the typed `latestRef` (one `ImperativeLatest` object holding `setOptionOpts` and `onError`) every render. Only the imperative API (`withInstance` inside `useMemo`) reads via this ref, since `useEffectEvent` is forbidden outside effects. Effect-context error routing uses `useEffectEvent` directly (no ref); the 8 other config fields are captured by closure inside the lifecycle effect or flow as deps to their owning sync effect.
 - **Instance Lifecycle** (`useLayoutEffect`) — create/dispose instance, apply initial option, events, loading, group; warns on zero-size container in dev. Re-runs only on structural deps (`element` / `themeKey` / `renderer` / `initOptsKey`).
-- **Option Sync** (`useEffect`) — call `setOption` when option changes (reference-equality fast path → `shallowEqual` + `lastAppliedRef`).
+- **Option Sync** (`useEffect`) — a new option reference always calls `setOption`; stable option references dedup when `setOptionOpts` is reference- or shallow-equal via `lastAppliedRef`.
 - **Event Rebinding** (`useEffect`) — unbind old, bind new when `onEvents` changes (via `lastBoundRef` + `eventsEqual`; treats empty/undefined as equivalent).
 - **Loading Toggle** (`useEffect`) — toggle `showLoading` / `hideLoading` on dynamic changes (dedup via `lastLoadingRef` + `shallowEqual` on `loadingOption`).
 - **Group Switch** (`useEffect`) — switch chart group dynamically via `updateGroup`.
@@ -92,11 +92,11 @@ All instance-related state lives in `useChartCore`; the orchestrator (`useEchart
 - initOpts / theme serialized to stable keys via `computeStableKey` — JSON.stringify-based; non-serializable objects fall back to a per-reference id (still dedups by reference); only nullish or unsupported primitives (e.g. boolean/symbol) return `null` — strings and numbers pass through. Each key is memoized via `useMemo` on the raw input ref (React Compiler skips this hook, so the calls aren't auto-memoized — see `src/hooks/internal/use-chart-core.ts`)
 - Two-level theme cache — custom theme objects auto-deduplicated; `contentHash` param avoids double JSON.stringify; `contentHashCache` is a FIFO with a 100-entry cap
 - Errors from `init` / `setOption` / `dispatchAction` / `resize` / event-bind / `showLoading` / group ops (`updateGroup` → `connect` / `disconnect`) route through the shared `onError` callback (or fall back to `console.error` / re-throw); cleanup-path `off` (unbind) and `dispose` (release) are try/caught too, so an effect-cleanup throw can't disrupt React commit. The lone deliberately-bare call is `off()` in the Event-Rebinding effect (see its inline comment — a same-handler rebind must unbind before binding). Effect-context errors flow through `useEffectEvent` for always-latest `onError`; imperative-API errors flow through `latestRef.current.onError` because `useEffectEvent` cannot be called outside Effects.
-- `shallowEqual` on option updates — avoids unnecessary `setOption` when top-level keys are identical
+- `shallowEqual` on `setOptionOpts` / `loadingOption` — avoids redundant calls when wrapper objects contain the same shallow values; option data itself remains reference-driven
 - `eventsEqual` on event rebinding — avoids unnecessary unbind/rebind when inline event objects have identical handlers
 - `setOption` / `showLoading` lifecycle attempts are recorded into `lastAppliedRef` / `lastLoadingRef` via `try/finally` even on failure — Option-Sync / Loading-Toggle dedup against the same (option, opts) pair instead of replaying a known-bad call and double-firing `onError`
 - Memoized return value — `useChartCore` manually wraps its imperative API in `useMemo([element])` (since React Compiler does not memoize this hook); `useEcharts` is compiler-cached, so `{ ref, ...chart }` is stable when `chart` is stable
-- React Compiler enabled via `@vitejs/plugin-react` + `@rolldown/plugin-babel` (`reactCompilerPreset()`). **TODO (native, Babel-free path):** the Rust port of React Compiler landed in oxc v0.135.0 (2026-06-08, oxc-project/oxc#22942), exposed as a `reactCompiler` transform option — still experimental. Three gates remain — the **oxc ≥ 0.135 gate is now cleared** (✓ since #458; vite-plus 0.2.2 bundles rolldown 1.1.4 / oxc 0.138). Still blocked on: (1) the `reactCompiler` transform being de-experimentalized, and (2) `@vitejs/plugin-react` surfacing it as a first-class option. Once both land, drop `@rolldown/plugin-babel` + `reactCompilerPreset()` (and the `@babel/core` devDep) in favor of the native transform. (Note: `@rolldown/plugin-babel` still drags a stray npm `rolldown@1.0.0-rc.18` (oxc 0.128) into the tree as its peer, but the build uses vite-plus-core's bundled rolldown 1.1.4.) No upstream date committed — watch oxc release notes, the `@vitejs/plugin-react` CHANGELOG, and the vite-plus changelog.
+- React Compiler enabled via `@vitejs/plugin-react` + `@rolldown/plugin-babel` (`reactCompilerPreset()`). **TODO (native, Babel-free path):** the Rust port of React Compiler landed in oxc v0.135.0 (2026-06-08, oxc-project/oxc#22942), exposed as a `reactCompiler` transform option — still experimental. The **oxc ≥ 0.135 gate is cleared** (Vite+ 0.2.4 bundles Rolldown 1.1.4); the remaining gates are: (1) de-experimentalizing the transform and (2) `@vitejs/plugin-react` exposing it as a first-class option. Once both land, drop `@rolldown/plugin-babel` + `reactCompilerPreset()` (and `@babel/core`) in favor of the native transform. No upstream date is committed — watch oxc release notes, the `@vitejs/plugin-react` changelog, and the Vite+ changelog.
 - `<EChart>` imperative handle exposes `EChartHandle = Omit<UseEchartsReturn, "ref">` — `ref` is intentionally stripped so external callers cannot reassign the container via `handle.ref(otherNode)`
 
 ## Testing
@@ -124,10 +124,10 @@ All instance-related state lives in `useChartCore`; the orchestrator (`useEchart
 ## Anti-patterns
 
 - **DO NOT** create effects without paired cleanup functions
-- **DO NOT** pass un-memoized theme objects (two-level cache is a safety net, not a guarantee)
+- **DO NOT** mutate `theme` or `initOpts` objects in place; equivalent serializable new objects dedup by content, while memoization avoids repeated serialization
 - **DO NOT** duplicate API reference from `README.md` into this file
 - **DO NOT** re-add the removed `react-use-echarts/core` subpath — v3 consumers should import from `react-use-echarts`.
-- **DO NOT** re-add `import "echarts"` to `src/index.ts` — production minifiers DCE its top-level `use([...])` registrations. Registration belongs in consumer-side code (their app entry or `registerEchartsFull()`).
+- **DO NOT** re-add `import "echarts"` to `src/index.ts` — the root entry must stay modular and must not force the full ECharts registry into every consumer bundle. Registration belongs in consumer-side code (their app entry or `registerEchartsFull()`).
 - **DO NOT** import from `vitest` in tests or add `@voidzero-dev/vite-plus-test`. The `vitest` package is present only as an exact Vite+ catalog/override pin so Vite+ internals and opt-in providers share the bundled runner copy.
 
 ## Troubleshooting

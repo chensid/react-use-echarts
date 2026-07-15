@@ -1,17 +1,58 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
-import { registerEchartsFull } from "../src/preset-full";
+import * as echarts from "echarts/core";
+import {
+  BarChart,
+  CandlestickChart,
+  FunnelChart,
+  GaugeChart,
+  HeatmapChart,
+  LineChart,
+  PieChart,
+  RadarChart,
+  ScatterChart,
+  TreemapChart,
+} from "echarts/charts";
+import {
+  GridComponent,
+  LegendComponent,
+  RadarComponent,
+  TitleComponent,
+  TooltipComponent,
+  VisualMapComponent,
+} from "echarts/components";
+import { LabelLayout, UniversalTransition } from "echarts/features";
+import { CanvasRenderer, SVGRenderer } from "echarts/renderers";
 import { registerBuiltinThemes } from "../src/themes/registry";
 import App from "./App";
 import { ThemeProvider } from "./components/ThemeProvider";
 import "./global.css";
 
-// Register the full ECharts surface (charts + components + renderers + features).
-// The library itself is modular and does not auto-register anything, so this
-// call (or an equivalent selective `echarts.use([...])`) must run before the
-// first `useEcharts()` render. See `examples/selective-registration/` for a
-// tree-shake-friendly alternative that only registers what's actually rendered.
-registerEchartsFull();
+// Keep the showcase honest: register exactly the chart/component surface its
+// routes render instead of pulling every ECharts module into the initial chunk.
+// Consumer apps can trim this list further to match their own screens.
+echarts.use([
+  BarChart,
+  CandlestickChart,
+  FunnelChart,
+  GaugeChart,
+  HeatmapChart,
+  LineChart,
+  PieChart,
+  RadarChart,
+  ScatterChart,
+  TreemapChart,
+  GridComponent,
+  LegendComponent,
+  RadarComponent,
+  TitleComponent,
+  TooltipComponent,
+  VisualMapComponent,
+  LabelLayout,
+  UniversalTransition,
+  CanvasRenderer,
+  SVGRenderer,
+]);
 
 registerBuiltinThemes();
 

@@ -6,17 +6,17 @@
  * Sugar entry that registers the full ECharts chart/component/renderer/feature
  * surface against the shared global registry. Call `registerEchartsFull()`
  * once at your application entry to get the equivalent of `import "echarts"`
- * — same ~1MB bundle, same zero-config experience — without depending on
- * upstream ECharts' non-conforming `sideEffects` field, which production
- * minifiers (Rolldown/Oxc, Rollup, etc.) drop as pure.
+ * with an explicit registry choice. The default package entry imports only
+ * `echarts/core`, so consumers that skip this preset can keep selective builds
+ * small instead of paying for the full ECharts surface.
  *
  * For tree-shake-friendly production builds, skip this and call
  * `echarts.use([...])` selectively with only the modules you render.
  *
  * react-use-echarts/preset-full 子入口 — 在应用入口调用一次
  * `registerEchartsFull()` 即可注册全套图表/组件/渲染器/特性，等价于
- * `import "echarts"` 但不依赖 ECharts 的副作用字段，在 Rolldown/Oxc 等现代
- * 打包器下可靠工作。生产环境建议改为按需 `echarts.use([...])`。
+ * `import "echarts"` 的完整 registry。默认入口只导入 `echarts/core`，因此
+ * 不使用此 preset 的应用仍可通过按需 `echarts.use([...])` 保持较小体积。
  *
  * @packageDocumentation
  */

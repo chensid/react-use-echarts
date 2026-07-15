@@ -69,7 +69,7 @@
     "size": "size-limit",
     "changeset": "changeset",
     "version": "changeset version",
-    "release": "vp pack && changeset publish",
+    "release": "changeset publish",
     "prepublishOnly": "vp pack",
     "prepare": "vp config"
   },
