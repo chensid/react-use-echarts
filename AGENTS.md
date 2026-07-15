@@ -35,11 +35,11 @@ All `useEcharts` options as props + native `div` attributes (`id`, `role`, `aria
 - **Container needs explicit width/height** — chart won't render in a zero-size div
 - **ECharts modules must be registered before first render** — the library is fully modular and does **not** auto-register anything. Call `registerEchartsFull()` (from `'react-use-echarts/preset-full'`) at app entry for an everything-included experience, or call `echarts.use([...])` selectively for tree-shake-friendly builds. Forgetting this shows up as `Renderer 'undefined' is not imported` or a silently blank chart.
 - **Legacy `/core` imports are gone in v3** — use `from 'react-use-echarts'`; the old `react-use-echarts/core` alias was removed.
-- **`option` is reactive** — changes auto-trigger `setOption`, no manual call needed
-- **Custom theme objects must be memoized** — use `useMemo` to avoid instance recreation
-- **`initOpts` changes recreate the instance** — don't pass inline objects
+- **`option` is reference-reactive** — a new reference auto-triggers `setOption`; in-place mutation is not observed
+- **Custom theme objects are content-keyed** — equivalent serializable objects do not recreate the instance; memoize to avoid repeated serialization, and never mutate in place
+- **`initOpts` is content-keyed** — content changes recreate the instance; memoize for performance and never mutate in place
 - **Built-in themes need registration** — `import { registerBuiltinThemes } from 'react-use-echarts/themes/registry'` and call once before using `"light"`, `"dark"`, `"macarons"`
-- **`onEvents` supports two forms** — shorthand `(params) => void` or full `{ handler, query?, context? }`
+- **`onEvents` supports two forms** — shorthand `(params) => void` or full `{ handler, query?, context? }`; equivalent wrapper objects dedup, but new inline handlers rebind
 - **Chart linkage** — same `group` string syncs tooltips/highlights across charts
 
 For usage examples and full API details, see `README.md` in this package.

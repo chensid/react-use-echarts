@@ -9,11 +9,9 @@
  * `echarts.use([...])` with just the modules they need — bundlers then
  * tree-shake the rest of ECharts away.
  *
- * Note: inside this example app the gallery routes already pull in the full
- * ECharts surface via `examples/main.tsx`'s `registerEchartsFull()` call, so
- * this demo's slimmer registration list does not actually shrink the bundle
- * here. The tree-shaking benefit is realized in a standalone consumer
- * project that omits `registerEchartsFull()` entirely.
+ * This showcase uses a centralized selective list in `examples/main.tsx` that
+ * covers every demo route. The list below is the smaller per-chart equivalent
+ * a standalone app can use when it renders only this line chart.
  */
 import React from "react";
 import * as echarts from "echarts/core";

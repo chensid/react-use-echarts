@@ -624,7 +624,13 @@ export function useChartCore(
         withInstance((instance) => instance.renderToSVGString(opts), undefined),
       getSvgDataURL: () => withInstance((instance) => instance.getSvgDataURL(), undefined),
       convertToPixel: (finder, value) =>
-        withInstance((instance) => instance.convertToPixel(finder, value), undefined),
+        withInstance(
+          (instance) =>
+            Array.isArray(value)
+              ? instance.convertToPixel(finder, value)
+              : instance.convertToPixel(finder, value),
+          undefined,
+        ),
       convertFromPixel: (finder, value) =>
         withInstance((instance) => instance.convertFromPixel(finder, value), undefined),
       containPixel: (finder, value) =>

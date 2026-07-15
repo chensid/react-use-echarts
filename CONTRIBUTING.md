@@ -4,7 +4,7 @@ Thanks for your interest in improving `react-use-echarts`!
 
 ## Prerequisites
 
-- Node.js 22.13 or newer (CI runs on 24.x)
+- Node.js 22.13 or newer (CI covers 22.x and 24.x)
 - Vite+ CLI (`vp`) available in your shell
 - Git
 
@@ -27,7 +27,7 @@ Thanks for your interest in improving `react-use-echarts`!
 - `vp build` – build the examples application with Vite into `site-dist/`.
 - `vp pack` – build the library (ESM) and type declarations into `dist/`. Runs `publint` + `attw` automatically.
 
-Run `vp check && vp test` before opening a pull request. This is the same set of checks we rely on for releases.
+Run `vp check && vp test` before opening a pull request. CI additionally packs the library, enforces coverage and bundle budgets, and runs the browser suite on Node 24.
 
 ## Toolchain Updates
 
@@ -48,7 +48,7 @@ Releases are driven by [changesets](https://github.com/changesets/changesets):
 
 1. PRs include a `.changeset/*.md` file describing the change.
 2. Pushes to `main` keep an open "Version Packages" PR that aggregates pending changesets.
-3. Merging that PR triggers `release.yml` to build, version, and publish via npm OIDC.
+3. Merging that PR triggers the release job in `ci.yml` to build, version, and publish via npm OIDC.
 
 For hotfixes, follow the same flow — open a PR with a `.changeset/*.md` describing the fix, then merge it and the resulting Version Packages PR. Don't include `changeset version` output (CHANGELOG / version bumps) in feature PRs; that belongs only in the auto-generated Version Packages PR.
 

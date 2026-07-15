@@ -9,9 +9,6 @@ import type {
   HighlightPayload,
   DownplayPayload,
   AxisBreakChangedEvent,
-  CollapseAxisBreakPayload,
-  ExpandAxisBreakPayload,
-  ToggleAxisBreakPayload,
 } from "echarts/core";
 // EChartsOption is the full pre-composed option type; only the full "echarts"
 // package exports it (echarts/core ships ComposeOption / EChartsCoreOption).
@@ -31,10 +28,11 @@ export type ChartFinder = Parameters<ECharts["containPixel"]>[0];
 
 /**
  * Scalar data value accepted by `convertToPixel`. Mirrors echarts' internal
- * `ScaleDataValue` (a number, ordinal string, or Date). The value parameter
- * itself is `ChartScaleValue | ChartScaleValue[]` — single value, axis pair,
- * or higher-rank tuple.
- * convertToPixel 接受的单个标量数据值。镜像 echarts 内部的 ScaleDataValue 类型。
+ * `ScaleDataValue` (a number, ordinal string, or Date). `convertToPixel`
+ * accepts either one scalar or a coordinate tuple whose entries may themselves
+ * be scalar arrays or nullish values, matching ECharts' public overloads.
+ * convertToPixel 接受的单个标量数据值。镜像 echarts 内部的 ScaleDataValue 类型；
+ * value 可以是单值，也可以是含标量数组或空值的坐标元组。
  */
 export type ChartScaleValue = number | string | Date;
 
@@ -110,9 +108,6 @@ export interface EChartsEventPayloadMap {
 
   // Axis break
   axisbreakchanged: AxisBreakChangedEvent;
-  collapseAxisBreak: CollapseAxisBreakPayload;
-  expandAxisBreak: ExpandAxisBreakPayload;
-  toggleAxisBreak: ToggleAxisBreakPayload;
 }
 
 type KnownEChartsEvents = {
@@ -450,7 +445,7 @@ export interface UseEchartsReturn {
    */
   convertToPixel: (
     finder: ChartFinder,
-    value: ChartScaleValue | ChartScaleValue[],
+    value: ChartScaleValue | Array<ChartScaleValue | ChartScaleValue[] | null | undefined>,
   ) => number | number[] | undefined;
 
   /**

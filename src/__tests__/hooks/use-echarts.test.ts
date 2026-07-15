@@ -2016,6 +2016,8 @@ describe("useEcharts", () => {
         const finder = { seriesIndex: 0 };
         expect(result.current.convertToPixel(finder, [10, 20])).toEqual([100, 200]);
         expect(mockInstance.convertToPixel).toHaveBeenCalledWith(finder, [10, 20]);
+        expect(result.current.convertToPixel("series", 10)).toEqual([100, 200]);
+        expect(mockInstance.convertToPixel).toHaveBeenCalledWith("series", 10);
 
         expect(result.current.convertFromPixel(finder, [100, 200])).toEqual([1, 2]);
         expect(result.current.containPixel(finder, [50, 60])).toBe(true);
