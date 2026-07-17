@@ -76,7 +76,7 @@
   "devDependencies": {
     "@arethetypeswrong/cli": "^0.18.5",
     "@babel/core": "^8.0.1",
-    "@changesets/cli": "^2.31.0",
+    "@changesets/cli": "^2.31.1",
     "@rolldown/plugin-babel": "^0.2.3",
     "@shikijs/langs": "^4.3.1",
     "@shikijs/themes": "^4.3.1",

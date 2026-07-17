@@ -24,9 +24,9 @@ vp check                      # format + lint + typecheck (typecheck via tsgolin
 
 **Pre-PR checklist:** `vp check && vp test`
 
-### Vite+ 0.2.x toolchain (since #458; aligned to 0.2.4)
+### Vite+ 0.2.x toolchain (since #458; aligned to 0.2.5)
 
-Vite+ 0.2.4 bundles **Vite 8.1.3 + Rolldown 1.1.4 + Vitest 4.1.10 + Oxfmt 0.57.0 + Oxlint 1.72.0 + tsgolint 0.24.0** inside the `vite-plus` toolchain. The separate `@voidzero-dev/vite-plus-test` package is **dead** (no 0.2.x exists). Consequences for dep management:
+Vite+ 0.2.5 bundles **Vite 8.1.4 + Rolldown 1.1.5 + Vitest 4.1.10 + Oxfmt 0.58.0 + Oxlint 1.73.0 + tsgolint 0.24.0 + tsdown 0.22.7** inside the `vite-plus` toolchain. The separate `@voidzero-dev/vite-plus-test` package is **dead** (no 0.2.x exists). Consequences for dep management:
 
 - Dependency versions live in the root `pnpm-workspace.yaml` `catalog`. `package.json` uses `catalog:` for `vite`, `vite-plus`, `vitest`, `@vitest/browser-playwright`, and `@vitest/coverage-v8`.
 - Keep `pnpm-workspace.yaml` overrides for both `vite` → `@voidzero-dev/vite-plus-core` and `vitest` → the exact bundled Vitest version. This keeps Vite+ internals, browser providers, coverage, and `vp test` on one runner copy.
@@ -96,7 +96,7 @@ All instance-related state lives in `useChartCore`; the orchestrator (`useEchart
 - `eventsEqual` on event rebinding — avoids unnecessary unbind/rebind when inline event objects have identical handlers
 - `setOption` / `showLoading` lifecycle attempts are recorded into `lastAppliedRef` / `lastLoadingRef` via `try/finally` even on failure — Option-Sync / Loading-Toggle dedup against the same (option, opts) pair instead of replaying a known-bad call and double-firing `onError`
 - Memoized return value — `useChartCore` manually wraps its imperative API in `useMemo([element])` (since React Compiler does not memoize this hook); `useEcharts` is compiler-cached, so `{ ref, ...chart }` is stable when `chart` is stable
-- React Compiler enabled via `@vitejs/plugin-react` + `@rolldown/plugin-babel` (`reactCompilerPreset()`). **TODO (native, Babel-free path):** the Rust port of React Compiler landed in oxc v0.135.0 (2026-06-08, oxc-project/oxc#22942), exposed as a `reactCompiler` transform option — still experimental. The **oxc ≥ 0.135 gate is cleared** (Vite+ 0.2.4 bundles Rolldown 1.1.4); the remaining gates are: (1) de-experimentalizing the transform and (2) `@vitejs/plugin-react` exposing it as a first-class option. Once both land, drop `@rolldown/plugin-babel` + `reactCompilerPreset()` (and `@babel/core`) in favor of the native transform. No upstream date is committed — watch oxc release notes, the `@vitejs/plugin-react` changelog, and the Vite+ changelog.
+- React Compiler enabled via `@vitejs/plugin-react` + `@rolldown/plugin-babel` (`reactCompilerPreset()`). **TODO (native, Babel-free path):** the Rust port of React Compiler landed in oxc v0.135.0 (2026-06-08, oxc-project/oxc#22942), exposed as a `reactCompiler` transform option — still experimental. The **oxc ≥ 0.135 gate is cleared** (Vite+ 0.2.5 bundles Rolldown 1.1.5); the remaining gates are: (1) de-experimentalizing the transform and (2) `@vitejs/plugin-react` exposing it as a first-class option. Once both land, drop `@rolldown/plugin-babel` + `reactCompilerPreset()` (and `@babel/core`) in favor of the native transform. No upstream date is committed — watch oxc release notes, the `@vitejs/plugin-react` changelog, and the Vite+ changelog.
 - `<EChart>` imperative handle exposes `EChartHandle = Omit<UseEchartsReturn, "ref">` — `ref` is intentionally stripped so external callers cannot reassign the container via `handle.ref(otherNode)`
 
 ## Testing
