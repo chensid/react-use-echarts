@@ -98,7 +98,7 @@
     "react-router-dom": "^7.18.1",
     "shiki": "^4.3.1",
     "size-limit": "^12.1.0",
-    "typescript": "~6.0.3",
+    "typescript": "~7.0.2",
     "vite": "catalog:",
     "vite-plus": "catalog:",
     "vitest": "catalog:"
