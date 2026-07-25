@@ -5,37 +5,15 @@ overrides:
 allowBuilds:
   esbuild: true
 
+# pnpm applies a built-in 24h `minimumReleaseAge` gate. In its default loose mode it
+# auto-appends any version younger than that to this list and proceeds, so entries
+# accumulate on their own. Once a listed version is older than 24h its entry is a no-op
+# and can be deleted; only keep versions still inside the window, because
+# `vp install --frozen-lockfile` (CI) re-validates the lockfile against the gate and
+# aborts with ERR_PNPM_MINIMUM_RELEASE_AGE_VIOLATION on an unexcluded immature version.
 minimumReleaseAgeExclude:
-  - "@arethetypeswrong/cli@0.18.5"
-  - "@arethetypeswrong/core@0.18.5"
-  - "@vitejs/plugin-react@6.0.4"
   - playwright-core@1.62.0
   - playwright@1.62.0
-  - "@size-limit/file@13.0.1"
-  - size-limit@13.0.1
-  - "@types/node@26.1.1"
-  - "@shikijs/core@4.3.1"
-  - "@shikijs/engine-javascript@4.3.1"
-  - "@shikijs/engine-oniguruma@4.3.1"
-  - "@shikijs/langs@4.3.1"
-  - "@shikijs/primitive@4.3.1"
-  - "@shikijs/themes@4.3.1"
-  - "@shikijs/types@4.3.1"
-  - shiki@4.3.1
-  - react-router-dom@7.18.1
-  - react-router@7.18.1
-  - "@voidzero-dev/vite-plus-core@0.2.4 || 0.2.5 || 0.2.6"
-  - "@voidzero-dev/vite-plus-darwin-arm64@0.2.4 || 0.2.5 || 0.2.6"
-  - "@voidzero-dev/vite-plus-darwin-x64@0.2.4 || 0.2.5 || 0.2.6"
-  - "@voidzero-dev/vite-plus-linux-arm64-gnu@0.2.4 || 0.2.5 || 0.2.6"
-  - "@voidzero-dev/vite-plus-linux-arm64-musl@0.2.4 || 0.2.5 || 0.2.6"
-  - "@voidzero-dev/vite-plus-linux-x64-gnu@0.2.4 || 0.2.5 || 0.2.6"
-  - "@voidzero-dev/vite-plus-linux-x64-musl@0.2.4 || 0.2.5 || 0.2.6"
-  - "@voidzero-dev/vite-plus-win32-arm64-msvc@0.2.4 || 0.2.5 || 0.2.6"
-  - "@voidzero-dev/vite-plus-win32-x64-msvc@0.2.4 || 0.2.5 || 0.2.6"
-  - vite-plus@0.2.4 || 0.2.5 || 0.2.6
-  - react-dom@19.2.8
-  - react@19.2.8
 catalog:
   vite: npm:@voidzero-dev/vite-plus-core@0.2.6
   vitest: 4.1.10
