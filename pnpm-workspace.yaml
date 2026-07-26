@@ -11,9 +11,7 @@ allowBuilds:
 # and can be deleted; only keep versions still inside the window, because
 # `vp install --frozen-lockfile` (CI) re-validates the lockfile against the gate and
 # aborts with ERR_PNPM_MINIMUM_RELEASE_AGE_VIOLATION on an unexcluded immature version.
-minimumReleaseAgeExclude:
-  - playwright-core@1.62.0
-  - playwright@1.62.0
+minimumReleaseAgeExclude: []
 catalog:
   vite: npm:@voidzero-dev/vite-plus-core@0.2.6
   vitest: 4.1.10

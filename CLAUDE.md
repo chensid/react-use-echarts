@@ -31,6 +31,7 @@ Vite+ 0.2.6 bundles **Vite 8.1.5 + Rolldown 1.2.0 + Vitest 4.1.10 + Oxfmt 0.60.0
 - Dependency versions live in the root `pnpm-workspace.yaml` `catalog`. `package.json` uses `catalog:` for `vite`, `vite-plus`, `vitest`, `@vitest/browser-playwright`, and `@vitest/coverage-v8`.
 - Keep `pnpm-workspace.yaml` overrides for both `vite` → `@voidzero-dev/vite-plus-core` and `vitest` → the exact bundled Vitest version. This keeps Vite+ internals, browser providers, coverage, and `vp test` on one runner copy.
 - Upgrade Vite+ with the global CLI first (`vp upgrade`), then run `vp migrate --full --no-interactive` in the repo. Let the migrator update catalog pins, overrides, lockfile policy exclusions, editor/agent/hook setup, and then review the diff.
+- pnpm enforces a built-in 24h `minimumReleaseAge` gate and, in loose mode, self-populates `minimumReleaseAgeExclude` in `pnpm-workspace.yaml` — so the list only ever grows. Prune it by checking each entry's real publish time (`npm view <pkg> time`); an entry older than 24h is a no-op. Verify with `vp install --frozen-lockfile`, which is what CI runs: it re-validates the lockfile against the gate and fails with `ERR_PNPM_MINIMUM_RELEASE_AGE_VIOLATION` on any unexcluded immature version.
 - Tests still import from `vite-plus/test`. Browser-mode providers are **opt-in peers**: `@vitest/browser-playwright` (its `playwright` peer is installed too), imported from `vite-plus/test/browser-playwright`. Keep provider and coverage package versions aligned to the catalog's bundled Vitest pin.
 
 ## Codebase Structure
@@ -42,13 +43,13 @@ src/
 ├── components/EChart.tsx       # Declarative component wrapping useEcharts
 ├── hooks/
 │   ├── use-echarts.ts          # Orchestrator hook (zero effects of its own; delegates to internal hooks)
-│   ├── use-lazy-init.ts        # IntersectionObserver hook — `useLazyInit(options) → { ref, isInView }` callback-ref shape
+│   ├── use-lazy-init.ts        # IntersectionObserver hook — public `useLazyInit(options) → { ref, isInView }` callback-ref shape, plus the internal `useLazyInitForElement(element, options) → boolean` that `useEcharts` uses (it owns the container element itself)
 │   └── internal/
 │       ├── use-chart-core.ts   # Core: instance lifecycle + option sync + event rebinding + loading + group (6 effects); exposes the imperative API (setOption, dispatchAction, clear, resize, appendData, getOption, getDataURL, convertToPixel, …) and a reactive `instance` field
 │       ├── use-resize-observer.ts # ResizeObserver auto-resize + visibilitychange resync (1 effect; onError reached via useEffectEvent)
 │       └── event-utils.ts      # Pure functions: bindEvents / unbindEvents / eventsEqual
 ├── themes/
-│   ├── index.ts                # Lightweight theme utilities (no JSON); FIFO contentHashCache for custom themes
+│   ├── index.ts                # Lightweight theme utilities (no JSON); registry state lives on a `globalThis` key so duplicate module copies share one registration record; FIFO contentHashCache for custom themes
 │   ├── registry.ts             # Built-in theme registration (imports JSON)
 │   └── presets/                # Built-in theme JSON (light/dark/macarons)
 ├── utils/
@@ -58,10 +59,10 @@ src/
 │   ├── stable-key.ts           # Stable dependency keys via JSON.stringify (per-reference id fallback when not serializable; null only for nullish or unsupported primitives — strings/numbers pass through)
 │   ├── merge-refs.ts           # Compose multiple refs (RefObject / RefCallback / React 19 cleanup-callback) into one callback ref; per-ref try/catch isolation
 │   ├── error.ts                # Imperative-path error routing helper (`routeImperativeError`)
-│   ├── dev-warnings.ts         # Shared dev-mode warning sets (unknown theme, zero-size container)
+│   ├── dev-warnings.ts         # Shared dev-mode warning sets (unknown theme, zero-size container, missing ECharts registration)
 │   └── visibility-coordinator.ts # Module-level `document.visibilitychange` coordinator — single shared DOM listener serving all charts (`subscribeVisibilityResume`); attaches on first subscriber, detaches on last
 ├── types/index.ts              # All type definitions
-└── __tests__/                  # Mirror structure: components/, hooks/, themes/, utils/ + browser/ (real-chromium smoke tests)
+└── __tests__/                  # Mirror structure: components/, hooks/, themes/, types/, utils/ + browser/ (real-chromium smoke tests) + top-level helpers.ts and preset-full.test.ts
 ```
 
 ## Architecture
@@ -73,11 +74,11 @@ All instance-related state lives in `useChartCore`; the orchestrator (`useEchart
 **`useChartCore`** — six effects, grouped by what they keep in sync. Initial application is bundled inside the lifecycle effect; the others handle dynamic post-init changes.
 
 - **Ref Sync** (`useLayoutEffect`, no deps) — sync the typed `latestRef` (one `ImperativeLatest` object holding `setOptionOpts` and `onError`) every render. Only the imperative API (`withInstance` inside `useMemo`) reads via this ref, since `useEffectEvent` is forbidden outside effects. Effect-context error routing uses `useEffectEvent` directly (no ref); the 8 other config fields are captured by closure inside the lifecycle effect or flow as deps to their owning sync effect.
-- **Instance Lifecycle** (`useLayoutEffect`) — create/dispose instance, apply initial option, events, loading, group; warns on zero-size container in dev. Re-runs only on structural deps (`element` / `themeKey` / `renderer` / `initOptsKey`).
+- **Instance Lifecycle** (`useLayoutEffect`) — create/dispose instance, apply initial option, events, loading, group. Emits the three dev-only warnings: zero-size container, one element shared by multiple hooks, and the `"… is not a constructor"` missing-registration hint (routed _alongside_ the real error, not instead of it). Re-runs on `shouldInit` plus the structural deps (`element` / `themeKey` / `renderer` / `initOptsKey`) — non-structural config is captured at init and kept current by the sync effects below.
 - **Option Sync** (`useEffect`) — a new option reference always calls `setOption`; stable option references dedup when `setOptionOpts` is reference- or shallow-equal via `lastAppliedRef`.
 - **Event Rebinding** (`useEffect`) — unbind old, bind new when `onEvents` changes (via `lastBoundRef` + `eventsEqual`; treats empty/undefined as equivalent).
 - **Loading Toggle** (`useEffect`) — toggle `showLoading` / `hideLoading` on dynamic changes (dedup via `lastLoadingRef` + `shallowEqual` on `loadingOption`).
-- **Group Switch** (`useEffect`) — switch chart group dynamically via `updateGroup`.
+- **Group Switch** (`useEffect`) — switch chart group dynamically via `updateGroup`, deduped against `lastGroupRef` (the group _this hook_ last assigned) rather than the live `instance.group`, which is writable at runtime and would desync `groupMembers` bookkeeping if a consumer mutated it.
 
 **`useResizeObserver`** — one effect.
 
@@ -86,7 +87,7 @@ All instance-related state lives in `useChartCore`; the orchestrator (`useEchart
 ### Key Design Patterns
 
 - Callback-ref API — `useEcharts` owns the container ref internally: a `useCallback` callback ref + `useState<HTMLDivElement | null>` writes the live element into hook state, then the React 19 ref-cleanup return path clears it on unmount. Consumers receive a stable `ref` field and attach it to their container `<div ref={ref}>`. DOM-node replacement is detected because the ref-callback identity is stable while React itself fires `ref(newNode)` + cleanup with the old node.
-- `useChartCore` owns all shared state internally — `lastAppliedRef`, `lastBoundRef`, `lastLoadingRef`, and the typed `latestRef` never leak to callers
+- `useChartCore` owns all shared state internally — `lastAppliedRef`, `lastBoundRef`, `lastLoadingRef`, `lastGroupRef`, and the typed `latestRef` never leak to callers
 - `useChartCore(element, shouldInit, config)` — 3-parameter API; takes the resolved element (not a ref) so DOM-node replacement re-triggers the lifecycle effect
 - WeakMap instance cache + reference counting — safe under StrictMode (instance recreated cleanly; refCount prevents premature disposal when multiple consumers share an element)
 - initOpts / theme serialized to stable keys via `computeStableKey` — JSON.stringify-based; non-serializable objects fall back to a per-reference id (still dedups by reference); only nullish or unsupported primitives (e.g. boolean/symbol) return `null` — strings and numbers pass through. Each key is memoized via `useMemo` on the raw input ref (React Compiler skips this hook, so the calls aren't auto-memoized — see `src/hooks/internal/use-chart-core.ts`)
@@ -94,7 +95,7 @@ All instance-related state lives in `useChartCore`; the orchestrator (`useEchart
 - Errors from `init` / `setOption` / `dispatchAction` / `resize` / event-bind / `showLoading` / group ops (`updateGroup` → `connect` / `disconnect`) route through the shared `onError` callback (or fall back to `console.error` / re-throw); cleanup-path `off` (unbind) and `dispose` (release) are try/caught too, so an effect-cleanup throw can't disrupt React commit. The lone deliberately-bare call is `off()` in the Event-Rebinding effect (see its inline comment — a same-handler rebind must unbind before binding). Effect-context errors flow through `useEffectEvent` for always-latest `onError`; imperative-API errors flow through `latestRef.current.onError` because `useEffectEvent` cannot be called outside Effects.
 - `shallowEqual` on `setOptionOpts` / `loadingOption` — avoids redundant calls when wrapper objects contain the same shallow values; option data itself remains reference-driven
 - `eventsEqual` on event rebinding — avoids unnecessary unbind/rebind when inline event objects have identical handlers
-- `setOption` / `showLoading` lifecycle attempts are recorded into `lastAppliedRef` / `lastLoadingRef` via `try/finally` even on failure — Option-Sync / Loading-Toggle dedup against the same (option, opts) pair instead of replaying a known-bad call and double-firing `onError`
+- `setOption` / `showLoading` / `updateGroup` attempts are recorded into `lastAppliedRef` / `lastLoadingRef` / `lastGroupRef` via `try/finally` even on failure — Option-Sync / Loading-Toggle / Group-Switch dedup against the same input pair instead of replaying a known-bad call and double-firing `onError` (for groups it also avoids `removeFromGroup`-ing a stale id after a partial move)
 - Memoized return value — `useChartCore` manually wraps its imperative API in `useMemo([element])` (since React Compiler does not memoize this hook); `useEcharts` is compiler-cached, so `{ ref, ...chart }` is stable when `chart` is stable
 - React Compiler enabled via `@vitejs/plugin-react` + `@rolldown/plugin-babel` (`reactCompilerPreset()`). **TODO (native, Babel-free path):** the Rust port of React Compiler landed in oxc v0.135.0 (2026-06-08, oxc-project/oxc#22942), exposed as a `reactCompiler` transform option — still experimental. The **oxc ≥ 0.135 gate is cleared** (Vite+ 0.2.6 bundles Rolldown 1.2.0); the remaining gates are: (1) de-experimentalizing the transform and (2) `@vitejs/plugin-react` exposing it as a first-class option. Once both land, drop `@rolldown/plugin-babel` + `reactCompilerPreset()` (and `@babel/core`) in favor of the native transform. No upstream date is committed — watch oxc release notes, the `@vitejs/plugin-react` changelog, and the Vite+ changelog.
 - `<EChart>` imperative handle exposes `EChartHandle = Omit<UseEchartsReturn, "ref">` — `ref` is intentionally stripped so external callers cannot reassign the container via `handle.ref(otherNode)`
@@ -105,6 +106,7 @@ All instance-related state lives in `useChartCore`; the orchestrator (`useEchart
 - Tests in `src/__tests__/` mirror `src/` layout
 - Shared mocks in `src/__tests__/helpers.ts`: `createMockInstance`, `MockResizeObserver`, `MockIntersectionObserver`
 - Config: `test` block in `vite.config.ts` — `clearMocks` / `mockReset` / `restoreMocks` all enabled
+- Coverage thresholds are enforced (v8: 95% statements/functions/lines, 90% branches); `vp test --coverage` exits non-zero when unmet. Source sits at 100% today, so the gap is deliberate headroom for churn — not a licence to land uncovered code
 - `globals: true` — import from `"vite-plus/test"` for type safety
 
 ### Test Gotchas
