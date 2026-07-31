@@ -1,5 +1,12 @@
 # react-use-echarts
 
+## 3.1.4
+
+### Patch Changes
+
+- 3a05393: Upgrade the Vite+ toolchain to 0.2.7 and refresh compatible development dependencies. No API changes — static checks, tests, package validation, and size budgets pass on the updated toolchain.
+- 8197957: Bump dev dependencies: @types/node 26.1.2, react-router-dom 7.18.2, pnpm 11.18.0. No API changes — static checks, unit tests, library build (attw + publint) and size budgets verified on the new versions.
+
 ## 3.1.3
 
 ### Patch Changes
