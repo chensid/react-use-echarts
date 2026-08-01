@@ -11,33 +11,7 @@ allowBuilds:
 # and can be deleted; only keep versions still inside the window, because
 # `vp install --frozen-lockfile` (CI) re-validates the lockfile against the gate and
 # aborts with ERR_PNPM_MINIMUM_RELEASE_AGE_VIOLATION on an unexcluded immature version.
-minimumReleaseAgeExclude:
-  [
-    "@size-limit/file@13.0.3",
-    "@voidzero-dev/vite-plus-core@0.2.7",
-    "@voidzero-dev/vite-plus-darwin-arm64@0.2.7",
-    "@voidzero-dev/vite-plus-darwin-x64@0.2.7",
-    "@voidzero-dev/vite-plus-linux-arm64-gnu@0.2.7",
-    "@voidzero-dev/vite-plus-linux-arm64-musl@0.2.7",
-    "@voidzero-dev/vite-plus-linux-x64-gnu@0.2.7",
-    "@voidzero-dev/vite-plus-linux-x64-musl@0.2.7",
-    "@voidzero-dev/vite-plus-win32-arm64-msvc@0.2.7",
-    "@voidzero-dev/vite-plus-win32-x64-msvc@0.2.7",
-    size-limit@13.0.3,
-    vite-plus@0.2.7,
-    "@shikijs/core@4.4.1",
-    "@shikijs/engine-javascript@4.4.1",
-    "@shikijs/engine-oniguruma@4.4.1",
-    "@shikijs/langs@4.4.1",
-    "@shikijs/primitive@4.4.1",
-    "@shikijs/themes@4.4.1",
-    "@shikijs/types@4.4.1",
-    "@types/react-dom@19.2.4",
-    "@types/react@19.2.18",
-    playwright-core@1.62.1,
-    playwright@1.62.1,
-    shiki@4.4.1,
-  ]
+minimumReleaseAgeExclude: []
 catalog:
   vite: npm:@voidzero-dev/vite-plus-core@0.2.7
   vitest: 4.1.10
