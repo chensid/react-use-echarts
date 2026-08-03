@@ -156,7 +156,7 @@ export interface EChartsEvents extends KnownEChartsEvents {
 export interface UseLazyInitReturn {
   /** Callback ref to attach to the element you want to lazily initialize. */
   ref: RefCallback<Element>;
-  /** Whether the element is currently in (or past) the viewport. */
+  /** Whether eager mode is active or the element has intersected at least once. */
   isInView: boolean;
 }
 
@@ -180,13 +180,13 @@ export type EChartsInitOpts = Omit<RawEChartsInitOpts, "renderer" | "ssr">;
 export interface LoadingOption {
   /** Loading text. Default: 'loading' */
   text?: string;
-  /** Loading animation color. Default: '#c23531' */
+  /** Loading animation color. ECharts 6.1 default: '#5070dd' */
   color?: string;
-  /** Text color. Default: '#000' */
+  /** Text color. ECharts 6.1 default: '#3c3c41' */
   textColor?: string;
-  /** Mask background color. Default: 'rgba(255, 255, 255, 0.8)' */
+  /** Mask background color. Default: 'rgba(255,255,255,0.8)' */
   maskColor?: string;
-  /** Z-level of the loading component */
+  /** Z-level of the loading component. Default: 0 */
   zlevel?: number;
   /** Font size. Default: 12 */
   fontSize?: number;
@@ -196,11 +196,11 @@ export interface LoadingOption {
   spinnerRadius?: number;
   /** Spinner line width. Default: 5 */
   lineWidth?: number;
-  /** Font weight */
+  /** Font weight. Default: 'normal' */
   fontWeight?: string | number;
-  /** Font style */
+  /** Font style. Default: 'normal' */
   fontStyle?: string;
-  /** Font family */
+  /** Font family. Default: 'sans-serif' */
   fontFamily?: string;
   /** Extensibility for custom loading types */
   [key: string]: unknown;
@@ -244,6 +244,7 @@ export interface UseEchartsOptions {
   /**
    * Lazy initialization: only init when container enters viewport
    * 懒加载：仅当容器进入视口时初始化
+   * @default false
    */
   lazyInit?: boolean | IntersectionObserverInit;
 

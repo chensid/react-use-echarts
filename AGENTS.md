@@ -10,7 +10,7 @@ Distribution: ESM-only (since 1.3.0). Requires Node.js 22.13+ on the tooling sid
 
 ### `useEcharts(options)` → `{ ref, instance, setOption, resize, ... }`
 
-Options: `option` (required), `theme`, `renderer` (`'canvas'`|`'svg'`), `lazyInit`, `group`, `setOptionOpts`, `showLoading`, `loadingOption`, `onEvents`, `autoResize` (default `true`), `initOpts`, `onError`
+Options: `option` (required), `theme`, `renderer` (`'canvas'`|`'svg'`, default `'canvas'`), `lazyInit` (default `false`), `group`, `setOptionOpts`, `showLoading` (default `false`), `loadingOption`, `onEvents`, `autoResize` (default `true`), `initOpts`, `onError`
 
 - `ref` — `RefCallback<HTMLDivElement>` to attach to the container
 - `instance` — `ECharts | undefined` (reactive — defined after init, undefined before/after dispose)
@@ -28,7 +28,7 @@ All `useEcharts` options as props + native `div` attributes (`id`, `role`, `aria
 - `mergeRefs(...refs)` — compose multiple refs (RefObject or RefCallback) into one callback ref; isolates throws per-ref so a misbehaving 3rd-party ref can't strand the chart
 - `registerBuiltinThemes()` — from `'react-use-echarts/themes/registry'` (separate entry, ~20KB theme JSON)
 - `registerEchartsFull()` — from `'react-use-echarts/preset-full'`; one-line registrar that calls `echarts.use(...)` with every built-in chart, component, renderer and feature. Call once at app entry.
-- `useLazyInit(options)` → `{ ref, isInView }` — standalone lazy-init hook
+- `useLazyInit(options)` → `{ ref, isInView }` — standalone lazy-init hook; enabled mode defaults to `rootMargin: '50px'` and `threshold: 0.1`
 
 ## Gotchas
 
