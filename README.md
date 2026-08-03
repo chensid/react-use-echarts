@@ -231,6 +231,11 @@ useEcharts({
 });
 ```
 
+When lazy mode is enabled, omitted observer settings default to `root: null`,
+`rootMargin: "50px"`, and `threshold: 0.1`. The standalone `useLazyInit(options)`
+export uses the same defaults and returns its own `{ ref, isInView }`
+callback-ref pair.
+
 > Note: lazy init is a one-shot latch — "lazy" means "defer until first visible", not "track visibility". Once the element has intersected, the chart stays initialized for the hook's lifetime: replacing the container DOM node or toggling `lazyInit` off and back on does not re-arm observation. To start deferring again, remount the component.
 
 ### Tree-shaking
@@ -344,7 +349,7 @@ All other native `div` attributes are forwarded to the chart container, includin
 | `group`         | `string`                              | —          | Chart linkage group ID                                                                                                                       |
 | `setOptionOpts` | `SetOptionOpts`                       | —          | Default options for `setOption` calls                                                                                                        |
 | `showLoading`   | `boolean`                             | `false`    | Show loading indicator                                                                                                                       |
-| `loadingOption` | `object`                              | —          | Loading indicator configuration                                                                                                              |
+| `loadingOption` | `LoadingOption`                       | —          | Loading indicator configuration                                                                                                              |
 | `onEvents`      | `EChartsEvents`                       | —          | Event handlers (`fn` or `{ handler, query?, context? }`)                                                                                     |
 | `autoResize`    | `boolean`                             | `true`     | Auto-resize via ResizeObserver                                                                                                               |
 | `initOpts`      | `EChartsInitOpts`                     | —          | Passed to `echarts.init()` (devicePixelRatio, locale, width, etc.)                                                                           |

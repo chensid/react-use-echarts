@@ -231,6 +231,10 @@ useEcharts({
 });
 ```
 
+启用懒加载后，未提供的观察器配置默认使用 `root: null`、
+`rootMargin: "50px"` 和 `threshold: 0.1`。独立导出的 `useLazyInit(options)`
+使用相同默认值，并返回自己的 `{ ref, isInView }` callback-ref 组合。
+
 > 注意：懒加载是一次性锁存——「懒」指「首次可见前推迟初始化」，而非持续追踪可见性。一旦元素相交过，图表在该 Hook 的生命周期内保持已初始化：更换容器 DOM 节点或将 `lazyInit` 关闭后再开启都不会重新观察。若需重新进入推迟状态，请重新挂载组件。
 
 ### Tree-shaking
@@ -342,7 +346,7 @@ export default function Page() {
 | `group`         | `string`                              | —          | 图表联动组 ID                                                                                       |
 | `setOptionOpts` | `SetOptionOpts`                       | —          | `setOption` 的默认选项                                                                              |
 | `showLoading`   | `boolean`                             | `false`    | 是否显示加载指示器                                                                                  |
-| `loadingOption` | `object`                              | —          | 加载指示器配置                                                                                      |
+| `loadingOption` | `LoadingOption`                       | —          | 加载指示器配置                                                                                      |
 | `onEvents`      | `EChartsEvents`                       | —          | 事件处理器（`fn` 或 `{ handler, query?, context? }`）                                               |
 | `autoResize`    | `boolean`                             | `true`     | 通过 ResizeObserver 自动 resize                                                                     |
 | `initOpts`      | `EChartsInitOpts`                     | —          | 传递给 `echarts.init()`（devicePixelRatio、locale 等）                                              |
