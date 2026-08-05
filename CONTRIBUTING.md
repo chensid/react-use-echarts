@@ -4,7 +4,7 @@ Thanks for your interest in improving `react-use-echarts`!
 
 ## Prerequisites
 
-- Node.js 22.13 or newer (CI covers 22.x and 24.x)
+- Node.js 22.18+ on 22.x, 24.11+ on 24.x, or 26+ (CI covers the 22.x minimum and latest 24.x)
 - Vite+ CLI (`vp`) available in your shell
 - Git
 

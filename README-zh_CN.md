@@ -49,7 +49,7 @@ React Hooks & 组件，用于 Apache ECharts — TypeScript、自动 resize、�
 
 - React 19.2+（`react` + `react-dom`）—— 内部使用 `useEffectEvent`，该 API 在 19.2 进入 stable
 - ECharts 6.x
-- Node.js 22.13+（package metadata 对安装与构建工具的要求；运行时图表代码仍是仅浏览器 ESM）
+- Node.js 22.18+（22.x）、24.11+（24.x）或 26+（package metadata 对安装与构建工具的要求；运行时图表代码仍是仅浏览器 ESM）
 
 > **仅支持 CSR。** ECharts 需要真实 DOM，不支持 SSR。
 >
