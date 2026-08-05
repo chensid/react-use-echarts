@@ -8,6 +8,7 @@ on:
 
 jobs:
   test:
+    name: test (${{ matrix.node }})
     runs-on: ubuntu-latest
     concurrency:
       group: ci-${{ github.ref }}-${{ matrix.node }}
@@ -15,13 +16,17 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        node: ["22.18.0", "24"]
+        include:
+          - node: "22"
+            nodeVersion: "22.18.0"
+          - node: "24"
+            nodeVersion: "24"
     steps:
       - uses: actions/checkout@v7
 
       - uses: voidzero-dev/setup-vp@v1
         with:
-          node-version: ${{ matrix.node }}
+          node-version: ${{ matrix.nodeVersion }}
           cache: true
 
       - name: Install dependencies
