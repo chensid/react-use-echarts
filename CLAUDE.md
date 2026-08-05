@@ -2,7 +2,7 @@
 
 React hooks library for Apache ECharts. Hook + declarative component, TypeScript, zero runtime deps.
 
-- **Peer deps:** React 19.2+ (`react` + `react-dom`; `useEffectEvent` requires 19.2), ECharts 6.x | **Tooling:** Node 22.13+ | **CSR only** | **ESM-only** | **Package manager:** pnpm
+- **Peer deps:** React 19.2+ (`react` + `react-dom`; `useEffectEvent` requires 19.2), ECharts 6.x | **Tooling:** Node 22.18+ on 22.x, 24.11+ on 24.x, or 26+ | **CSR only** | **ESM-only** | **Package manager:** pnpm
 
 ## Vite+ Toolchain
 
