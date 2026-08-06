@@ -1,5 +1,11 @@
 # react-use-echarts
 
+## 3.1.5
+
+### Patch Changes
+
+- 23c230d: Align the declared Node.js tooling range with the installed Vite+, Babel, and size-limit requirements: Node.js 22.18+ on 22.x, 24.11+ on 24.x, or 26+.
+
 ## 3.1.4
 
 ### Patch Changes
