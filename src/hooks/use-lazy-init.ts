@@ -16,6 +16,13 @@ import type { UseLazyInitReturn } from "../types";
  * Remount the component for fresh per-element tracking.
  * 锁存语义：一旦相交过即终身锁存——更换 DOM 节点或重新开启 lazy 模式都不会重新观察。
  *
+ * A malformed `IntersectionObserverInit` (out-of-range `threshold`, unit-less
+ * `rootMargin`, non-Element `root`) makes the observer constructor throw. The
+ * hook never lets that escape: it logs via `console.error` and degrades to
+ * eager init, so `isInView` becomes `true` and the chart still renders.
+ * 传入非法的 IntersectionObserverInit 时不会抛出：改为 console.error 并降级为立即
+ * 初始化（isInView 变为 true），保证图表仍能渲染。
+ *
  * @example
  * ```tsx
  * const { ref, isInView } = useLazyInit({ rootMargin: "100px" });

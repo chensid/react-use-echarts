@@ -237,6 +237,8 @@ useEcharts({
 
 > 注意：懒加载是一次性锁存——「懒」指「首次可见前推迟初始化」，而非持续追踪可见性。一旦元素相交过，图表在该 Hook 的生命周期内保持已初始化：更换容器 DOM 节点或将 `lazyInit` 关闭后再开启都不会重新观察。若需重新进入推迟状态，请重新挂载组件。
 
+> 非法的观察器配置不会导致图表不可用：超出范围的 `threshold`、缺少单位的 `rootMargin`、非 Element 的 `root` 都会让 `IntersectionObserver` 构造函数抛错，此时 Hook 会通过 `console.error` 输出并降级为立即初始化——图表照常渲染，不会一直空白。
+
 ### Tree-shaking
 
 库已完全 modular，可按需选择注册粒度：

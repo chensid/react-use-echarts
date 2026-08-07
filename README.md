@@ -238,6 +238,8 @@ callback-ref pair.
 
 > Note: lazy init is a one-shot latch — "lazy" means "defer until first visible", not "track visibility". Once the element has intersected, the chart stays initialized for the hook's lifetime: replacing the container DOM node or toggling `lazyInit` off and back on does not re-arm observation. To start deferring again, remount the component.
 
+> Invalid observer settings never break the chart: an out-of-range `threshold`, a unit-less `rootMargin`, or a non-Element `root` makes the `IntersectionObserver` constructor throw, so the hook logs via `console.error` and degrades to eager init — the chart renders immediately instead of staying blank.
+
 ### Tree-shaking
 
 The library is fully modular — pick the registration tier that matches your build target:
