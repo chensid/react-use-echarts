@@ -1,5 +1,11 @@
 # react-use-echarts
 
+## 3.1.7
+
+### Patch Changes
+
+- b63a923: Build and validate the package with TypeScript 7 using a dedicated library project, and strengthen the public-entry and browser visibility-resume test contracts.
+
 ## 3.1.6
 
 ### Patch Changes
