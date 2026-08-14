@@ -82,7 +82,10 @@ export default defineConfig({
     {
       entry: "src/index.ts",
       format: ["esm"],
-      dts: { build: true },
+      // TypeScript 7's native declaration compiler consumes a single project
+      // config, so pack must target the leaf library project, not the solution root.
+      tsconfig: "tsconfig.lib.json",
+      dts: { tsgo: true },
       publint: true,
       attw: { profile: "esm-only" },
       platform: "browser",
@@ -92,14 +95,16 @@ export default defineConfig({
     {
       entry: { "themes/registry": "src/themes/registry.ts" },
       format: ["esm"],
-      dts: { build: true },
+      tsconfig: "tsconfig.lib.json",
+      dts: { tsgo: true },
       platform: "browser",
     },
     {
       // publint/attw run once from the index entry.
       entry: { "preset-full": "src/preset-full.ts" },
       format: ["esm"],
-      dts: { build: true },
+      tsconfig: "tsconfig.lib.json",
+      dts: { tsgo: true },
       platform: "browser",
       define: preserveProcessEnvNodeEnv,
       plugins: [babel({ presets: [reactCompilerPreset()] })],
@@ -124,13 +129,7 @@ export default defineConfig({
       },
       reporter: ["text", "json", "html", "lcov"],
       include: ["src/**/*"],
-      exclude: [
-        "node_modules/",
-        "src/__tests__/**",
-        "src/vite-env.d.ts",
-        "src/types/**",
-        "src/index.ts",
-      ],
+      exclude: ["node_modules/", "src/__tests__/**", "src/types/**"],
     },
     testTimeout: 10000,
     clearMocks: true,
