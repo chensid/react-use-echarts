@@ -5,6 +5,9 @@ overrides:
 allowBuilds:
   esbuild: true
 
+# Auto-prune stale minimumReleaseAgeExclude entries on pnpm add/update/remove (pnpm 11.22+).
+minimumReleaseAgeExcludePrune: true
+
 catalog:
   vite: npm:@voidzero-dev/vite-plus-core@0.2.9
   vitest: 4.1.10
