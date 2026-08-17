@@ -26,7 +26,7 @@ vp check                      # format + lint + typecheck (typecheck via tsgolin
 
 ### Vite+ 0.2.x toolchain (since #458; aligned to 0.2.9)
 
-Vite+ 0.2.9 bundles **Vite 8.2.1 + Rolldown 1.2.3 + Vitest 4.1.10 + Oxfmt 0.62.0 + Oxlint 1.77.0 + oxlint-tsgolint 7.0.2001 + tsdown 0.22.14** inside the `vite-plus` toolchain (run `vp toolchain` for the complete dependency tree — the bundled pins move with every Vite+ release). The separate `@voidzero-dev/vite-plus-test` package is **dead** (no 0.2.x exists). Consequences for dep management:
+Vite+ 0.2.9 bundles the whole toolchain — Vite, Rolldown, Vitest, Oxfmt, Oxlint, oxlint-tsgolint, tsdown — inside the `vite-plus` package (run `vp toolchain` for the exact bundled pins; they move with every Vite+ release). The separate `@voidzero-dev/vite-plus-test` package is **dead** (no 0.2.x exists). Consequences for dep management:
 
 - Dependency versions live in the root `pnpm-workspace.yaml` `catalog`. `package.json` uses `catalog:` for `vite`, `vite-plus`, `vitest`, `@vitest/browser-playwright`, and `@vitest/coverage-v8`.
 - Keep `pnpm-workspace.yaml` overrides for both `vite` → `@voidzero-dev/vite-plus-core` and `vitest` → the exact bundled Vitest version. This keeps Vite+ internals, browser providers, coverage, and `vp test` on one runner copy.
@@ -103,12 +103,9 @@ All instance-related state lives in `useChartCore`; the orchestrator (`useEchart
 
 ## Testing
 
-- Two Vitest projects (`test.projects` in `vite.config.ts`): **`unit`** — happy-dom + ECharts API fully mocked (`src/__tests__/**`, excludes `browser/`); **`browser`** — real chromium via the opt-in `@vitest/browser-playwright` provider (imported from `vite-plus/test/browser-playwright`; `src/__tests__/browser/**`), for what happy-dom can't simulate (IntersectionObserver/ResizeObserver + RAF in a real viewport, real layout). Smoke level: assert effects are observable, not exact frame counts.
-- Tests in `src/__tests__/` mirror `src/` layout
-- Shared mocks in `src/__tests__/helpers.ts`: `createMockInstance`, `MockResizeObserver`, `MockIntersectionObserver`
-- Config: `test` block in `vite.config.ts` — `clearMocks` / `mockReset` / `restoreMocks` all enabled
+- Two Vitest projects (`test.projects` in `vite.config.ts`, whose comments describe each project's scope): **`unit`** — happy-dom + ECharts API fully mocked; **`browser`** — real chromium via `@vitest/browser-playwright` (`src/__tests__/browser/**`) for what happy-dom can't simulate. Smoke level: assert effects are observable, not exact frame counts.
+- Shared mocks in `src/__tests__/helpers.ts`: `createMockInstance`, `MockResizeObserver`, `MockIntersectionObserver`; import test APIs from `"vite-plus/test"` (`globals: true`)
 - Coverage thresholds are enforced (v8: 95% statements/functions/lines, 90% branches); `vp test --coverage` exits non-zero when unmet. Source sits at 100% today, so the gap is deliberate headroom for churn — not a licence to land uncovered code
-- `globals: true` — import from `"vite-plus/test"` for type safety
 
 ### Test Gotchas
 
@@ -121,7 +118,6 @@ All instance-related state lives in `useChartCore`; the orchestrator (`useEchart
 - **Commit format:** `feat|fix|docs|test|refactor|chore: <subject>`
 - **Types-first:** define types in `src/types/index.ts` before implementing
 - **Paired cleanup:** all side effects must have cleanup functions
-- **Build outputs:** `dist/index.js`, `dist/preset-full.js`, and `dist/themes/registry.js` + matching `.d.ts` files (ESM). `publint` + `attw` (`esm-only` profile) run automatically via `vp pack`.
 - **ECharts registration is the consumer's responsibility** — this library does NOT auto-register charts/components/renderers/features. Apps call `registerEchartsFull()` (from `react-use-echarts/preset-full`) for the everything-included path, or `echarts.use([...])` selectively. Mirrors `vue-echarts` / `nuxt-echarts` / `react-chartjs-2`. See `src/preset-full.ts` for the why.
 
 ## Anti-patterns
