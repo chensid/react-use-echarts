@@ -82,20 +82,9 @@ registerEchartsFull();
 
 ## 快速开始
 
-### 1. 注册 ECharts 一次
+注册好 ECharts 模块（上一节）之后，一个组件或一个 Hook 就能渲染图表。
 
-最快上手方式是在应用入口注册 ECharts 全量能力：
-
-```ts
-// main.tsx / index.tsx
-import { registerEchartsFull } from "react-use-echarts/preset-full";
-
-registerEchartsFull();
-```
-
-生产构建如果只渲染少量图表类型，可以稍后替换为按需 `echarts.use([...])` 注册；图表 API 不变。
-
-### 2. 渲染图表
+### 1. 渲染图表
 
 最简单的组件用法 — 无需手动管理 ref：
 
@@ -120,7 +109,7 @@ function MyChart() {
 
 通过 `ref` 可访问命令式 API —— 完整列表见 [返回值](#返回值)（`setOption`、`dispatchAction`、`clear`、`resize`、`appendData`、`getDataURL`、`convertToPixel` 等）。
 
-### 3. 直接使用 Hook
+### 2. 直接使用 Hook
 
 需要完全控制时，直接使用 Hook。它返回一个用于挂载到容器的 callback `ref`、响应式的 `instance` 字段，以及完整的命令式 API：
 
@@ -140,8 +129,6 @@ function MyChart() {
 ```
 
 `instance` 在初始化前及销毁后为 `undefined`；通过 `useEffect([instance])` 即可订阅实时 ECharts 实例并在其上挂副作用。
-
-图表容器必须有明确尺寸，例如 `style={{ width: "100%", height: "400px" }}`。
 
 ## 使用示例
 
@@ -418,7 +405,7 @@ import { registerEchartsFull } from "react-use-echarts/preset-full"; // 一行�
 // EChartProps, EChartHandle, EChartsEvents, EChartsEventConfig, EChartsEventHandler,
 // EChartsEventPayloadMap, EChartsInitOpts, BuiltinTheme, LoadingOption,
 // ChartFinder, ChartScaleValue, Payload。
-// EChartsOption、SetOptionOpts、ResizeOpts 现在也从此处转出（源自 "echarts" 包），
+// EChartsOption、SetOptionOpts、ResizeOpts 也从此处转出（源自 "echarts" 包），
 // 可与上面的类型一起从 react-use-echarts 统一导入，无需再单独 import "echarts"。
 ```
 

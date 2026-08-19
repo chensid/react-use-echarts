@@ -82,20 +82,9 @@ Or, for tree-shake-friendly production builds, register only what you actually r
 
 ## Quick Start
 
-### 1. Register ECharts Once
+With ECharts modules registered (previous section), you're one component or one hook away from a chart.
 
-For the fastest start, register the full ECharts surface at your app entry:
-
-```ts
-// main.tsx / index.tsx
-import { registerEchartsFull } from "react-use-echarts/preset-full";
-
-registerEchartsFull();
-```
-
-For production bundles that only render a few chart types, replace this with selective `echarts.use([...])` registration later; the chart API stays the same.
-
-### 2. Render a Chart
+### 1. Render a Chart
 
 The simplest component path — no ref needed:
 
@@ -120,7 +109,7 @@ The chart container must have an explicit size. The example above sets it on `<E
 
 Pass `ref` to access the imperative API — see [Returns](#returns) for the full list (`setOption`, `dispatchAction`, `clear`, `resize`, `appendData`, `getDataURL`, `convertToPixel`, …).
 
-### 3. Use the Hook Directly
+### 2. Use the Hook Directly
 
 For full control, use the hook directly. It returns a callback `ref` to attach to your container plus a reactive `instance` field and the full imperative API:
 
@@ -140,8 +129,6 @@ function MyChart() {
 ```
 
 `instance` is `undefined` before init and after dispose; subscribe via `useEffect([instance])` to run side effects against the live ECharts instance.
-
-The chart container must have an explicit size, for example `style={{ width: "100%", height: "400px" }}`.
 
 ## Recipes
 
