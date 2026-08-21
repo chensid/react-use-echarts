@@ -12,22 +12,25 @@ Thanks for your interest in improving `react-use-echarts`!
 
 1. Fork this repository and clone it locally.
 2. Install dependencies: `vp install`.
-3. Create a feature branch: `git checkout -b feat/my-feature`.
-4. Start the playground for manual verification: `vp dev` (serves the examples on <http://localhost:3000>).
-5. Implement and self-test your changes.
+3. Install the Playwright Chromium binary: `vp exec playwright install chromium` (use `--with-deps` on Linux).
+4. Create a feature branch: `git checkout -b feat/my-feature`.
+5. Start the playground for manual verification: `vp dev` (serves the examples on <http://localhost:3000>).
+6. Implement and self-test your changes.
 
 ## Development Commands
 
 - `vp dev` – run the Vite dev server with the examples under `examples/`.
 - `vp lint` – run Oxlint to check for issues.
 - `vp check` – run format + lint + typecheck (via tsgolint) in one command.
-- `vp test` – execute the Vitest suite once (single run by default).
+- `vp test` – execute both configured Vitest projects once (single run by default).
+- `vp test --project unit` – execute only the unit/happy-dom project.
+- `vp test --project browser` – execute only the real-Chromium browser project.
 - `vp test watch` – run the suite in watch mode while developing.
-- `vp test --coverage` – generate coverage reports.
+- `vp test --coverage --project unit` – generate the v8 coverage reports, matching CI.
 - `vp build` – build the examples application with Vite into `site-dist/`.
 - `vp pack` – build the library (ESM) and type declarations into `dist/`. Runs `publint` + `attw` automatically.
 
-Run `vp check && vp test` before opening a pull request. CI additionally packs the library, enforces coverage and bundle budgets, and runs the browser suite on Node 24.
+After installing Chromium, run `vp check && vp test` before opening a pull request; this covers both the unit and browser projects. CI additionally packs the library, enforces coverage and bundle budgets, repeats the unit project across its Node matrix, and runs the browser project on Node 24.
 
 ## Toolchain Updates
 
@@ -47,8 +50,8 @@ Vite+ owns the local Vite/Vitest/Oxlint/Oxfmt/Rolldown toolchain. To align this 
 Releases are driven by [changesets](https://github.com/changesets/changesets):
 
 1. PRs include a `.changeset/*.md` file describing the change.
-2. Pushes to `main` keep an open "Version Packages" PR that aggregates pending changesets.
-3. Merging that PR runs `ci.yml`; after CI succeeds, `release.yml` builds and publishes via npm OIDC.
+2. Pushes to `main` run `ci.yml`; successful push-triggered CI completions start `release.yml` so Changesets can keep an open "Version Packages" PR or publish a merged version bump via npm OIDC.
+3. The release job checks out `main` as it exists when that job runs, so the processed SHA can be newer than the CI run that triggered the workflow.
 
 For hotfixes, follow the same flow — open a PR with a `.changeset/*.md` describing the fix, then merge it and the resulting Version Packages PR. Don't include `changeset version` output (CHANGELOG / version bumps) in feature PRs; that belongs only in the auto-generated Version Packages PR.
 
