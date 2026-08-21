@@ -15,14 +15,17 @@ vp install                    # Install dependencies
 vp dev                        # Dev server (localhost:3000, serves examples/)
 vp build                      # Build examples app → site-dist/
 vp pack                       # Library build → dist/
-vp test                       # Single run
+vp exec playwright install chromium # Install Chromium once (`--with-deps` on Linux/CI)
+vp test                       # Single run of both configured projects
+vp test --project unit        # Unit/happy-dom project only
+vp test --project browser     # Real-Chromium browser project only
 vp test watch                 # Watch mode
-vp test --coverage            # Coverage report (v8)
+vp test --coverage --project unit # Coverage report (v8), matching CI
 vp lint                       # Oxlint
 vp check                      # format + lint + typecheck (typecheck via tsgolint)
 ```
 
-**Pre-PR checklist:** `vp check && vp test`
+**Pre-PR checklist:** install Chromium once, then run `vp check && vp test` (both projects).
 
 ### Vite+ 0.2.x toolchain (since #458; aligned to 0.2.9)
 
@@ -39,7 +42,7 @@ Vite+ 0.2.9 bundles the whole toolchain — Vite, Rolldown, Vitest, Oxfmt, Oxlin
 
 ```
 src/
-├── index.ts                    # Package entry, re-exports everything. Modular — does NOT side-effect-import "echarts" (legacy `/core` subpath was removed in v3)
+├── index.ts                    # Root package API. Modular — does NOT side-effect-import "echarts" (legacy `/core` subpath was removed in v3); optional registry/preset APIs stay on their own subpaths
 ├── preset-full.ts              # `registerEchartsFull()` sugar — one-call namespace-spread of echarts/charts + components + renderers + features, registered via `echarts.use(...)`. Explicit opt-in to the full registry.
 ├── components/EChart.tsx       # Declarative component wrapping useEcharts
 ├── hooks/
@@ -57,7 +60,7 @@ src/
 │   ├── instance-cache.ts       # WeakMap instance cache + reference counting (warns on mismatched setCachedInstance)
 │   ├── connect.ts              # Chart group linkage logic (one connect() per groupId; disconnect when last member leaves)
 │   ├── shallow-equal.ts        # Shallow equality for setOptionOpts / loadingOption deduplication
-│   ├── stable-key.ts           # Stable dependency keys via JSON.stringify (per-reference id fallback when not serializable; null only for nullish or unsupported primitives — strings/numbers pass through)
+│   ├── stable-key.ts           # JSON.stringify-based dependency keys (non-canonical: property order affects the key; per-reference id fallback only when serialization throws; non-throwing results pass through)
 │   ├── merge-refs.ts           # Compose multiple refs (RefObject / RefCallback / React 19 cleanup-callback) into one callback ref; per-ref try/catch isolation
 │   ├── error.ts                # Imperative-path error routing helper (`routeImperativeError`)
 │   ├── dev-warnings.ts         # Shared dev-mode warning sets (unknown theme, zero-size container, missing ECharts registration)
@@ -91,7 +94,7 @@ All instance-related state lives in `useChartCore`; the orchestrator (`useEchart
 - `useChartCore` owns all shared state internally — `lastAppliedRef`, `lastBoundRef`, `lastLoadingRef`, `lastGroupRef`, and the typed `latestRef` never leak to callers
 - `useChartCore(element, shouldInit, config)` — 3-parameter API; takes the resolved element (not a ref) so DOM-node replacement re-triggers the lifecycle effect
 - WeakMap instance cache + reference counting — safe under StrictMode (instance recreated cleanly; refCount prevents premature disposal when multiple consumers share an element)
-- initOpts / theme serialized to stable keys via `computeStableKey` — JSON.stringify-based; non-serializable objects fall back to a per-reference id (still dedups by reference); only nullish or unsupported primitives (e.g. boolean/symbol) return `null` — strings and numbers pass through. Each key is memoized via `useMemo` on the raw input ref (React Compiler skips this hook, so the calls aren't auto-memoized — see `src/hooks/internal/use-chart-core.ts`)
+- initOpts / theme serialized to dependency keys via `computeStableKey` — `JSON.stringify`-based and non-canonical, so property insertion order affects the key. Only serialization that throws falls back to a per-reference id; a non-throwing result (including `undefined` from a custom `toJSON`) passes through. Nullish or unsupported primitives (e.g. boolean/symbol) return `null`, while strings and numbers pass through. Each key is memoized via `useMemo` on the raw input ref (React Compiler skips this hook, so the calls aren't auto-memoized — see `src/hooks/internal/use-chart-core.ts`)
 - Two-level theme cache — custom theme objects auto-deduplicated; `contentHash` param avoids double JSON.stringify; `contentHashCache` is a FIFO with a 100-entry cap
 - Errors from `init` / `setOption` / `dispatchAction` / `resize` / event-bind / `showLoading` / group ops (`updateGroup` → `connect` / `disconnect`) route through the shared `onError` callback (or fall back to `console.error` / re-throw); cleanup-path `off` (unbind) and `dispose` (release) are try/caught too, so an effect-cleanup throw can't disrupt React commit. The lone deliberately-bare call is `off()` in the Event-Rebinding effect (see its inline comment — a same-handler rebind must unbind before binding). Effect-context errors flow through `useEffectEvent` for always-latest `onError`; imperative-API errors flow through `latestRef.current.onError` because `useEffectEvent` cannot be called outside Effects.
 - `shallowEqual` on `setOptionOpts` / `loadingOption` — avoids redundant calls when wrapper objects contain the same shallow values; option data itself remains reference-driven
@@ -104,12 +107,13 @@ All instance-related state lives in `useChartCore`; the orchestrator (`useEchart
 ## Testing
 
 - Two Vitest projects (`test.projects` in `vite.config.ts`, whose comments describe each project's scope): **`unit`** — happy-dom + ECharts API fully mocked; **`browser`** — real chromium via `@vitest/browser-playwright` (`src/__tests__/browser/**`) for what happy-dom can't simulate. Smoke level: assert effects are observable, not exact frame counts.
+- Install the Chromium binary before local browser or all-project runs: `vp exec playwright install chromium` (use `--with-deps` on Linux/CI).
 - Shared mocks in `src/__tests__/helpers.ts`: `createMockInstance`, `MockResizeObserver`, `MockIntersectionObserver`; import test APIs from `"vite-plus/test"` (`globals: true`)
-- Coverage thresholds are enforced (v8: 95% statements/functions/lines, 90% branches); `vp test --coverage` exits non-zero when unmet. Source sits at 100% today, so the gap is deliberate headroom for churn — not a licence to land uncovered code
+- Coverage thresholds are enforced (v8: 95% statements/functions/lines, 90% branches); `vp test --coverage --project unit` exits non-zero when unmet, matching CI. Source sits at 100% today, so the gap is deliberate headroom for churn — not a licence to land uncovered code
 
 ### Test Gotchas
 
-- Always `vi.mock("echarts/core")` before importing modules that depend on echarts
+- In unit/happy-dom tests, `vi.mock("echarts/core")` before importing modules that depend on ECharts; browser tests intentionally import and register real ECharts modules
 - Mock instance shape must match `createMockInstance` from helpers
 - `MockIntersectionObserver.observe` triggers callback immediately with `isIntersecting: true`
 
@@ -117,13 +121,13 @@ All instance-related state lives in `useChartCore`; the orchestrator (`useEchart
 
 - **Commit format:** `feat|fix|docs|test|refactor|chore: <subject>`
 - **Types-first:** define types in `src/types/index.ts` before implementing
-- **Paired cleanup:** all side effects must have cleanup functions
+- **Resource cleanup:** effects that create subscriptions, listeners, observers, timers/RAFs, or other persistent resources must return paired cleanup; state/config synchronization effects need no cleanup when they acquire no resource
 - **ECharts registration is the consumer's responsibility** — this library does NOT auto-register charts/components/renderers/features. Apps call `registerEchartsFull()` (from `react-use-echarts/preset-full`) for the everything-included path, or `echarts.use([...])` selectively. Mirrors `vue-echarts` / `nuxt-echarts` / `react-chartjs-2`. See `src/preset-full.ts` for the why.
 
 ## Anti-patterns
 
-- **DO NOT** create effects without paired cleanup functions
-- **DO NOT** mutate `theme` or `initOpts` objects in place; equivalent serializable new objects dedup by content, while memoization avoids repeated serialization
+- **DO NOT** leave subscriptions, listeners, observers, timers/RAFs, or other persistent resources created by an effect without paired cleanup; synchronization-only effects are exempt
+- **DO NOT** mutate `theme` or `initOpts` objects in place; distinct objects dedup only when their `JSON.stringify` output matches (property order affects the key), while memoization avoids repeated serialization
 - **DO NOT** duplicate API reference from `README.md` into this file
 - **DO NOT** re-add the removed `react-use-echarts/core` subpath — v3 consumers should import from `react-use-echarts`.
 - **DO NOT** re-add `import "echarts"` to `src/index.ts` — the root entry must stay modular and must not force the full ECharts registry into every consumer bundle. Registration belongs in consumer-side code (their app entry or `registerEchartsFull()`).
@@ -133,7 +137,7 @@ All instance-related state lives in `useChartCore`; the orchestrator (`useEchart
 
 | Problem                                                              | Cause                                                                     | Fix                                                                                                                                          |
 | -------------------------------------------------------------------- | ------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
-| Test fails: "echarts not mocked"                                     | Missing `vi.mock("echarts/core")`                                         | Add mock before imports                                                                                                                      |
+| Unit test fails: "echarts not mocked"                                | Missing `vi.mock("echarts/core")`                                         | Add mock before imports; browser tests use real registered ECharts modules                                                                   |
 | Test lint errors                                                     | `tsconfig.test.json` not correct                                          | Check `include` patterns                                                                                                                     |
 | `vp pack`: `tsgo did not generate dts file for …`                    | A `pack[]` entry lost its TS 7 dts settings                               | Every `pack[]` entry in `vite.config.ts` needs `tsconfig: "tsconfig.lib.json"` + `dts: { tsgo: true }`                                       |
 | StrictMode double-mount issues                                       | Instance cache refCount mismatch                                          | Check `src/utils/instance-cache.ts` logic                                                                                                    |
