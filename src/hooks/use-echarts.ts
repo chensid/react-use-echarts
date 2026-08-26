@@ -65,7 +65,10 @@ export function useEcharts(options: UseEchartsOptions): UseEchartsReturn {
   // `useChartCore` already hands back a memoized object, and `ref` is a stable
   // `useCallback`. Spreading them into a bare literal would throw that away and
   // hand callers a new identity every render — enough to re-run a consumer's
-  // `useImperativeHandle`/effect deps on every render. React Compiler does not
-  // memoize this hook (same as `useChartCore`), so cache the merge by hand.
+  // `useImperativeHandle`/effect deps on every render. React Compiler cannot
+  // compile this hook at all: the destructuring defaults above (`renderer =
+  // "canvas"`, …) hit a `BuildHIR::lowerAssignment` bail in
+  // babel-plugin-react-compiler 1.0.0. Keep this `useMemo` even if a future
+  // compiler starts emitting a cache here — the stability test depends on it.
   return useMemo(() => ({ ref, ...chart }), [ref, chart]);
 }
