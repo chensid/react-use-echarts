@@ -1,6 +1,6 @@
 overrides:
-  vite: "catalog:"
-  vitest: "catalog:"
+  vite@*: "catalog:"
+  vitest@*: "catalog:"
 
 allowBuilds:
   esbuild: true
@@ -9,11 +9,11 @@ allowBuilds:
 minimumReleaseAgeExcludePrune: true
 
 catalog:
-  vite: npm:@voidzero-dev/vite-plus-core@0.2.9
-  vitest: 4.1.10
-  vite-plus: 0.2.9
-  "@vitest/browser-playwright": 4.1.10
-  "@vitest/coverage-v8": 4.1.10
+  vite: npm:@voidzero-dev/vite-plus-core@0.3.0
+  vitest: 4.1.11
+  vite-plus: 0.3.0
+  "@vitest/browser-playwright": 4.1.11
+  "@vitest/coverage-v8": 4.1.11
 peerDependencyRules:
   allowAny:
     - vite
