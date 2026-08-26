@@ -1,5 +1,17 @@
 # react-use-echarts
 
+## 3.1.9
+
+### Patch Changes
+
+- f2dc2a7: Let React Compiler optimize `<EChart>` again. The component read the container callback ref as `chart.ref` directly inside JSX, which the compiler treats as accessing a ref during render — it bailed out and emitted the component uncompiled. Destructuring the ref before the return restores compilation (the emitted component now carries its memo cache), so `<EChart>` no longer re-creates its container props object and `useEcharts` argument on every render.
+
+  No API or behavior change. Consumers that only import `useEcharts` are unaffected; `<EChart>` users gain the memoization at a cost of roughly 0.65 kB min+gzip.
+
+- f2dc2a7: Return a referentially stable object from `useEcharts`. `useChartCore` already memoizes the imperative API it hands back, but `useEcharts` re-spread it into a fresh `{ ref, ...chart }` literal on every render, so callers received a new identity each time even when nothing changed. The merge is now wrapped in `useMemo`, matching how `useChartCore` caches its own return.
+
+  The hook result can now be used directly in a dependency array. In practice this also stops `<EChart>` from re-creating and re-assigning its imperative handle on every render, since that handle's `useImperativeHandle` deps are keyed on the hook result.
+
 ## 3.1.8
 
 ### Patch Changes
