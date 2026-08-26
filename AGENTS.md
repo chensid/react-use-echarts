@@ -17,6 +17,7 @@ Options: `option` (required), `theme`, `renderer` (`'canvas'`|`'svg'`, default `
 - `setOption(option, opts?)` — update chart config
 - `resize(opts?)` — manual resize trigger
 - Imperative methods: `dispatchAction`, `clear`, `appendData`, `getOption`, `getDataURL`, `getConnectedDataURL`, `renderToSVGString`, `getSvgDataURL`, `getWidth`, `getHeight`, `getDom`, `isDisposed`, `convertToPixel`, `convertFromPixel`, `containPixel`
+- The returned object is referentially stable — its identity only changes when `instance` or the container element changes, so it can go straight into a dependency array
 
 ### `<EChart />` Component
 

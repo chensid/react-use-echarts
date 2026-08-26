@@ -64,8 +64,25 @@ export default defineConfig({
         files: ["src/__tests__/**/*.{ts,tsx}"],
         rules: {
           "@typescript-eslint/unbound-method": "off",
+          // Test harnesses publish the hook result to an outer ref during render
+          // (`chartRef.current = chart`) so the test body can drive the imperative
+          // API. Deliberate in a harness, so keep this oxlint 1.79 rule to src/.
+          "react/refs": "off",
         },
         env: { es2020: true, browser: true, node: true },
+      },
+      {
+        // The showcase app demonstrates patterns these two oxlint 1.79 rules
+        // flag by design: DynamicChart holds the option in a ref to exercise the
+        // stable-option-reference path, and Layout / ExportStream reset state
+        // from an effect on route and theme changes. Library source under src/
+        // keeps both rules at correctness level.
+        files: ["examples/**/*.{ts,tsx}"],
+        rules: {
+          "react/refs": "off",
+          "react/set-state-in-effect": "off",
+        },
+        env: { es2020: true, browser: true },
       },
     ],
     options: {
