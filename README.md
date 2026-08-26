@@ -360,6 +360,8 @@ All other native `div` attributes are forwarded to the chart container, includin
 > Prefer the declarative props (`option`, `theme`, `showLoading`, …) over imperative methods. Use these methods only when a prop does not cover the action — image export, coordinate conversion, streaming append, etc.
 > All methods are no-ops or return safe defaults when the instance is not yet initialized. When the instance throws, errors are routed through `onError` if provided (and the call returns the fallback); otherwise the error is rethrown — including from readers (no `console.error` fallback for imperative methods).
 
+The returned object is **referentially stable**: its identity changes only when the live `instance` or the container element changes (init, dispose, container swap), never on an unrelated re-render. You can pass it straight into a dependency array.
+
 **Container ref / live instance**
 
 | Property   | Type                          | Description                                                                                                                                              |

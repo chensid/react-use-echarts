@@ -1,4 +1,4 @@
-import { useCallback, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import type { UseEchartsOptions, UseEchartsReturn } from "../types";
 import { useLazyInitForElement } from "./use-lazy-init";
 import { useChartCore } from "./internal/use-chart-core";
@@ -62,5 +62,10 @@ export function useEcharts(options: UseEchartsOptions): UseEchartsReturn {
 
   useResizeObserver(element, autoResize, onError);
 
-  return { ref, ...chart };
+  // `useChartCore` already hands back a memoized object, and `ref` is a stable
+  // `useCallback`. Spreading them into a bare literal would throw that away and
+  // hand callers a new identity every render — enough to re-run a consumer's
+  // `useImperativeHandle`/effect deps on every render. React Compiler does not
+  // memoize this hook (same as `useChartCore`), so cache the merge by hand.
+  return useMemo(() => ({ ref, ...chart }), [ref, chart]);
 }

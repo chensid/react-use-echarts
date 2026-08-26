@@ -57,10 +57,11 @@ export function EChart({
     const { ref: _containerRef, ...api } = chart;
     return api;
   }, [chart]);
+  const { ref: containerRef } = chart;
   return (
     <div
       {...containerProps}
-      ref={chart.ref}
+      ref={containerRef}
       style={{ width: "100%", height: "100%", ...style }}
       className={className}
     />

@@ -199,6 +199,34 @@ describe("useEcharts", () => {
       expect(result.current.instance).toBeUndefined();
     });
 
+    it("should keep the returned object referentially stable across unrelated renders", () => {
+      const element = document.createElement("div");
+      const mockInstance = createMockInstance(element);
+      (echarts.init as ReturnType<typeof vi.fn>).mockReturnValue(mockInstance);
+
+      const { result, rerender } = renderHook(({ option }) => useEcharts({ option }), {
+        initialProps: { option: baseOption },
+      });
+
+      const beforeInit = result.current;
+      act(() => {
+        result.current.ref(element);
+      });
+
+      // Creating the instance is a real change, so the identity must move —
+      // `instance` is reactive and consumers watching it have to observe it.
+      const afterInit = result.current;
+      expect(afterInit).not.toBe(beforeInit);
+
+      // A render that changes nothing must not. Callers put this object in
+      // dependency arrays (`<EChart>` keys its imperative handle on it), so a
+      // fresh literal per render would re-run their effects for no reason.
+      rerender({ option: baseOption });
+      expect(result.current).toBe(afterInit);
+      expect(result.current.ref).toBe(afterInit.ref);
+      expect(result.current.setOption).toBe(afterInit.setOption);
+    });
+
     it("should not initialize when lazyInit is true and not visible", () => {
       // Override IntersectionObserver to not trigger immediately
       class NonTriggeringIntersectionObserver {
