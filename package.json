@@ -90,7 +90,7 @@
     "@vitest/coverage-v8": "catalog:",
     "babel-plugin-react-compiler": "^1.0.0",
     "echarts": "^6.1.0",
-    "happy-dom": "^20.11.12",
+    "happy-dom": "^20.11.15",
     "playwright": "^1.62.1",
     "publint": "^0.3.24",
     "react": "^19.2.8",
