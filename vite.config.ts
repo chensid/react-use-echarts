@@ -1,8 +1,8 @@
 import { defineConfig } from "vite-plus";
 import babel from "@rolldown/plugin-babel";
 import react, { reactCompilerPreset } from "@vitejs/plugin-react";
-// Playwright browser provider — opt-in in Vite+ 0.2.x (installed via the
-// @vitest/browser-playwright peer), pinned to the bundled Vitest version so the
+// Playwright browser provider — installed via the
+// @vitest/browser-playwright peer, pinned to the bundled Vitest version so the
 // browser runner and Vitest core stay aligned.
 import { playwright } from "vite-plus/test/browser-playwright";
 
