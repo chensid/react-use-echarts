@@ -28,6 +28,7 @@ jobs:
         with:
           node-version: ${{ matrix.nodeVersion }}
           cache: true
+          run-install: false # Install once below with the lockfile frozen.
 
       - name: Install dependencies
         run: vp install --frozen-lockfile
@@ -37,6 +38,10 @@ jobs:
 
       - name: Build library
         run: vp pack
+
+      - name: Build showcase
+        if: matrix.node == '24'
+        run: vp build
 
       - name: Test with coverage (unit project)
         run: vp test run --coverage --project unit
