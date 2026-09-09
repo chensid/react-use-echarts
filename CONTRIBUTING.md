@@ -32,6 +32,12 @@ Thanks for your interest in improving `react-use-echarts`!
 
 After installing Chromium, run `vp check && vp test` before opening a pull request; this covers both the unit and browser projects. CI additionally packs the library, enforces coverage and bundle budgets, repeats the unit project across its Node matrix, and runs the browser project on Node 24.
 
+## Editor and TypeScript 7
+
+For VS Code, install the workspace recommendations: [TypeScript 7](https://marketplace.visualstudio.com/items?itemName=TypeScriptTeam.native-preview) for the native language service, and [Vite Plus Extension Pack](https://marketplace.visualstudio.com/items?itemName=VoidZero.vite-plus-extension-pack) for Oxc and Vitest integration. Open a `.ts` or `.tsx` file and run **TypeScript: Enable TypeScript 7**, then select the workspace TypeScript version. The workspace's `js/ts.tsdk.path` points to the installed compiler; that path alone does not enable the native language service. The older JavaScript and TypeScript Nightly extension is not the TypeScript 7 extension.
+
+The project uses stable TypeScript 7 for command-line checking (`vp exec tsc -b`) and declaration generation (`vp pack`). TypeScript 7's programmatic API remains experimental; a warning about that API during packing does not mean the compiler itself is a prerelease. Keep `tsconfig: "tsconfig.lib.json"` paired with `dts: { generator: "tsgo" }` in each pack entry, and validate declaration changes with `vp pack` as well as type checking.
+
 ## Toolchain Updates
 
 Vite+ owns the local Vite/Vitest/Oxlint/Oxfmt/Rolldown toolchain. To align this repo with a new Vite+ release, upgrade the global CLI first (`vp upgrade`), then run `vp migrate --no-interactive` from the repository root and review the diff. The migration updates the pnpm catalog, Vite/Vitest overrides, lockfile, and supported build configuration. Use `--full` only when also refreshing the Vite+ hook/editor/agent setup. Keep Vitest and its browser/coverage packages aligned with the version bundled by Vite+.
