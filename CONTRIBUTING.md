@@ -34,7 +34,9 @@ After installing Chromium, run `vp check && vp test` before opening a pull reque
 
 ## Toolchain Updates
 
-Vite+ owns the local Vite/Vitest/Oxlint/Oxfmt/Rolldown toolchain. To align this repo with a new Vite+ release, upgrade the global CLI first (`vp upgrade`), then run `vp migrate --full --no-interactive` from the repository root and review the diff. The migration updates the pnpm catalog, Vite/Vitest overrides, lockfile, and Vite+ hook/editor/agent setup.
+Vite+ owns the local Vite/Vitest/Oxlint/Oxfmt/Rolldown toolchain. To align this repo with a new Vite+ release, upgrade the global CLI first (`vp upgrade`), then run `vp migrate --no-interactive` from the repository root and review the diff. The migration updates the pnpm catalog, Vite/Vitest overrides, lockfile, and supported build configuration. Use `--full` only when also refreshing the Vite+ hook/editor/agent setup. Keep Vitest and its browser/coverage packages aligned with the version bundled by Vite+.
+
+Vite+ also manages the pnpm version pinned in `package.json`. Use `vp env pin pnpm@<version> --target package-manager --force` to upgrade it, then run `vp install` and verify `vp install --frozen-lockfile` before committing the updated manifest and lockfile.
 
 ## Pull Request Guidelines
 

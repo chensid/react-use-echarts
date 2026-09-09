@@ -97,12 +97,13 @@ export default defineConfig({
   plugins: [react(), babel({ presets: [reactCompilerPreset()] })],
   pack: [
     {
+      deps: { resolveDepSubpath: true },
       entry: "src/index.ts",
       format: ["esm"],
       // TypeScript 7's native declaration compiler consumes a single project
       // config, so pack must target the leaf library project, not the solution root.
       tsconfig: "tsconfig.lib.json",
-      dts: { tsgo: true },
+      dts: { generator: "tsgo" },
       publint: true,
       attw: { profile: "esm-only" },
       platform: "browser",
@@ -110,18 +111,20 @@ export default defineConfig({
       plugins: [babel({ presets: [reactCompilerPreset()] })],
     },
     {
+      deps: { resolveDepSubpath: true },
       entry: { "themes/registry": "src/themes/registry.ts" },
       format: ["esm"],
       tsconfig: "tsconfig.lib.json",
-      dts: { tsgo: true },
+      dts: { generator: "tsgo" },
       platform: "browser",
     },
     {
+      deps: { resolveDepSubpath: true },
       // publint/attw run once from the index entry.
       entry: { "preset-full": "src/preset-full.ts" },
       format: ["esm"],
       tsconfig: "tsconfig.lib.json",
-      dts: { tsgo: true },
+      dts: { generator: "tsgo" },
       platform: "browser",
       define: preserveProcessEnvNodeEnv,
       plugins: [babel({ presets: [reactCompilerPreset()] })],
