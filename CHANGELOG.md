@@ -1,5 +1,11 @@
 # react-use-echarts
 
+## 3.1.10
+
+### Patch Changes
+
+- Rebuild the package with Vite+ 0.3.1 and refreshed build dependencies, using the current TypeScript 7 declaration-generation configuration. No public API or runtime behavior changes.
+
 ## 3.1.9
 
 ### Patch Changes
