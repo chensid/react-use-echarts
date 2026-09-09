@@ -38,6 +38,7 @@ jobs:
         with:
           node-version: "24"
           cache: true
+          run-install: false # Install once below with the lockfile frozen.
 
       - name: Install dependencies
         run: vp install --frozen-lockfile
