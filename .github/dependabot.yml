@@ -12,6 +12,18 @@ updates:
       dev-dependencies:
         dependency-type: development
         update-types: [minor, patch]
+    ignore:
+      # The Vite+ toolchain is versioned as one unit: the `vite` catalog entry
+      # is an alias for @voidzero-dev/vite-plus-core and must always match
+      # `vite-plus`, and `vitest` must stay on the exact version Vite+ bundles
+      # (together with its browser/coverage peers). Dependabot bumps one package
+      # at a time, which desyncs those pins and fails CI. Upgrade the whole
+      # toolchain with `vp upgrade` + `vp migrate` instead -- see CONTRIBUTING.md.
+      - dependency-name: "vite"
+      - dependency-name: "vite-plus"
+      - dependency-name: "@voidzero-dev/vite-plus-core"
+      - dependency-name: "vitest"
+      - dependency-name: "@vitest/*"
     labels:
       - dependencies
     commit-message:
