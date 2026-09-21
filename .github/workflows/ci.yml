@@ -18,7 +18,7 @@ jobs:
       matrix:
         include:
           - node: "22"
-            nodeVersion: "22.18.0"
+            nodeVersion: "22.19.0"
           - node: "24"
             nodeVersion: "24"
     steps:
