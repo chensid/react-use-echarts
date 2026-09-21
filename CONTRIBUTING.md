@@ -61,6 +61,13 @@ Releases are driven by [changesets](https://github.com/changesets/changesets):
 2. Pushes to `main` run `ci.yml`; successful push-triggered CI completions start `release.yml` so Changesets can keep an open "Version Packages" PR or publish a merged version bump via npm OIDC.
 3. The release job checks out `main` as it exists when that job runs, so the processed SHA can be newer than the CI run that triggered the workflow.
 
+The "Version Packages" PR needs one manual step before it can be merged. Changesets opens it from a workflow using `GITHUB_TOKEN`, and GitHub creates the `pull_request` workflow run for such a PR in the `action_required` state rather than running it. Its `test (22)` / `test (24)` checks therefore never report, and because both are required the merge is refused with `405 2 of 2 required status checks are expected`. Unblock it either way:
+
+- approve the parked run from the PR's checks tab (any user with write access), or
+- run the CI workflow against the `changeset-release/main` branch from the Actions tab — `workflow_dispatch` is exempt from the `GITHUB_TOKEN` restrictions and is kept on `ci.yml` for exactly this.
+
+Do not push a throwaway commit to the release branch to start CI. The documented behavior is in [Events that trigger workflows](https://docs.github.com/en/actions/reference/workflows-and-actions/events-that-trigger-workflows#pull_request); the approval settings under Actions cover forks only, so there is no repository toggle that removes this step. Creating the PR with a personal access token or GitHub App token instead of `GITHUB_TOKEN` would avoid it, at the cost of managing that credential.
+
 For hotfixes, follow the same flow — open a PR with a `.changeset/*.md` describing the fix, then merge it and the resulting Version Packages PR. Don't include `changeset version` output (CHANGELOG / version bumps) in feature PRs; that belongs only in the auto-generated Version Packages PR.
 
 ## Reporting Issues
