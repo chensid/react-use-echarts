@@ -5,6 +5,12 @@ on:
     branches: [main]
   pull_request:
     branches: [main]
+  # The Changesets release PR is opened by github-actions[bot] using
+  # GITHUB_TOKEN, and a bot push with that token does not start a workflow run.
+  # That leaves the PR with none of the required `test (…)` checks and therefore
+  # unmergeable. Allow dispatching this workflow against that branch by hand
+  # instead of nudging it with an unrelated commit.
+  workflow_dispatch:
 
 jobs:
   test:
