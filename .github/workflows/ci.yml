@@ -5,11 +5,13 @@ on:
     branches: [main]
   pull_request:
     branches: [main]
-  # The Changesets release PR is opened by github-actions[bot] using
-  # GITHUB_TOKEN, and a bot push with that token does not start a workflow run.
-  # That leaves the PR with none of the required `test (…)` checks and therefore
-  # unmergeable. Allow dispatching this workflow against that branch by hand
-  # instead of nudging it with an unrelated commit.
+  # Escape hatch for the Changesets release PR. That PR is opened by a workflow
+  # using GITHUB_TOKEN, so its `pull_request` run IS created but parked in
+  # `action_required` until someone with write access approves it from the PR
+  # page; until then the required `test (…)` checks never report and the PR
+  # cannot be merged. `workflow_dispatch` is one of the two events GitHub exempts
+  # from the GITHUB_TOKEN restrictions, so it can produce those checks without
+  # pushing an unrelated commit. See CONTRIBUTING.md, "Releasing".
   workflow_dispatch:
 
 jobs:
