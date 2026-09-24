@@ -33,3 +33,4 @@ coverage/
 # Vitest browser-mode artifacts
 .vitest-attachments/
 **/__screenshots__/
+.vitest/

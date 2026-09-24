@@ -32,7 +32,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
-      - uses: voidzero-dev/setup-vp@v1.21.0
+      - uses: voidzero-dev/setup-vp@v1.21.1
         with:
           node-version: ${{ matrix.nodeVersion }}
           cache: true
