@@ -148,7 +148,7 @@ export default defineConfig({
         lines: 95,
       },
       reporter: ["text", "json", "html", "lcov"],
-      include: ["src/**/*"],
+      include: ["src/**/*.{ts,tsx,json}"],
       exclude: ["node_modules/", "src/__tests__/**", "src/types/**"],
     },
     testTimeout: 10000,
