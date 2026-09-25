@@ -44,6 +44,14 @@ Vite+ owns the local Vite/Vitest/Oxlint/Oxfmt/Rolldown toolchain. To align this 
 
 Vite+ also manages the pnpm version pinned in `package.json`. Use `vp env pin pnpm@<version> --target package-manager --force` to upgrade it, then run `vp install` and verify `vp install --frozen-lockfile` before committing the updated manifest and lockfile.
 
+## React Compiler
+
+The React Compiler runs through Babel (`@rolldown/plugin-babel` with `reactCompilerPreset()`) in the top-level `plugins` and in the index and preset-full `pack[]` entries. The native Oxc compiler is deliberately deferred. Measured on 2026-09-24 with Vite+ 1.0.0-rc.0 (tsdown 0.23.0), `@vitejs/plugin-react` 6.1.1 and `oxc-transform-react` 0.145.0 / 0.151.0:
+
+- It works technically in both pipelines. Top-level `react({ compiler: true })` covers dev/build/tests. Each `pack[]` entry needs its own `react({ compiler: true, exclude: [/\/node_modules\//, /\.d\.[cm]?ts$/] })`: without the `.d.ts` exclude the plugin transforms rolldown-plugin-dts's virtual declaration modules and the build fails with `TS(1039)` (same as tsdown's "Native Oxc support (experimental)" recipe). Rolldown/tsdown have no built-in `reactCompiler` option; the plugin is the integration.
+- Measured result: 0.145.0 and 0.151.0 emit byte-identical `dist`; it caches `useLazyInit`, `EChart`, `useEcharts` and `useResizeObserver` (Babel: the first two), skips the same eslint-suppressed hooks, passes all tests, and leaves `.d.ts` unchanged. pnpm reports 0.151.0 as an unmet peer of `^0.145.0` but installs it.
+- Stay on Babel for upstream reasons, not technical ones. Revisit when all of these hold: the peer range is settled (vitejs/vite-plugin-react#1437); oxc-project/oxc#26519 (outlined-closure `ReferenceError`) and #26161 (BigInt literals) are fixed; recoverable diagnostics are exposed again (oxc-project/oxc#26318 — since 0.148 `logDiagnostics` cannot say why a function was skipped); and plugin-react/Oxc drop the experimental label. On adoption, re-verify memo caches, tests, and package output before removing the Babel dependencies.
+
 ## Pull Request Guidelines
 
 - Keep each PR focused on a single feature or fix.
