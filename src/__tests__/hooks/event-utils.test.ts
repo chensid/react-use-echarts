@@ -1,304 +1,190 @@
 import { describe, it, expect, vi } from "vite-plus/test";
 import type { ECharts } from "echarts/core";
-import { bindEvents, unbindEvents, eventsEqual } from "../../hooks/internal/event-utils";
+import {
+  bindEvents,
+  bindingsMatch,
+  unbindEvents,
+  type BoundEvents,
+} from "../../hooks/internal/event-utils";
+import type { EChartsEvents } from "../../types";
 
 const handler = () => vi.fn<(params: unknown) => void>();
-const createEventInstance = () =>
-  ({
-    on: vi.fn(),
-    off: vi.fn(),
-  }) as unknown as ECharts;
+const createEventInstance = () => {
+  const on = vi.fn();
+  const off = vi.fn();
+  return { instance: { on, off } as unknown as ECharts, on, off };
+};
+const latestOf = (onEvents: EChartsEvents | undefined) => ({ current: { onEvents } });
 
-describe("eventsEqual", () => {
-  it("should return true for same reference", () => {
-    const events = { click: handler() };
-    expect(eventsEqual(events, events)).toBe(true);
-  });
+function bind(events: EChartsEvents | undefined, latest = latestOf(events)) {
+  const { instance, on, off } = createEventInstance();
+  const bound: BoundEvents = new Map();
+  bindEvents(instance, events, latest, bound);
+  return { instance, on, off, bound, latest };
+}
 
-  it("should return true for both undefined", () => {
-    expect(eventsEqual(undefined, undefined)).toBe(true);
-  });
-
-  it("should return false when one is undefined", () => {
-    expect(eventsEqual({ click: handler() }, undefined)).toBe(false);
-    expect(eventsEqual(undefined, { click: handler() })).toBe(false);
-  });
-
-  it("should treat empty object and undefined as equivalent", () => {
-    expect(eventsEqual({}, undefined)).toBe(true);
-    expect(eventsEqual(undefined, {})).toBe(true);
-  });
-
-  it("should return true for two empty objects", () => {
-    expect(eventsEqual({}, {})).toBe(true);
-  });
-
-  it("should return true for same function handlers", () => {
-    const h = handler();
-    expect(eventsEqual({ click: h }, { click: h })).toBe(true);
-  });
-
-  it("should return false for different function handlers", () => {
-    expect(eventsEqual({ click: handler() }, { click: handler() })).toBe(false);
-  });
-
-  it("should return true for same object configs with same references", () => {
-    const h = handler();
-    const context = { name: "test" };
-    expect(
-      eventsEqual(
-        { click: { handler: h, query: "series", context } },
-        { click: { handler: h, query: "series", context } },
-      ),
-    ).toBe(true);
-  });
-
-  it("should return false for different object config handlers", () => {
-    expect(eventsEqual({ click: { handler: handler() } }, { click: { handler: handler() } })).toBe(
-      false,
-    );
-  });
-
-  it("should return false for different key counts", () => {
-    const h = handler();
-    expect(eventsEqual({ click: h }, { click: h, mouseover: h })).toBe(false);
-  });
-
-  it("should return false for different keys", () => {
-    const h = handler();
-    expect(eventsEqual({ click: h }, { mouseover: h })).toBe(false);
-  });
-
-  it("should treat shorthand and full config with same handler as equal", () => {
-    const h = handler();
-    expect(eventsEqual({ click: h }, { click: { handler: h } })).toBe(true);
-  });
-
-  it("should treat full config and shorthand as equal only when query/context are absent", () => {
-    const h = handler();
-    const context = { name: "test" };
-
-    expect(eventsEqual({ click: { handler: h } }, { click: h })).toBe(true);
-    expect(eventsEqual({ click: { handler: handler() } }, { click: h })).toBe(false);
-    expect(eventsEqual({ click: { handler: h, query: "series" } }, { click: h })).toBe(false);
-    expect(eventsEqual({ click: { handler: h, context } }, { click: h })).toBe(false);
-    expect(eventsEqual({ click: handler() }, { click: handler() })).toBe(false);
-  });
-
-  it("should return false when query differs", () => {
-    const h = handler();
-    expect(
-      eventsEqual(
-        { click: { handler: h, query: "series" } },
-        { click: { handler: h, query: "dataZoom" } },
-      ),
-    ).toBe(false);
-  });
-
-  it("should return false when context differs", () => {
-    const h = handler();
-    expect(
-      eventsEqual(
-        { click: { handler: h, context: { a: 1 } } },
-        { click: { handler: h, context: { b: 2 } } },
-      ),
-    ).toBe(false);
-  });
-
-  // Regression: the EChartsEvents index signature is
-  // `EChartsEventConfig<any> | undefined`, so user code like
-  //   onEvents={{ click: handler, hover: enabled ? hoverFn : undefined }}
-  // can land an explicit `undefined` under a key. Before the guard in
-  // eventConfigEqual, comparing { hover: hoverFn } to { hover: undefined }
-  // dereferenced `b.handler` on undefined and crashed.
-  it("does not throw and returns false when one side has an explicit undefined entry", () => {
-    const h = handler();
-    expect(() => eventsEqual({ hover: h }, { hover: undefined })).not.toThrow();
-    expect(eventsEqual({ hover: h }, { hover: undefined })).toBe(false);
-    expect(eventsEqual({ hover: undefined }, { hover: h })).toBe(false);
-    expect(eventsEqual({ hover: undefined }, { hover: undefined })).toBe(true);
-  });
-
-  it("does not throw when an object-config side faces an undefined entry", () => {
-    const h = handler();
-    expect(() =>
-      eventsEqual({ click: { handler: h, query: "series" } }, { click: undefined }),
-    ).not.toThrow();
-    expect(eventsEqual({ click: { handler: h, query: "series" } }, { click: undefined })).toBe(
-      false,
-    );
-  });
-
-  // An explicit-undefined value means "no listener" (bindEvents/unbindEvents
-  // both skip it), so it must be equivalent to the key being absent. Comparing
-  // raw key counts would treat these as different and force a redundant
-  // unbind/rebind on every render for code like
-  //   onEvents={{ click: h, hover: enabled ? hoverFn : undefined }}
-  it("treats an explicit-undefined entry as equivalent to an absent key", () => {
-    const h = handler();
-    expect(eventsEqual({ click: h }, { click: h, hover: undefined })).toBe(true);
-    expect(eventsEqual({ click: h, hover: undefined }, { click: h })).toBe(true);
-    // Differing undefined-only keys are still equivalent (both effectively {click:h}).
-    expect(eventsEqual({ click: h, a: undefined }, { click: h, b: undefined })).toBe(true);
-    // A defined extra listener is a real difference and must NOT compare equal.
-    expect(eventsEqual({ click: h }, { click: h, hover: h })).toBe(false);
-  });
-
-  // JS callers can land an out-of-type `null` under a key (the index signature
-  // is `EChartsEventConfig | undefined`). null must behave exactly like
-  // undefined / an absent key ("no listener"); before the nullish guard in
-  // eventConfigEqual, comparing it against a defined config dereferenced
-  // `null.handler` and crashed.
-  it("treats an explicit-null entry like undefined (no listener)", () => {
-    const h = handler();
-    const withNull = { click: h, hover: null } as unknown as Parameters<typeof eventsEqual>[0];
-    expect(() => eventsEqual(withNull, { click: h })).not.toThrow();
-    expect(eventsEqual(withNull, { click: h })).toBe(true);
-    expect(eventsEqual(withNull, { click: h, hover: undefined })).toBe(true);
-    // null vs a defined listener is a real difference.
-    expect(eventsEqual(withNull, { click: h, hover: h })).toBe(false);
-  });
-});
+/** The proxy registered for the n-th on() call (last argument before context). */
+function proxyOf(on: ReturnType<typeof vi.fn>, call = 0): (params: unknown) => void {
+  const args = on.mock.calls[call]!;
+  return args[args.length - 2] as (params: unknown) => void;
+}
 
 describe("bindEvents", () => {
   it("should skip when events is undefined", () => {
-    const instance = createEventInstance();
-
-    bindEvents(instance, undefined);
-
-    expect(instance.on).not.toHaveBeenCalled();
+    const { on, bound } = bind(undefined);
+    expect(on).not.toHaveBeenCalled();
+    expect(bound.size).toBe(0);
   });
 
-  it("should bind event without query using context signature", () => {
-    const on = vi.fn();
-    const instance = { on, off: vi.fn() } as unknown as ECharts;
-    const clickHandler = handler();
-    const context = { source: "test" };
+  it("should bind a proxy (not the handler) without query", () => {
+    const click = handler();
+    const { on, bound } = bind({ click });
 
-    bindEvents(instance, {
-      click: {
-        handler: clickHandler,
-        context,
-      },
-    });
-
-    expect(on).toHaveBeenCalledWith("click", clickHandler, context);
+    expect(on).toHaveBeenCalledWith("click", expect.any(Function), undefined);
+    const proxy = proxyOf(on);
+    expect(proxy).not.toBe(click);
+    expect(bound.get("click")).toEqual({ proxy, query: undefined, context: undefined });
   });
 
-  it("should bind event with string query", () => {
-    const on = vi.fn();
-    const instance = { on, off: vi.fn() } as unknown as ECharts;
-    const clickHandler = handler();
-
-    bindEvents(instance, {
-      click: {
-        handler: clickHandler,
-        query: "series",
-      },
-    });
-
-    expect(on).toHaveBeenCalledWith("click", "series", clickHandler, undefined);
-  });
-
-  it("should bind event with object query", () => {
-    const on = vi.fn();
-    const instance = { on, off: vi.fn() } as unknown as ECharts;
-    const clickHandler = handler();
+  it("should pass string and object queries and context through", () => {
+    const context = { name: "ctx" };
     const query = { seriesIndex: 0 };
-
-    bindEvents(instance, {
-      click: {
-        handler: clickHandler,
-        query,
-      },
+    const { on } = bind({
+      click: { handler: handler(), query: "series", context },
+      mouseover: { handler: handler(), query },
+      dblclick: { handler: handler(), query: "" },
     });
 
-    expect(on).toHaveBeenCalledWith("click", query, clickHandler, undefined);
+    expect(on).toHaveBeenCalledWith("click", "series", expect.any(Function), context);
+    expect(on).toHaveBeenCalledWith("mouseover", query, expect.any(Function), undefined);
+    expect(on).toHaveBeenCalledWith("dblclick", "", expect.any(Function), undefined);
   });
 
-  // Parity with the eventsEqual undefined-entry guard: `EChartsEvents`'s index
-  // signature is `EChartsEventConfig | undefined`, so user code can assign an
-  // explicit-undefined value under a key. Bind must skip it instead of calling
-  // `instance.on(name, undefined)` (which would throw).
-  it("skips entries whose value is undefined", () => {
-    const on = vi.fn();
-    const instance = { on, off: vi.fn() } as unknown as ECharts;
-    const clickHandler = handler();
+  it("should call the latest handler with the proxy's `this` and params", () => {
+    const first = handler();
+    const second = handler();
+    const latest = latestOf({ click: first });
+    const { on } = bind({ click: first }, latest);
+    const proxy = proxyOf(on);
+    const context = { name: "ctx" };
 
-    bindEvents(instance, { click: clickHandler, hover: undefined });
+    proxy.call(context, { dataIndex: 1 });
+    expect(first).toHaveBeenCalledWith({ dataIndex: 1 });
+    expect(first.mock.contexts[0]).toBe(context);
 
-    expect(on).toHaveBeenCalledTimes(1);
-    expect(on).toHaveBeenCalledWith("click", clickHandler, undefined);
+    latest.current.onEvents = { click: { handler: second } };
+    proxy.call(undefined, { dataIndex: 2 });
+    expect(second).toHaveBeenCalledWith({ dataIndex: 2 });
+    expect(first).toHaveBeenCalledTimes(1);
   });
 
-  // Parity with the eventsEqual nullish guard: a JS caller can land an
-  // out-of-type `null` under a key. Bind must skip it instead of destructuring
-  // null (which throws), exactly as it skips undefined.
-  it("skips entries whose value is null", () => {
-    const on = vi.fn();
-    const instance = { on, off: vi.fn() } as unknown as ECharts;
-    const clickHandler = handler();
+  it("should do nothing when the latest events no longer have a listener", () => {
+    const click = handler();
+    const latest = latestOf({ click });
+    const { on } = bind({ click }, latest);
 
-    bindEvents(instance, {
-      click: clickHandler,
-      hover: null,
-    } as unknown as Parameters<typeof bindEvents>[1]);
+    latest.current.onEvents = { click: undefined };
+    expect(() => proxyOf(on)(1)).not.toThrow();
+    latest.current.onEvents = undefined;
+    expect(() => proxyOf(on)(2)).not.toThrow();
+    expect(click).not.toHaveBeenCalled();
+  });
+
+  it("skips entries whose value is undefined or null", () => {
+    const events = {
+      click: handler(),
+      dblclick: undefined,
+      mouseover: null,
+    } as unknown as EChartsEvents;
+    const { on, bound } = bind(events);
 
     expect(on).toHaveBeenCalledTimes(1);
-    expect(on).toHaveBeenCalledWith("click", clickHandler, undefined);
+    expect([...bound.keys()]).toEqual(["click"]);
+  });
+
+  it("should record a binding before on() so a throwing on() can still be unbound", () => {
+    const { instance, on } = createEventInstance();
+    const failure = new Error("on failed");
+    on.mockImplementation(() => {
+      throw failure;
+    });
+    const bound: BoundEvents = new Map();
+
+    expect(() => bindEvents(instance, { click: handler() }, latestOf(undefined), bound)).toThrow(
+      failure,
+    );
+    expect(bound.has("click")).toBe(true);
+  });
+});
+
+describe("bindingsMatch", () => {
+  const boundFor = (events: EChartsEvents | undefined) => bind(events).bound;
+
+  it("should treat undefined, empty maps and empty objects as nothing bound", () => {
+    expect(bindingsMatch(undefined, undefined)).toBe(true);
+    expect(bindingsMatch(new Map(), undefined)).toBe(true);
+    expect(bindingsMatch(undefined, {})).toBe(true);
+    expect(bindingsMatch(new Map(), { click: undefined })).toBe(true);
+  });
+
+  it("should ignore handler identity", () => {
+    const bound = boundFor({ click: handler() });
+    expect(bindingsMatch(bound, { click: handler() })).toBe(true);
+    expect(bindingsMatch(bound, { click: { handler: handler() } })).toBe(true);
+  });
+
+  it("should detect added and removed event names", () => {
+    const bound = boundFor({ click: handler() });
+    expect(bindingsMatch(bound, undefined)).toBe(false);
+    expect(bindingsMatch(bound, { click: handler(), dblclick: handler() })).toBe(false);
+    expect(bindingsMatch(bound, { dblclick: handler() })).toBe(false);
+    expect(bindingsMatch(undefined, { click: handler() })).toBe(false);
+  });
+
+  it("should compare queries shallowly", () => {
+    const bound = boundFor({ click: { handler: handler(), query: { seriesIndex: 0 } } });
+    expect(bindingsMatch(bound, { click: { handler: handler(), query: { seriesIndex: 0 } } })).toBe(
+      true,
+    );
+    expect(bindingsMatch(bound, { click: { handler: handler(), query: { seriesIndex: 1 } } })).toBe(
+      false,
+    );
+    expect(bindingsMatch(bound, { click: handler() })).toBe(false);
+
+    const stringBound = boundFor({ click: { handler: handler(), query: "series" } });
+    expect(bindingsMatch(stringBound, { click: { handler: handler(), query: "series" } })).toBe(
+      true,
+    );
+    expect(bindingsMatch(stringBound, { click: { handler: handler(), query: "xAxis" } })).toBe(
+      false,
+    );
+  });
+
+  it("should compare context by reference", () => {
+    const context = { name: "ctx" };
+    const bound = boundFor({ click: { handler: handler(), context } });
+    expect(bindingsMatch(bound, { click: { handler: handler(), context } })).toBe(true);
+    expect(bindingsMatch(bound, { click: { handler: handler(), context: { name: "ctx" } } })).toBe(
+      false,
+    );
+    expect(bindingsMatch(bound, { click: handler() })).toBe(false);
   });
 });
 
 describe("unbindEvents", () => {
-  it("should skip when events is undefined", () => {
-    const instance = createEventInstance();
-
+  it("should skip when nothing is bound", () => {
+    const { instance, off } = createEventInstance();
     unbindEvents(instance, undefined);
-
-    expect(instance.off).not.toHaveBeenCalled();
+    expect(off).not.toHaveBeenCalled();
   });
 
-  it("should unbind handlers using event name and handler", () => {
-    const off = vi.fn();
-    const instance = { on: vi.fn(), off } as unknown as ECharts;
-    const clickHandler = handler();
-    const mouseoverHandler = handler();
+  it("should unbind each recorded proxy by event name", () => {
+    const { instance, on, off, bound } = bind({ click: handler(), dblclick: handler() });
 
-    unbindEvents(instance, {
-      click: { handler: clickHandler, query: "series" },
-      mouseover: mouseoverHandler,
-    });
+    unbindEvents(instance, bound);
 
-    expect(off).toHaveBeenNthCalledWith(1, "click", clickHandler);
-    expect(off).toHaveBeenNthCalledWith(2, "mouseover", mouseoverHandler);
-  });
-
-  // Mirror of the bindEvents guard above — explicit-undefined values must be
-  // skipped instead of calling `instance.off(name, undefined)`.
-  it("skips entries whose value is undefined", () => {
-    const off = vi.fn();
-    const instance = { on: vi.fn(), off } as unknown as ECharts;
-    const clickHandler = handler();
-
-    unbindEvents(instance, { click: clickHandler, hover: undefined });
-
-    expect(off).toHaveBeenCalledTimes(1);
-    expect(off).toHaveBeenCalledWith("click", clickHandler);
-  });
-
-  // Mirror of the bindEvents guard — explicit-null values must be skipped
-  // instead of reading `.handler` off null.
-  it("skips entries whose value is null", () => {
-    const off = vi.fn();
-    const instance = { on: vi.fn(), off } as unknown as ECharts;
-    const clickHandler = handler();
-
-    unbindEvents(instance, {
-      click: clickHandler,
-      hover: null,
-    } as unknown as Parameters<typeof unbindEvents>[1]);
-
-    expect(off).toHaveBeenCalledTimes(1);
-    expect(off).toHaveBeenCalledWith("click", clickHandler);
+    expect(off).toHaveBeenCalledTimes(2);
+    expect(off).toHaveBeenCalledWith("click", proxyOf(on, 0));
+    expect(off).toHaveBeenCalledWith("dblclick", proxyOf(on, 1));
   });
 });

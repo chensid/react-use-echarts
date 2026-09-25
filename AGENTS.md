@@ -40,7 +40,7 @@ All `useEcharts` options as props + native `div` attributes (`id`, `role`, `aria
 - **Custom theme objects are `JSON.stringify`-keyed** — distinct serializable objects dedup only when their serialized output matches; serialization is not canonical, so property order affects the key. Memoize to avoid repeated serialization, and never mutate in place
 - **`initOpts` is `JSON.stringify`-keyed** — a changed serialized output recreates the instance; serialization is not canonical, so property order affects the key. Memoize for performance and never mutate in place
 - **Only `"macarons"` needs registration** — `"light"` / `"dark"` are ECharts 6's own themes (`"light"` = ECharts `"default"`); call `registerBuiltinThemes()` from `'react-use-echarts/themes/registry'` once before using `"macarons"`
-- **`onEvents` supports two forms** — shorthand `(params) => void` or full `{ handler, query?, context? }`; equivalent wrapper objects dedup, but new inline handlers rebind
+- **`onEvents` supports two forms** — shorthand `(params) => void` or full `{ handler, query?, context? }`; inline objects/handlers are fine — proxies call the latest handler; only event-name, `query` (shallow) or `context` changes rebind
 - **Chart linkage** — same `group` string syncs tooltips/highlights across charts
 
 For usage examples and full API details, see `README.md` in this package.

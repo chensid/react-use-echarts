@@ -13,7 +13,12 @@ import type { BuiltinTheme } from "../../types";
 import { __clearThemeCacheForTesting__ } from "../../themes";
 import { registerBuiltinThemes } from "../../themes/registry";
 import { __resetVisibilityCoordinatorForTesting__ } from "../../utils/visibility-coordinator";
-import { createMockInstance, MockResizeObserver, MockIntersectionObserver } from "../helpers";
+import {
+  boundProxy,
+  createMockInstance,
+  MockResizeObserver,
+  MockIntersectionObserver,
+} from "../helpers";
 import { resetDevWarnings } from "../../utils/dev-warnings";
 
 // Mock ECharts
@@ -296,7 +301,9 @@ describe("useEcharts", () => {
       expect(result.current.instance).toBe(mockInstance2);
       expect(mockInstance2.setOption).toHaveBeenCalledWith(option2, undefined);
       expect(mockInstance2.showLoading).toHaveBeenCalled();
-      expect(mockInstance2.on).toHaveBeenCalledWith("click", onClick, undefined);
+      expect(mockInstance2.on).toHaveBeenCalledWith("click", expect.any(Function), undefined);
+      boundProxy(mockInstance2, "click")("params");
+      expect(onClick).toHaveBeenCalledWith("params");
       expect(getGroupInstances("swapGroup")).toContain(mockInstance2);
       expect(getGroupInstances("swapGroup")).not.toContain(mockInstance1);
     });
@@ -741,7 +748,9 @@ describe("useEcharts", () => {
         result.current.ref(element);
       });
 
-      expect(mockInstance.on).toHaveBeenCalledWith("click", clickHandler, undefined);
+      expect(mockInstance.on).toHaveBeenCalledWith("click", expect.any(Function), undefined);
+      boundProxy(mockInstance, "click")("params");
+      expect(clickHandler).toHaveBeenCalledWith("params");
     });
 
     it("should bind events with query", () => {
@@ -759,7 +768,14 @@ describe("useEcharts", () => {
         result.current.ref(element);
       });
 
-      expect(mockInstance.on).toHaveBeenCalledWith("click", "series", clickHandler, undefined);
+      expect(mockInstance.on).toHaveBeenCalledWith(
+        "click",
+        "series",
+        expect.any(Function),
+        undefined,
+      );
+      boundProxy(mockInstance, "click")("params");
+      expect(clickHandler).toHaveBeenCalledWith("params");
     });
 
     it("should bind events with object query", () => {
@@ -778,7 +794,7 @@ describe("useEcharts", () => {
         result.current.ref(element);
       });
 
-      expect(mockInstance.on).toHaveBeenCalledWith("click", query, clickHandler, undefined);
+      expect(mockInstance.on).toHaveBeenCalledWith("click", query, expect.any(Function), undefined);
     });
 
     it("should bind events with empty string query", () => {
@@ -796,7 +812,7 @@ describe("useEcharts", () => {
         result.current.ref(element);
       });
 
-      expect(mockInstance.on).toHaveBeenCalledWith("click", "", clickHandler, undefined);
+      expect(mockInstance.on).toHaveBeenCalledWith("click", "", expect.any(Function), undefined);
     });
 
     it("should bind events with context", () => {
@@ -815,7 +831,11 @@ describe("useEcharts", () => {
         result.current.ref(element);
       });
 
-      expect(mockInstance.on).toHaveBeenCalledWith("click", clickHandler, context);
+      expect(mockInstance.on).toHaveBeenCalledWith("click", expect.any(Function), context);
+      // ECharts invokes the proxy with `context` as `this`; it is forwarded.
+      boundProxy(mockInstance, "click").call(context, "params");
+      expect(clickHandler).toHaveBeenCalledWith("params");
+      expect(clickHandler.mock.contexts[0]).toBe(context);
     });
 
     it("should unbind events on unmount", () => {
@@ -833,9 +853,10 @@ describe("useEcharts", () => {
         result.current.ref(element);
       });
 
+      const proxy = boundProxy(mockInstance, "click");
       unmount();
 
-      expect(mockInstance.off).toHaveBeenCalledWith("click", clickHandler);
+      expect(mockInstance.off).toHaveBeenCalledWith("click", proxy);
     });
 
     it("should route initial event bind errors through onError without breaking cleanup", () => {
@@ -865,7 +886,7 @@ describe("useEcharts", () => {
       expect(mockInstance.dispose).toHaveBeenCalled();
     });
 
-    it("should rebind events when onEvents changes", async () => {
+    it("should not rebind when only the handler changes, and call the latest handler", async () => {
       const element = document.createElement("div");
       const mockInstance = createMockInstance(element);
       (echarts.init as ReturnType<typeof vi.fn>).mockReturnValue(mockInstance);
@@ -874,31 +895,65 @@ describe("useEcharts", () => {
       const clickHandler2 = vi.fn();
 
       const { rerender, result } = renderHook(
-        ({ handler }) => useEcharts({ option: baseOption, onEvents: { click: { handler } } }),
+        // A fresh inline `onEvents` object every render, as most callers write it.
+        ({ handler }) => useEcharts({ option: baseOption, onEvents: { click: handler } }),
         { initialProps: { handler: clickHandler1 } },
       );
       act(() => {
         result.current.ref(element);
       });
+      const proxy = boundProxy(mockInstance, "click");
 
       rerender({ handler: clickHandler2 });
+      rerender({ handler: clickHandler2 });
 
-      await waitFor(() => {
-        expect(mockInstance.off).toHaveBeenCalledWith("click", clickHandler1);
-        expect(mockInstance.on).toHaveBeenCalledWith("click", clickHandler2, undefined);
-      });
+      expect(mockInstance.on).toHaveBeenCalledTimes(1);
+      expect(mockInstance.off).not.toHaveBeenCalled();
+
+      proxy("params");
+      expect(clickHandler2).toHaveBeenCalledWith("params");
+      expect(clickHandler1).not.toHaveBeenCalled();
     });
 
+    it("should rebind when an event is added or removed", async () => {
+      const element = document.createElement("div");
+      const mockInstance = createMockInstance(element);
+      (echarts.init as ReturnType<typeof vi.fn>).mockReturnValue(mockInstance);
+
+      const click = vi.fn();
+      const dblclick = vi.fn();
+
+      const { rerender, result } = renderHook(
+        ({ withDblclick }) =>
+          useEcharts({
+            option: baseOption,
+            onEvents: withDblclick ? { click, dblclick } : { click },
+          }),
+        { initialProps: { withDblclick: false } },
+      );
+      act(() => {
+        result.current.ref(element);
+      });
+      const firstClickProxy = boundProxy(mockInstance, "click");
+
+      rerender({ withDblclick: true });
+
+      await waitFor(() => {
+        expect(mockInstance.off).toHaveBeenCalledWith("click", firstClickProxy);
+        expect(mockInstance.on).toHaveBeenCalledWith("dblclick", expect.any(Function), undefined);
+      });
+      boundProxy(mockInstance, "dblclick")("params");
+      expect(dblclick).toHaveBeenCalledWith("params");
+    });
     it("should route dynamic rebind bind errors through onError", async () => {
       const element = document.createElement("div");
       const mockInstance = createMockInstance(element);
       (echarts.init as ReturnType<typeof vi.fn>).mockReturnValue(mockInstance);
 
-      const handler1 = vi.fn();
-      const handler2 = vi.fn();
+      const handler = vi.fn();
       const bindError = new Error("rebind on() failed");
 
-      // First mount binds handler1 successfully; rerender with handler2 fails on bind.
+      // First mount binds successfully; the query change rebinds and fails.
       mockInstance.on.mockImplementationOnce(() => {});
       mockInstance.on.mockImplementationOnce(() => {
         throw bindError;
@@ -906,23 +961,23 @@ describe("useEcharts", () => {
 
       const onError = vi.fn();
       const { rerender, result } = renderHook(
-        ({ handler }) =>
-          useEcharts({ option: baseOption, onEvents: { click: { handler } }, onError }),
-        { initialProps: { handler: handler1 } },
+        ({ query }) =>
+          useEcharts({ option: baseOption, onEvents: { click: { handler, query } }, onError }),
+        { initialProps: { query: "series" } },
       );
       act(() => {
         result.current.ref(element);
       });
+      const firstProxy = boundProxy(mockInstance, "click");
 
-      rerender({ handler: handler2 });
+      rerender({ query: "xAxis" });
 
       await waitFor(() => {
         expect(onError).toHaveBeenCalledWith(bindError);
       });
-      // The old handler must still have been off()'d so it doesn't double-fire.
-      expect(mockInstance.off).toHaveBeenCalledWith("click", handler1);
+      // The old proxy must still have been off()'d so it doesn't double-fire.
+      expect(mockInstance.off).toHaveBeenCalledWith("click", firstProxy);
     });
-
     it("should clear bound events when onEvents transitions to undefined", async () => {
       const element = document.createElement("div");
       const mockInstance = createMockInstance(element);
@@ -939,11 +994,12 @@ describe("useEcharts", () => {
         result.current.ref(element);
       });
 
-      // Drop onEvents — must off the previously-bound handler so cleanup
+      // Drop onEvents — must off the previously-bound proxy so cleanup
       // becomes a no-op afterward.
+      const proxy = boundProxy(mockInstance, "click");
       rerender({ events: undefined });
       await waitFor(() => {
-        expect(mockInstance.off).toHaveBeenCalledWith("click", handler);
+        expect(mockInstance.off).toHaveBeenCalledWith("click", proxy);
       });
 
       mockInstance.off.mockClear();
@@ -952,10 +1008,9 @@ describe("useEcharts", () => {
       expect(mockInstance.off).not.toHaveBeenCalled();
     });
 
-    it("should unbind old events before binding when the handler reference is reused", async () => {
-      // ECharts off(name, handler) ignores query/context — so a same-handler
-      // rebind from query A → query B must off() BEFORE on(); otherwise the
-      // unbind would remove the freshly-bound handler.
+    it("should rebind with a fresh proxy when the query changes for the same handler", async () => {
+      // ECharts off(name, handler) ignores query/context. Each binding gets
+      // its own proxy, so unbinding the old one can never remove the new one.
       const element = document.createElement("div");
       const mockInstance = createMockInstance(element);
       (echarts.init as ReturnType<typeof vi.fn>).mockReturnValue(mockInstance);
@@ -990,8 +1045,13 @@ describe("useEcharts", () => {
         // Rebind path must run off() before the new on().
         expect(sequence).toEqual(["on", "off", "on"]);
       });
-      expect(mockInstance.off).toHaveBeenLastCalledWith("click", handler);
-      expect(mockInstance.on).toHaveBeenLastCalledWith("click", "series1", handler, undefined);
+      const [oldProxy, newProxy] = [
+        boundProxy(mockInstance, "click", 0),
+        boundProxy(mockInstance, "click", 1),
+      ];
+      expect(newProxy).not.toBe(oldProxy);
+      expect(mockInstance.off).toHaveBeenLastCalledWith("click", oldProxy);
+      expect(mockInstance.on).toHaveBeenLastCalledWith("click", "series1", newProxy, undefined);
     });
 
     it("should still release the cached instance when cleanup unbind throws", () => {
@@ -2162,7 +2222,9 @@ describe("useEcharts", () => {
         result.current.ref(element);
       });
 
-      expect(mockInstance.on).toHaveBeenCalledWith("click", clickHandler, undefined);
+      expect(mockInstance.on).toHaveBeenCalledWith("click", expect.any(Function), undefined);
+      boundProxy(mockInstance, "click")("params");
+      expect(clickHandler).toHaveBeenCalledWith("params");
     });
 
     it("should unbind function shorthand events on unmount", () => {
@@ -2178,9 +2240,10 @@ describe("useEcharts", () => {
         result.current.ref(element);
       });
 
+      const proxy = boundProxy(mockInstance, "click");
       unmount();
 
-      expect(mockInstance.off).toHaveBeenCalledWith("click", clickHandler);
+      expect(mockInstance.off).toHaveBeenCalledWith("click", proxy);
     });
 
     it("should support mixed shorthand and full config", () => {
@@ -2200,13 +2263,17 @@ describe("useEcharts", () => {
         result.current.ref(element);
       });
 
-      expect(mockInstance.on).toHaveBeenCalledWith("click", clickHandler, undefined);
+      expect(mockInstance.on).toHaveBeenCalledWith("click", expect.any(Function), undefined);
       expect(mockInstance.on).toHaveBeenCalledWith(
         "mouseover",
         "series",
-        mouseoverHandler,
+        expect.any(Function),
         undefined,
       );
+      boundProxy(mockInstance, "click")("c");
+      boundProxy(mockInstance, "mouseover")("m");
+      expect(clickHandler).toHaveBeenCalledWith("c");
+      expect(mouseoverHandler).toHaveBeenCalledWith("m");
     });
   });
 

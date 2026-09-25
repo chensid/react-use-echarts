@@ -30,7 +30,7 @@ import {
   warnedMissingRegistration,
 } from "../../utils/dev-warnings";
 import { routeImperativeError } from "../../utils/error";
-import { bindEvents, unbindEvents, eventsEqual } from "./event-utils";
+import { bindEvents, bindingsMatch, unbindEvents, type BoundEvents } from "./event-utils";
 
 /**
  * Resolve theme to a registered ECharts theme name (has side effects).
@@ -187,17 +187,18 @@ interface ChartCoreConfig {
 }
 
 /**
- * Fields read by the imperative API (`withInstance` closure, created inside
- * the `useMemo([element])` block that produces the API surface).
- * `useEffectEvent` is forbidden outside Effects, so the imperative path keeps
- * a ref-sync bridge for the two values it needs:
+ * Fields read outside Effects, where `useEffectEvent` is unavailable (it also
+ * throws when invoked during render, which an ECharts event triggered from
+ * someone's render would do). Synced by a ref bridge:
  *   - `onError`: routed via `routeImperativeError` on imperative throws
  *   - `setOptionOpts`: merged with caller-supplied opts in imperative setOption
+ *   - `onEvents`: read by the event proxies when ECharts fires
  * Effect-context error routing uses `useEffectEvent` directly — no ref needed.
  */
 interface ImperativeLatest {
   setOptionOpts: SetOptionOpts | undefined;
   onError: ((e: unknown) => void) | undefined;
+  onEvents: EChartsEvents | undefined;
 }
 
 // `ref` is owned by the outer `useEcharts` (callback-ref + cleanup lives
@@ -231,25 +232,22 @@ export function useChartCore(
     onError,
   } = config;
 
-  // --- Imperative-only latest ref: 2 fields used by `withInstance` (created
-  // inside the `useMemo([element])` API block, NOT an effect). `useEffectEvent`
-  // cannot be called outside Effects, so the imperative path still needs a
-  // ref-sync bridge. All other config fields are either reactive deps in
-  // their owning effect or captured via closure inside the lifecycle effect.
+  // --- Latest ref for the 3 fields read outside Effects (see ImperativeLatest).
+  // All other config fields are either reactive deps in their owning effect or
+  // captured via closure inside the lifecycle effect.
   const latestRef = useRef<ImperativeLatest>(null!);
   if (latestRef.current === null) {
-    latestRef.current = { setOptionOpts, onError };
+    latestRef.current = { setOptionOpts, onError, onEvents };
   }
 
-  // Sync the two fields every render via a layout effect — keeps the committed
-  // timing the imperative API depends on (the closure only reads latestRef
-  // post-commit, from event handlers / imperative calls). Mutate the existing
-  // object in place rather than allocating a fresh `{ setOptionOpts, onError }`
-  // each render: the ref identity is stable and never read during render, so
-  // in-place writes are sufficient and save one allocation per render per chart.
+  // Sync every render via a layout effect, so readers (imperative calls, event
+  // proxies) see committed values. Declared before the lifecycle effect so the
+  // first bind already reads this commit's handlers. Mutated in place: the ref
+  // is never read during render.
   useLayoutEffect(() => {
     latestRef.current.setOptionOpts = setOptionOpts;
     latestRef.current.onError = onError;
+    latestRef.current.onEvents = onEvents;
   });
 
   // --- Effect-context error routing. `useEffectEvent` reads the latest
@@ -262,9 +260,9 @@ export function useChartCore(
   });
 
   // --- Internal shared state ---
-  // Event map currently bound to the instance (undefined when none bound).
+  // Proxies currently bound to the instance (undefined when none bound).
   // Used by Event Rebinding effect to dedup and unbind on prop changes.
-  const lastBoundRef = useRef<EChartsEvents | undefined>(undefined);
+  const lastBoundRef = useRef<BoundEvents | undefined>(undefined);
   const lastAppliedRef = useRef<LastApplied | null>(null);
   const lastLoadingRef = useRef<LastLoading | null>(null);
   // The group this hook last assigned the instance to — the single source of
@@ -377,9 +375,10 @@ export function useChartCore(
 
     // Track for cleanup regardless of partial bind failure so off() can still
     // be attempted on any handlers that did get bound.
-    lastBoundRef.current = onEvents;
+    const bound: BoundEvents = new Map();
+    lastBoundRef.current = bound;
     try {
-      bindEvents(instance, onEvents);
+      bindEvents(instance, onEvents, latestRef, bound);
     } catch (error) {
       handleEffectError(error, "ECharts event bind failed:");
     }
@@ -471,35 +470,30 @@ export function useChartCore(
   // =====================================================================
   // EVENT REBINDING
   //
-  // When onEvents reference changes, unbind old and bind new handlers.
-  // Uses lastBoundRef to dedup against the currently-bound map.
+  // Handlers are reached through per-event proxies that read the latest
+  // `onEvents` at call time, so a changed handler reference needs no work.
+  // Only a structural change — event names, a `query` (shallow), or a
+  // `context` — unbinds the old proxies and binds new ones.
   // =====================================================================
   useEffect(() => {
     if (!element) return;
     const instance = getCachedInstance(element);
     if (!instance) return;
 
-    if (eventsEqual(lastBoundRef.current, onEvents)) return;
+    if (bindingsMatch(lastBoundRef.current, onEvents)) return;
 
-    // Order matters: ECharts `off(name, handler)` matches by handler reference
-    // and ignores query/context, so a same-handler rebind (query A → query B)
-    // must unbind the old binding BEFORE the new one is registered — otherwise
-    // the off call would remove the freshly-bound handler too.
-    //
     // off() is bare here (no try/catch): zrender Eventful.off is a filter loop
-    // that cannot throw on a real instance. Adding a single-handler "current"
-    // ref + try/catch route would imply we tracked failed unbinds and retried
-    // them — which we deliberately don't (would require the queue this module
-    // removed). Leaving off() bare keeps the contract honest: if ECharts
-    // somehow broke this invariant, the rebind effect surfaces the throw
+    // that cannot throw on a real instance, and we don't track failed unbinds
+    // for retry. If ECharts ever broke that invariant, the throw surfaces
     // instead of silently leaking an old listener.
     unbindEvents(instance, lastBoundRef.current);
+    const bound: BoundEvents = new Map();
+    lastBoundRef.current = bound;
     try {
-      bindEvents(instance, onEvents);
+      bindEvents(instance, onEvents, latestRef, bound);
     } catch (error) {
       handleEffectError(error, "ECharts event bind failed:");
     }
-    lastBoundRef.current = onEvents;
   }, [element, onEvents]);
 
   // =====================================================================

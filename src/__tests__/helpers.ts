@@ -58,3 +58,18 @@ export class MockIntersectionObserver {
     );
   });
 }
+
+/**
+ * The proxy the hook registered via `on(eventName, …)` (the n-th such call,
+ * last by default). The hook binds proxies that forward to the latest
+ * `onEvents` handler, so tests invoke this instead of matching the handler.
+ */
+export function boundProxy(
+  instance: ReturnType<typeof createMockInstance>,
+  eventName: string,
+  nth = -1,
+): (this: unknown, params: unknown) => void {
+  const call = instance.on.mock.calls.filter((args) => args[0] === eventName).at(nth);
+  if (!call) throw new Error(`no on("${eventName}", …) call recorded`);
+  return call[call.length - 2] as (this: unknown, params: unknown) => void;
+}

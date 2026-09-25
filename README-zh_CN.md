@@ -311,7 +311,7 @@ export default function Page() {
 
 - **容器必须有明确尺寸** — 高度为 0 时图表不可见；请为容器设置 `height`（以及 `width` 如果不是 100%）。
 - **不要忘记注册 ECharts 模块** — `useEcharts()` 在 ECharts 全局 registry 上初始化实例，所以图表/组件/渲染器/特性必须先注册（通过 `registerEchartsFull()` 或 `echarts.use([...])`）。忘记注册通常表现为 `Renderer 'undefined' is not imported` 报错，或图表静默不渲染；参见 [注册 ECharts 模块](#注册-echarts-模块)。开发模式下若 init 抛出 `… is not a constructor`，库还会打印一次性提示指向此处。
-- **保持 `onEvents` 内容稳定** — 只要 handler/query/context 的引用不变，内联外层对象也会被去重；但内联 lambda 会产生新 handler 并触发重新绑定。频繁渲染的图表应缓存或提升 handler。
+- **内联 `onEvents` 无需缓存** — 每个事件名只绑定一次代理函数，触发时调用最新一次渲染中的 handler，因此 handler 引用变化（内联 lambda、闭包捕获新 state）既不会重新绑定，也不会读到过期的 props。只有增删事件名、`query` 变化（浅比较）或 `context` 引用变化才会重新绑定。
 - **不要让多个 `useEcharts` 共享同一个 DOM 元素** — 实例缓存会复用同一个 ECharts 实例并在开发模式下打印警告；多个 hook 的更新会互相覆盖。
 - **`initOpts` 和自定义 `theme` 对象按序列化内容生成 key** — 对可序列化对象，只有 `JSON.stringify` 输出相同时才视为相同；属性插入顺序会影响输出，因此语义等价但顺序不同的对象仍可能重建实例。memo 能避免重复序列化并让意图更清楚。不要原地修改这两个对象：相同引用会被视为未变化。
 - **`option` 更新由引用驱动** — 每个新的 `option` 引用都会调用 `setOption`；原地修改同一对象不会被观察到。父组件频繁渲染时应缓存昂贵 option，并在图表数据变化时替换外层对象。
