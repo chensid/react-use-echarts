@@ -397,13 +397,14 @@ export default function Page() {
 
 **坐标转换**
 
-| 方法               | 类型                                                                                                                                                   | 说明                                                 |
-| ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------- |
-| `convertToPixel`   | `(finder: ChartFinder, value: ChartScaleValue \| Array<ChartScaleValue \| ChartScaleValue[] \| null \| undefined>) => number \| number[] \| undefined` | 逻辑坐标 → 像素坐标                                  |
-| `convertFromPixel` | `(finder: ChartFinder, value: number \| number[]) => number \| number[] \| undefined`                                                                  | 像素坐标 → 逻辑坐标                                  |
-| `containPixel`     | `(finder: ChartFinder, value: number[]) => boolean`                                                                                                    | 像素点是否落在指定组件内（实例未初始化时返回 false） |
+| 方法               | 类型                                                                                                                                                                                | 说明                                                        |
+| ------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------- |
+| `convertToPixel`   | `(finder: ChartFinder, value: ChartScaleValue \| Array<ChartScaleValue \| ChartScaleValue[] \| null \| undefined>, opt?: unknown) => number \| number[] \| undefined`               | 逻辑坐标 → 像素坐标                                         |
+| `convertToLayout`  | `(finder: ChartFinder, value: ChartScaleValue \| null \| undefined \| Array<ChartScaleValue \| ChartScaleValue[] \| null \| undefined>, opt?: unknown) => ChartLayout \| undefined` | calendar / matrix 坐标 → 单元格布局（`rect` 等）；ECharts 6 |
+| `convertFromPixel` | `(finder: ChartFinder, value: number \| number[], opt?: unknown) => number \| number[] \| undefined`                                                                                | 像素坐标 → 逻辑坐标                                         |
+| `containPixel`     | `(finder: ChartFinder, value: number[]) => boolean`                                                                                                                                 | 像素点是否落在指定组件内（实例未初始化时返回 false）        |
 
-`ChartFinder` 为 `string | { seriesIndex?, seriesId?, …, geoIndex?, … }` —— 字符串简写或查询对象。`ChartScaleValue` 为 `number | string | Date`。
+`ChartFinder` 为字符串简写（`"series"`）或以任意 `<组件类型>Index | Id | Name` 为键的查询对象（`seriesIndex`、`calendarIndex`、`matrixId` 等，与 ECharts 文档一致）。`ChartScaleValue` 为 `number | string | Date`。`opt` 由坐标系定义，例如 `matrix` 的 `{ clamp, ignoreMergeCells }`。`ChartLayout` 为 ECharts 返回的 `{ rect?, contentRect?, matrixXYLocatorRange? }`。
 
 ### 其他导出
 
@@ -417,7 +418,7 @@ import { registerEchartsFull } from "react-use-echarts/preset-full"; // 一行�
 // 所有导出类型：UseEchartsOptions, UseEchartsReturn, UseLazyInitReturn,
 // EChartProps, EChartHandle, EChartsEvents, EChartsEventConfig, EChartsEventHandler,
 // EChartsEventPayloadMap, EChartsInitOpts, BuiltinTheme, LoadingOption,
-// ChartFinder, ChartScaleValue, Payload。
+// ChartFinder, ChartLayout, ChartScaleValue, Payload。
 // EChartsOption、SetOptionOpts、ResizeOpts 也从此处转出（源自 "echarts" 包），
 // 可与上面的类型一起从 react-use-echarts 统一导入，无需再单独 import "echarts"。
 ```

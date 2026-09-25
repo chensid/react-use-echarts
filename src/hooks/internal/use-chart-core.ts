@@ -3,6 +3,7 @@ import * as echarts from "echarts/core";
 import type { ECharts, SetOptionOpts } from "echarts/core";
 import type { EChartsOption } from "echarts";
 import type {
+  ChartFinder,
   EChartsEvents,
   EChartsInitOpts,
   UseEchartsOptions,
@@ -184,6 +185,17 @@ interface ImperativeLatest {
   onError: ((e: unknown) => void) | undefined;
   onEvents: EChartsEvents | undefined;
 }
+
+// ECharts' finder typing omits documented keys such as `calendarIndex`
+// (ChartFinder widens it), and its convertToPixel / convertFromPixel typings
+// omit the third `opt` that the runtime and API docs accept.
+type EChartsFinder = Parameters<ECharts["containPixel"]>[0];
+type ConvertWithOpt = (
+  this: ECharts,
+  finder: ChartFinder,
+  value: unknown,
+  opt?: unknown,
+) => number | number[];
 
 // `ref` is owned by the outer `useEcharts` (callback-ref + cleanup lives
 // there); useChartCore returns everything else from the public surface.
@@ -608,18 +620,25 @@ export function useChartCore(
       renderToSVGString: (opts) =>
         withInstance((instance) => instance.renderToSVGString(opts), undefined),
       getSvgDataURL: () => withInstance((instance) => instance.getSvgDataURL(), undefined),
-      convertToPixel: (finder, value) =>
+      convertToPixel: (finder, value, opt) =>
         withInstance(
           (instance) =>
-            Array.isArray(value)
-              ? instance.convertToPixel(finder, value)
-              : instance.convertToPixel(finder, value),
+            (instance.convertToPixel as ConvertWithOpt).call(instance, finder, value, opt),
           undefined,
         ),
-      convertFromPixel: (finder, value) =>
-        withInstance((instance) => instance.convertFromPixel(finder, value), undefined),
+      convertToLayout: (finder, value, opt) =>
+        withInstance(
+          (instance) => instance.convertToLayout(finder as EChartsFinder, value, opt),
+          undefined,
+        ),
+      convertFromPixel: (finder, value, opt) =>
+        withInstance(
+          (instance) =>
+            (instance.convertFromPixel as ConvertWithOpt).call(instance, finder, value, opt),
+          undefined,
+        ),
       containPixel: (finder, value) =>
-        withInstance((instance) => instance.containPixel(finder, value), false),
+        withInstance((instance) => instance.containPixel(finder as EChartsFinder, value), false),
       appendData: (params) =>
         withInstance((instance) => {
           instance.appendData(params);

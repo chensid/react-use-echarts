@@ -402,13 +402,14 @@ The returned object is **referentially stable**: its identity changes only when 
 
 **Coordinate conversion**
 
-| Method             | Type                                                                                                                                                   | Description                                                               |
-| ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------- |
-| `convertToPixel`   | `(finder: ChartFinder, value: ChartScaleValue \| Array<ChartScaleValue \| ChartScaleValue[] \| null \| undefined>) => number \| number[] \| undefined` | Logical → pixel coordinates                                               |
-| `convertFromPixel` | `(finder: ChartFinder, value: number \| number[]) => number \| number[] \| undefined`                                                                  | Pixel → logical coordinates                                               |
-| `containPixel`     | `(finder: ChartFinder, value: number[]) => boolean`                                                                                                    | Whether a pixel point is inside the matched component (false when uninit) |
+| Method             | Type                                                                                                                                                                                | Description                                                               |
+| ------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------- |
+| `convertToPixel`   | `(finder: ChartFinder, value: ChartScaleValue \| Array<ChartScaleValue \| ChartScaleValue[] \| null \| undefined>, opt?: unknown) => number \| number[] \| undefined`               | Logical → pixel coordinates                                               |
+| `convertToLayout`  | `(finder: ChartFinder, value: ChartScaleValue \| null \| undefined \| Array<ChartScaleValue \| ChartScaleValue[] \| null \| undefined>, opt?: unknown) => ChartLayout \| undefined` | Calendar / matrix coordinate → cell layout (`rect`, …); ECharts 6         |
+| `convertFromPixel` | `(finder: ChartFinder, value: number \| number[], opt?: unknown) => number \| number[] \| undefined`                                                                                | Pixel → logical coordinates                                               |
+| `containPixel`     | `(finder: ChartFinder, value: number[]) => boolean`                                                                                                                                 | Whether a pixel point is inside the matched component (false when uninit) |
 
-`ChartFinder` is `string | { seriesIndex?, seriesId?, …, geoIndex?, … }` — a string shorthand or a model finder object. `ChartScaleValue` is `number | string | Date`.
+`ChartFinder` is a string shorthand (`"series"`) or a finder object keyed by any `<componentType>Index | Id | Name` (`seriesIndex`, `calendarIndex`, `matrixId`, …), as documented by ECharts. `ChartScaleValue` is `number | string | Date`. `opt` is defined by the coordinate system — e.g. `{ clamp, ignoreMergeCells }` for `matrix`. `ChartLayout` is the `{ rect?, contentRect?, matrixXYLocatorRange? }` object returned by ECharts.
 
 ### Other Exports
 
@@ -422,7 +423,7 @@ import { registerEchartsFull } from "react-use-echarts/preset-full"; // one-line
 // All exported types: UseEchartsOptions, UseEchartsReturn, UseLazyInitReturn,
 // EChartProps, EChartHandle, EChartsEvents, EChartsEventConfig, EChartsEventHandler,
 // EChartsEventPayloadMap, EChartsInitOpts, BuiltinTheme, LoadingOption,
-// ChartFinder, ChartScaleValue, Payload.
+// ChartFinder, ChartLayout, ChartScaleValue, Payload.
 // EChartsOption, SetOptionOpts, ResizeOpts are also re-exported here for
 // convenience (they originate in the "echarts" package), so you can import them
 // from react-use-echarts alongside the types above instead of reaching into echarts.

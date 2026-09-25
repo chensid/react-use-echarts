@@ -54,6 +54,7 @@ export type {
   BuiltinTheme,
   LoadingOption,
   ChartFinder,
+  ChartLayout,
   ChartScaleValue,
 } from "./types";
 

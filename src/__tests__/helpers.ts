@@ -22,6 +22,7 @@ export function createMockInstance(element?: HTMLElement) {
     renderToSVGString: vi.fn(() => "<svg></svg>"),
     getSvgDataURL: vi.fn(() => "data:image/svg+xml;base64,svg-mock"),
     convertToPixel: vi.fn(() => [10, 20]),
+    convertToLayout: vi.fn(() => ({ rect: { x: 0, y: 0, width: 10, height: 10 } })),
     convertFromPixel: vi.fn(() => [1, 2]),
     containPixel: vi.fn(() => false),
   };

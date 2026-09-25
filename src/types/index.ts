@@ -15,16 +15,27 @@ import type {
 import type { EChartsOption } from "echarts";
 import type { ComponentPropsWithoutRef, RefCallback } from "react";
 
+type EChartsFinder = Parameters<ECharts["containPixel"]>[0];
+type EChartsFinderObject = Exclude<EChartsFinder, string>;
+
 /**
- * Model finder accepted by `convertToPixel` / `convertFromPixel` / `containPixel`.
- * Either a string shorthand (e.g. `"series"`) or a finder object such as
- * `{ seriesIndex: 0 }`. Extracted from echarts' single-signature `containPixel`
- * so the public type stays in sync without importing internal aliases.
- * convertToPixel/convertFromPixel/containPixel 接受的查询条件。可以是字符串简写
- * （如 "series"）或包含索引/ID/名称的查询对象。从单签名的 containPixel 提取以避免
- * 引用 echarts 的内部别名。
+ * Model finder accepted by `convertToPixel` / `convertToLayout` /
+ * `convertFromPixel` / `containPixel`: a string shorthand (e.g. `"series"`) or
+ * a finder object such as `{ seriesIndex: 0 }`. ECharts matches any
+ * `<componentType>Index | Id | Name` key at runtime and documents keys such as
+ * `calendarIndex`, `polarIndex` and `singleAxisIndex`, which its own
+ * `ModelFinderObject` typing omits — so any such key is accepted here.
+ * 查询条件：字符串简写（如 "series"）或查询对象。ECharts 运行时接受任意
+ * `<组件类型>Index | Id | Name` 键（文档列出的 calendarIndex、polarIndex 等未包含在
+ * 其类型定义中），因此这里放宽为任意此类键。
  */
-export type ChartFinder = Parameters<ECharts["containPixel"]>[0];
+export type ChartFinder =
+  | EChartsFinder
+  | {
+      readonly [key: `${string}Index`]: EChartsFinderObject["seriesIndex"];
+      readonly [key: `${string}Id`]: EChartsFinderObject["seriesId"];
+      readonly [key: `${string}Name`]: EChartsFinderObject["seriesName"];
+    };
 
 /**
  * Scalar data value accepted by `convertToPixel`. Mirrors echarts' internal
@@ -35,6 +46,13 @@ export type ChartFinder = Parameters<ECharts["containPixel"]>[0];
  * value 可以是单值，也可以是含标量数组或空值的坐标元组。
  */
 export type ChartScaleValue = number | string | Date;
+
+/**
+ * Layout info returned by `convertToLayout` for the calendar and matrix
+ * coordinate systems (`rect`, `contentRect`, `matrixXYLocatorRange`).
+ * `convertToLayout` 为 calendar / matrix 坐标系返回的布局信息。
+ */
+export type ChartLayout = ReturnType<ECharts["convertToLayout"]>;
 
 /**
  * Built-in theme names
@@ -441,22 +459,42 @@ export interface UseEchartsReturn {
 
   /**
    * Convert a value from logical coordinates to pixel coordinates.
-   * 将逻辑坐标值转换为像素坐标。
+   * `opt` is defined by the coordinate system (e.g. matrix `{ clamp, ignoreMergeCells }`).
+   * 将逻辑坐标值转换为像素坐标；`opt` 由坐标系定义（如 matrix 的 clamp）。
    * @see https://echarts.apache.org/en/api.html#echartsInstance.convertToPixel
    */
   convertToPixel: (
     finder: ChartFinder,
     value: ChartScaleValue | Array<ChartScaleValue | ChartScaleValue[] | null | undefined>,
+    opt?: unknown,
   ) => number | number[] | undefined;
 
   /**
+   * Convert a coordinate on the calendar or matrix coordinate system to layout
+   * info (cell rect etc.). Available since ECharts 6.0.
+   * 将 calendar / matrix 坐标系上的坐标转换为布局信息（单元格矩形等）。
+   * @see https://echarts.apache.org/en/api.html#echartsInstance.convertToLayout
+   */
+  convertToLayout: (
+    finder: ChartFinder,
+    value:
+      | ChartScaleValue
+      | null
+      | undefined
+      | Array<ChartScaleValue | ChartScaleValue[] | null | undefined>,
+    opt?: unknown,
+  ) => ChartLayout | undefined;
+
+  /**
    * Convert a value from pixel coordinates to logical coordinates.
+   * `opt` is defined by the coordinate system (e.g. matrix `{ clamp }`).
    * 将像素坐标值转换为逻辑坐标。
    * @see https://echarts.apache.org/en/api.html#echartsInstance.convertFromPixel
    */
   convertFromPixel: (
     finder: ChartFinder,
     value: number | number[],
+    opt?: unknown,
   ) => number | number[] | undefined;
 
   /**

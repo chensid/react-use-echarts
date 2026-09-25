@@ -2145,7 +2145,7 @@ describe("useEcharts", () => {
       });
     });
 
-    describe("convertToPixel / convertFromPixel / containPixel", () => {
+    describe("convertToPixel / convertToLayout / convertFromPixel / containPixel", () => {
       it("forward finder + value to instance", () => {
         const { element, mockInstance } = setupReady();
         mockInstance.convertToPixel.mockReturnValue([100, 200]);
@@ -2159,17 +2159,48 @@ describe("useEcharts", () => {
 
         const finder = { seriesIndex: 0 };
         expect(result.current.convertToPixel(finder, [10, 20])).toEqual([100, 200]);
-        expect(mockInstance.convertToPixel).toHaveBeenCalledWith(finder, [10, 20]);
+        expect(mockInstance.convertToPixel).toHaveBeenCalledWith(finder, [10, 20], undefined);
         expect(result.current.convertToPixel("series", 10)).toEqual([100, 200]);
-        expect(mockInstance.convertToPixel).toHaveBeenCalledWith("series", 10);
+        expect(mockInstance.convertToPixel).toHaveBeenCalledWith("series", 10, undefined);
 
         expect(result.current.convertFromPixel(finder, [100, 200])).toEqual([1, 2]);
         expect(result.current.containPixel(finder, [50, 60])).toBe(true);
       });
 
+      it("forward the coordinate-system opt and support convertToLayout", () => {
+        const { element, mockInstance } = setupReady();
+        const layout = { rect: { x: 1, y: 2, width: 3, height: 4 } };
+        mockInstance.convertToLayout.mockReturnValue(layout);
+
+        const { result } = renderHook(() => useEcharts({ option: baseOption }));
+        act(() => {
+          result.current.ref(element);
+        });
+
+        const matrix = { matrixIndex: 0 };
+        const opt = { clamp: 1 };
+        result.current.convertToPixel(matrix, ["AA", "NN"], opt);
+        expect(mockInstance.convertToPixel).toHaveBeenCalledWith(matrix, ["AA", "NN"], opt);
+        // Called as a method, so ECharts' `this` is the instance.
+        expect(mockInstance.convertToPixel.mock.contexts[0]).toBe(mockInstance);
+
+        result.current.convertFromPixel(matrix, [10, 20], opt);
+        expect(mockInstance.convertFromPixel).toHaveBeenCalledWith(matrix, [10, 20], opt);
+        expect(mockInstance.convertFromPixel.mock.contexts[0]).toBe(mockInstance);
+
+        expect(result.current.convertToLayout(matrix, [["AA", "CC"], "MM"], opt)).toBe(layout);
+        expect(mockInstance.convertToLayout).toHaveBeenCalledWith(
+          matrix,
+          [["AA", "CC"], "MM"],
+          opt,
+        );
+        expect(result.current.convertToLayout({ calendarIndex: 0 }, "2021-01-01")).toBe(layout);
+      });
+
       it("return undefined / false when instance is not initialized", () => {
         const { result } = renderHook(() => useEcharts({ option: baseOption }));
         expect(result.current.convertToPixel("series", 10)).toBeUndefined();
+        expect(result.current.convertToLayout({ matrixIndex: 0 }, [0, 0])).toBeUndefined();
         expect(result.current.convertFromPixel("series", 10)).toBeUndefined();
         expect(result.current.containPixel("series", [10, 20])).toBe(false);
       });

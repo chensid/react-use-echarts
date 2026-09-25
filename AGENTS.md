@@ -16,7 +16,7 @@ Options: `option` (required), `theme`, `renderer` (`'canvas'`|`'svg'`, default `
 - `instance` — `ECharts | undefined` (reactive — defined after init, undefined before/after dispose)
 - `setOption(option, opts?)` — update chart config
 - `resize(opts?)` — manual resize trigger
-- Imperative methods: `dispatchAction`, `clear`, `appendData`, `getOption`, `getDataURL`, `getConnectedDataURL`, `renderToSVGString`, `getSvgDataURL`, `getWidth`, `getHeight`, `getDom`, `isDisposed`, `convertToPixel`, `convertFromPixel`, `containPixel`
+- Imperative methods: `dispatchAction`, `clear`, `appendData`, `getOption`, `getDataURL`, `getConnectedDataURL`, `renderToSVGString`, `getSvgDataURL`, `getWidth`, `getHeight`, `getDom`, `isDisposed`, `convertToPixel`, `convertToLayout`, `convertFromPixel`, `containPixel` (convert methods take an optional coordinate-system `opt`, e.g. matrix `clamp`)
 - The returned object is referentially stable — its identity only changes when `instance` or the container element changes, so it can go straight into a dependency array
 
 ### `<EChart />` Component

@@ -3,6 +3,7 @@ import * as publicApi from "../../index";
 import type {
   BuiltinTheme,
   ChartFinder,
+  ChartLayout,
   ChartScaleValue,
   EChartHandle,
   EChartProps,
@@ -34,6 +35,7 @@ type AxisBreakActionsAreNotEvents = Assert<
 type PublicTypeExports = {
   BuiltinTheme: BuiltinTheme;
   ChartFinder: ChartFinder;
+  ChartLayout: ChartLayout;
   ChartScaleValue: ChartScaleValue;
   EChartHandle: EChartHandle;
   EChartProps: EChartProps;
@@ -62,6 +64,18 @@ const convertToPixelValue: Parameters<UseEchartsReturn["convertToPixel"]>[1] = [
   null,
   undefined,
 ];
+// Documented finder keys that ECharts' own ModelFinderObject typing omits.
+const documentedFinders: ChartFinder[] = [
+  "series",
+  { seriesIndex: 0, dataIndex: 1 },
+  { calendarIndex: 0 },
+  { polarId: "p" },
+  { singleAxisName: "axis" },
+  { matrixIndex: [0, 1] },
+];
+// @ts-expect-error — finder values keep ECharts' index query type.
+const badFinder: ChartFinder = { calendarIndex: { nested: true } };
+const layoutRect: NonNullable<ChartLayout>["rect"] = { x: 0, y: 0, width: 1, height: 1 };
 
 describe("public API types", () => {
   it("exposes the intended runtime API from the package root", () => {
@@ -84,5 +98,11 @@ describe("public API types", () => {
 
   it("accepts the coordinate tuples supported by ECharts convertToPixel", () => {
     expect(convertToPixelValue).toEqual([1, ["category", 2], null, undefined]);
+  });
+
+  it("accepts every documented finder key and types convertToLayout results", () => {
+    expect(documentedFinders).toHaveLength(6);
+    expect(badFinder).toBeDefined();
+    expect(layoutRect.width).toBe(1);
   });
 });
