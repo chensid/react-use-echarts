@@ -1,5 +1,19 @@
 # react-use-echarts
 
+## 3.2.0
+
+### Minor Changes
+
+- 50fab12: Add `convertToLayout` (ECharts 6.0) to the imperative API and the `<EChart>` handle, returning the new exported `ChartLayout` type, and forward the optional coordinate-system `opt` argument (e.g. matrix `{ clamp, ignoreMergeCells }`) that ECharts 6 accepts on `convertToPixel` / `convertFromPixel`. `ChartFinder` now accepts every documented `<componentType>Index | Id | Name` key — such as `calendarIndex`, `polarIndex` and `singleAxisIndex` — which ECharts' own finder typing omits.
+- 5eccc32: Type more of the events documented by ECharts in `EChartsEventPayloadMap`, so their handler `params` are inferred instead of falling back to `any`: `legendselectchanged`, `legendselected`, `legendunselected`, `legendselectall`, `legendinverseselect`, `legendscroll`, `datazoom` (including the batched `{ batch: [...] }` form emitted by inside zoom), `timelinechanged`, `timelineplaychanged`, `rendered` and `finished`. `selectchanged` now uses ECharts' `SelectChangedEvent` type instead of the deprecated `SelectChangedPayload`; both have the same shape.
+- d6b3560: Use ECharts 6's own themes for the `"light"` and `"dark"` built-ins. `"dark"` is now the dark theme that `echarts/core` registers itself, and `"light"` resolves to ECharts' `"default"` theme; neither needs `registerBuiltinThemes()` any more, and the misleading dev warning claiming `"dark"` would fall back to the default theme is gone. `registerBuiltinThemes()` now registers only `"macarons"` and no longer overwrites ECharts' dark theme with the ECharts 5 palette, which also shrinks the `themes/registry` entry. Charts using `"light"` or `"dark"` therefore render with the ECharts 6 palette instead of the ECharts 5 one. To keep the old look, use the theme ECharts ships for that purpose, `echarts/theme/v5.js` (registered as `"v5"`), as described in the ECharts 6 upgrade notes.
+- 7fa0f0e: `onEvents` handlers no longer need to be memoized. Each event name is now bound once to a proxy that calls the handler from the latest render, so inline objects and inline lambdas no longer trigger an `off()`/`on()` rebind on every render, and handlers never see stale props between a render and the rebind. A rebind now happens only when an event name is added or removed, a `query` changes (compared shallowly, so inline `{ seriesIndex: 0 }` objects no longer rebind), or a `context` reference changes. Because ECharts now receives the proxy rather than your function, calling `instance.off(name, yourHandler)` directly no longer removes a listener bound through `onEvents`; remove the entry from `onEvents` instead.
+
+### Patch Changes
+
+- ffbf370: Stop shipping JSDoc comments in the published JavaScript. API documentation still ships in the `.d.ts` files that editors read, so IntelliSense is unchanged, while `dist/index.js` drops from about 13.5 KB to about 7.1 KB gzipped. The `"use client"` directive and the `@__PURE__` annotations that bundlers use for tree-shaking are kept.
+- 6e4a30d: Pass custom `theme` objects straight to `echarts.init`, as the ECharts API documents, instead of registering each distinct object globally under a generated `__custom_theme_N` name. ECharts never unregisters themes, so apps that build theme objects dynamically no longer grow ECharts' process-wide theme registry. Rendering is unchanged, and a content-equal inline theme object still does not recreate the chart.
+
 ## 3.1.11
 
 ### Patch Changes
