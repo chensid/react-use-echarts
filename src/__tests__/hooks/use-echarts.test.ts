@@ -336,7 +336,7 @@ describe("useEcharts", () => {
       expect(echarts.init).toHaveBeenCalledWith(element, "dark", expect.any(Object));
     });
 
-    it("should map the light built-in to the ECharts default theme", () => {
+    it("should pass light through to ECharts, which falls back to its default theme", () => {
       const element = document.createElement("div");
       const mockInstance = createMockInstance(element);
       (echarts.init as ReturnType<typeof vi.fn>).mockReturnValue(mockInstance);
@@ -346,9 +346,8 @@ describe("useEcharts", () => {
         result.current.ref(element);
       });
 
-      expect(echarts.init).toHaveBeenCalledWith(element, "default", expect.any(Object));
+      expect(echarts.init).toHaveBeenCalledWith(element, "light", expect.any(Object));
     });
-
     it("should not warn in development for light/dark, which ECharts 6 provides natively", () => {
       const previousNodeEnv = process.env.NODE_ENV;
       process.env.NODE_ENV = "development";
@@ -454,7 +453,7 @@ describe("useEcharts", () => {
       }
     });
 
-    it("should register and use custom theme object", () => {
+    it("should pass a custom theme object straight to echarts.init without registering it", () => {
       const element = document.createElement("div");
       const mockInstance = createMockInstance(element);
       (echarts.init as ReturnType<typeof vi.fn>).mockReturnValue(mockInstance);
@@ -466,12 +465,34 @@ describe("useEcharts", () => {
         result.current.ref(element);
       });
 
-      expect(echarts.registerTheme).toHaveBeenCalledWith(
-        expect.stringContaining("__custom_"),
-        customTheme,
-      );
+      expect(echarts.init).toHaveBeenCalledWith(element, customTheme, expect.any(Object));
+      expect(echarts.registerTheme).not.toHaveBeenCalled();
     });
 
+    it("should not recreate the instance for a content-equal inline theme object", () => {
+      const element = document.createElement("div");
+      (echarts.init as ReturnType<typeof vi.fn>).mockReturnValue(createMockInstance(element));
+
+      const { result, rerender } = renderHook(
+        ({ color }: { color: string }) =>
+          useEcharts({ option: baseOption, theme: { color: [color] } }),
+        { initialProps: { color: "#111" } },
+      );
+      act(() => {
+        result.current.ref(element);
+      });
+
+      rerender({ color: "#111" });
+      expect(echarts.init).toHaveBeenCalledTimes(1);
+
+      rerender({ color: "#222" });
+      expect(echarts.init).toHaveBeenCalledTimes(2);
+      expect(echarts.init).toHaveBeenLastCalledWith(
+        element,
+        { color: ["#222"] },
+        expect.any(Object),
+      );
+    });
     it("should treat runtime theme=null as default theme without throwing", () => {
       // Public TS type forbids null, but JS callers (or escape hatches) can still
       // pass it. typeof null === "object", so without the nullish guard
@@ -2837,65 +2858,48 @@ describe("useEcharts", () => {
       expect(echarts.init).toHaveBeenCalled();
     });
 
-    it("should reuse cached key when same circular theme is used in a new hook instance", () => {
+    it("should keep the instance for the same circular theme reference", () => {
       const circularTheme: Record<string, unknown> = { color: ["#def"] };
       circularTheme.self = circularTheme;
 
-      // First hook instance — registers the circular theme ID
-      const el1 = document.createElement("div");
-      const mock1 = createMockInstance(el1);
-      (echarts.init as ReturnType<typeof vi.fn>).mockReturnValue(mock1);
+      const element = document.createElement("div");
+      (echarts.init as ReturnType<typeof vi.fn>).mockReturnValue(createMockInstance(element));
 
-      const hook1 = renderHook(() => useEcharts({ option: baseOption, theme: circularTheme }));
+      const { result, rerender } = renderHook(() =>
+        useEcharts({ option: baseOption, theme: circularTheme }),
+      );
       act(() => {
-        hook1.result.current.ref(el1);
+        result.current.ref(element);
       });
-      hook1.unmount();
+      rerender();
 
-      // Second hook instance — should hit WeakMap cache for the same circular theme
-      const el2 = document.createElement("div");
-      const mock2 = createMockInstance(el2);
-      (echarts.init as ReturnType<typeof vi.fn>).mockReturnValue(mock2);
-
-      const hook2 = renderHook(() => useEcharts({ option: baseOption, theme: circularTheme }));
-      act(() => {
-        hook2.result.current.ref(el2);
-      });
-
-      expect(echarts.registerTheme).toHaveBeenCalledTimes(1);
-      const firstThemeName = (echarts.init as ReturnType<typeof vi.fn>).mock.calls[0]![1];
-      const secondThemeName = (echarts.init as ReturnType<typeof vi.fn>).mock.calls[1]![1];
-      expect(firstThemeName).toBe(secondThemeName);
+      expect(echarts.init).toHaveBeenCalledTimes(1);
+      expect(echarts.init).toHaveBeenCalledWith(element, circularTheme, expect.any(Object));
+      expect(echarts.registerTheme).not.toHaveBeenCalled();
     });
-
-    it("should assign distinct IDs to distinct circular theme objects", () => {
+    it("should recreate the instance when switching between distinct circular themes", () => {
       const theme1: Record<string, unknown> = { color: ["#111"] };
       theme1.self = theme1;
       const theme2: Record<string, unknown> = { color: ["#222"] };
       theme2.self = theme2;
 
-      const el1 = document.createElement("div");
-      const mock1 = createMockInstance(el1);
-      (echarts.init as ReturnType<typeof vi.fn>).mockReturnValueOnce(mock1);
+      const element = document.createElement("div");
+      (echarts.init as ReturnType<typeof vi.fn>)
+        .mockReturnValueOnce(createMockInstance(element))
+        .mockReturnValueOnce(createMockInstance(element));
 
-      const hook1 = renderHook(() => useEcharts({ option: baseOption, theme: theme1 }));
+      const { result, rerender } = renderHook(
+        ({ theme }: { theme: object }) => useEcharts({ option: baseOption, theme }),
+        { initialProps: { theme: theme1 as object } },
+      );
       act(() => {
-        hook1.result.current.ref(el1);
+        result.current.ref(element);
       });
 
-      const el2 = document.createElement("div");
-      const mock2 = createMockInstance(el2);
-      (echarts.init as ReturnType<typeof vi.fn>).mockReturnValueOnce(mock2);
+      rerender({ theme: theme2 });
 
-      const hook2 = renderHook(() => useEcharts({ option: baseOption, theme: theme2 }));
-      act(() => {
-        hook2.result.current.ref(el2);
-      });
-
-      expect(echarts.registerTheme).toHaveBeenCalledTimes(2);
-      const firstThemeName = (echarts.init as ReturnType<typeof vi.fn>).mock.calls[0]![1];
-      const secondThemeName = (echarts.init as ReturnType<typeof vi.fn>).mock.calls[1]![1];
-      expect(firstThemeName).not.toBe(secondThemeName);
+      expect(echarts.init).toHaveBeenCalledTimes(2);
+      expect(echarts.init).toHaveBeenLastCalledWith(element, theme2, expect.any(Object));
     });
   });
 

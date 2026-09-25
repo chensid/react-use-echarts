@@ -15,13 +15,7 @@ import {
   releaseCachedInstance,
 } from "../../utils/instance-cache";
 import { updateGroup } from "../../utils/connect";
-import {
-  getOrRegisterCustomTheme,
-  isBuiltinTheme,
-  isBuiltinThemeRegistered,
-  isKnownTheme,
-  resolveBuiltinAlias,
-} from "../../themes";
+import { isBuiltinTheme, isBuiltinThemeRegistered, isKnownTheme } from "../../themes";
 import { shallowEqual } from "../../utils/shallow-equal";
 import { computeStableKey } from "../../utils/stable-key";
 import {
@@ -33,22 +27,15 @@ import { routeImperativeError } from "../../utils/error";
 import { bindEvents, bindingsMatch, unbindEvents, type BoundEvents } from "./event-utils";
 
 /**
- * Resolve theme to a registered ECharts theme name (has side effects).
- * Must only be called inside effects, not during render.
- * 将主题解析为已注册的 ECharts 主题名称（有副作用，仅可在 effect 内调用）。
- *
- * @param themeKey Pre-computed key from computeStableKey — passed as contentHash
- *   to avoid redundant JSON.stringify inside getOrRegisterCustomTheme.
- *   `null` only for nullish theme; object themes always get a non-null key
- *   (JSON string or per-reference id), so the object branch below can assert it.
+ * Resolve the `theme` prop to what `echarts.init` accepts: a theme name, a
+ * theme object (ECharts clones it, so it is passed through unregistered), or
+ * `null` for the default theme. Emits dev-only warnings for unregistered names,
+ * so call it from effects only.
+ * 将 theme 解析为 echarts.init 接受的值：主题名、主题对象（ECharts 会克隆，无需注册）
+ * 或 null（默认主题）。会输出 dev 警告，仅在 effect 内调用。
  */
-function resolveThemeName(
-  theme: string | object | undefined,
-  themeKey: string | null,
-): string | null {
-  // Public type forbids null, but JS callers can still pass it. typeof null
-  // is "object" so without this guard we'd hit getOrRegisterCustomTheme(null)
-  // and throw inside the WeakMap path — outside the init effect's try/catch.
+function resolveTheme(theme: string | object | undefined): string | object | null {
+  // Public type forbids null, but JS callers can still pass it (typeof null is "object").
   if (theme == null) return null;
   if (typeof theme === "string") {
     if (
@@ -77,12 +64,9 @@ function resolveThemeName(
           `Otherwise check the name for typos: ECharts ignores unregistered themes.`,
       );
     }
-    return resolveBuiltinAlias(theme);
+    return theme;
   }
-  if (typeof theme !== "object") return null;
-  // computeStableKey returns non-null for any object (JSON string or per-ref
-  // fallback id), so themeKey is guaranteed populated on this branch.
-  return getOrRegisterCustomTheme(theme, themeKey!);
+  return typeof theme === "object" ? theme : null;
 }
 
 function warnZeroSizeContainer(element: HTMLElement): void {
@@ -316,7 +300,7 @@ export function useChartCore(
 
     warnZeroSizeContainer(element);
 
-    const resolvedTheme = resolveThemeName(theme, themeKey);
+    const resolvedTheme = resolveTheme(theme);
 
     const existing = getCachedInstance(element);
     let instance: ECharts;
