@@ -300,10 +300,11 @@ export function useChartCore(
   // All instance state (option, events, loading, group) is re-applied.
   //
   // Theme changes deliberately recreate instead of calling ECharts 6
-  // `instance.setTheme()`: as of 6.1 it rebuilds the model from the option
-  // backup captured at the *first* setOption (merging later options into that
-  // backup is commented out upstream), so a chart whose option changed since
-  // would snap back to stale data.
+  // `instance.setTheme()`. Its API docs carry a CAVEAT: after several
+  // merge-mode `setOption` calls, `setTheme` discards earlier options (6.1
+  // rebuilds from the option backup taken at the first call), and the only
+  // documented fix is `notMerge` on every `setOption`. This library merges by
+  // default, so a chart whose option changed since would snap back to stale data.
   // =====================================================================
   useLayoutEffect(() => {
     if (!shouldInit) return;
