@@ -304,6 +304,12 @@ export function useChartCore(
   // When theme, renderer, or initOpts changes, cleanup disposes the old
   // instance and the effect re-runs to create a new one.
   // All instance state (option, events, loading, group) is re-applied.
+  //
+  // Theme changes deliberately recreate instead of calling ECharts 6
+  // `instance.setTheme()`: as of 6.1 it rebuilds the model from the option
+  // backup captured at the *first* setOption (merging later options into that
+  // backup is commented out upstream), so a chart whose option changed since
+  // would snap back to stale data.
   // =====================================================================
   useLayoutEffect(() => {
     if (!shouldInit) return;
