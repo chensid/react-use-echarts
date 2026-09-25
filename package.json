@@ -110,23 +110,23 @@
   },
   "size-limit": [
     {
-      "name": "dist/index.js (gzip, unminified dist — incl. dev-only warnings, DCE'd in consumer prod builds)",
+      "name": "dist/index.js (gzip, unminified, JSDoc stripped — incl. dev-only warnings, DCE'd in consumer prod builds)",
       "path": "dist/index.js",
-      "limit": "14 KB",
+      "limit": "8 KB",
       "gzip": true,
       "brotli": false
     },
     {
       "name": "dist/themes/registry.js (gzip)",
       "path": "dist/themes/registry.js",
-      "limit": "3 KB",
+      "limit": "2 KB",
       "gzip": true,
       "brotli": false
     },
     {
       "name": "dist/preset-full.js (gzip)",
       "path": "dist/preset-full.js",
-      "limit": "1.5 KB",
+      "limit": "0.5 KB",
       "gzip": true,
       "brotli": false
     }

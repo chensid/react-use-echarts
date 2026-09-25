@@ -28,6 +28,13 @@ const base = process.env.GITHUB_ACTIONS === "true" && repositoryName ? `/${repos
 // themes/registry is pure preset JSON with no guarded code.
 const preserveProcessEnvNodeEnv = { "process.env.NODE_ENV": "process.env.NODE_ENV" };
 
+// Ship JS without JSDoc: editors read API docs from the emitted `.d.ts`, so
+// JSDoc in `dist/*.js` only inflated the bundle (about half its gzip size) and
+// made size-limit track comment volume instead of code. Rolldown already drops
+// plain `//` and `/* */` comments; legal and `@__PURE__`-style annotations are
+// kept, the latter because consumer bundlers rely on them for tree-shaking.
+const stripDocComments = { comments: { legal: true, annotation: true, jsdoc: false } };
+
 // https://viteplus.dev/config/
 export default defineConfig({
   base,
@@ -107,6 +114,7 @@ export default defineConfig({
       publint: true,
       attw: { profile: "esm-only" },
       platform: "browser",
+      outputOptions: stripDocComments,
       define: preserveProcessEnvNodeEnv,
       plugins: [babel({ presets: [reactCompilerPreset()] })],
     },
@@ -117,6 +125,7 @@ export default defineConfig({
       tsconfig: "tsconfig.lib.json",
       dts: { generator: "tsgo" },
       platform: "browser",
+      outputOptions: stripDocComments,
     },
     {
       deps: { resolveDepSubpath: true },
@@ -126,6 +135,7 @@ export default defineConfig({
       tsconfig: "tsconfig.lib.json",
       dts: { generator: "tsgo" },
       platform: "browser",
+      outputOptions: stripDocComments,
       define: preserveProcessEnvNodeEnv,
       plugins: [babel({ presets: [reactCompilerPreset()] })],
     },
