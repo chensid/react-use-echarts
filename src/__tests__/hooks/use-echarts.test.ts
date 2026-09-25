@@ -329,7 +329,42 @@ describe("useEcharts", () => {
       expect(echarts.init).toHaveBeenCalledWith(element, "dark", expect.any(Object));
     });
 
-    it("should warn in development when a builtin theme is used before registration", () => {
+    it("should map the light built-in to the ECharts default theme", () => {
+      const element = document.createElement("div");
+      const mockInstance = createMockInstance(element);
+      (echarts.init as ReturnType<typeof vi.fn>).mockReturnValue(mockInstance);
+
+      const { result } = renderHook(() => useEcharts({ option: baseOption, theme: "light" }));
+      act(() => {
+        result.current.ref(element);
+      });
+
+      expect(echarts.init).toHaveBeenCalledWith(element, "default", expect.any(Object));
+    });
+
+    it("should not warn in development for light/dark, which ECharts 6 provides natively", () => {
+      const previousNodeEnv = process.env.NODE_ENV;
+      process.env.NODE_ENV = "development";
+      const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+
+      try {
+        for (const theme of ["light", "dark", "default"] as const) {
+          const element = document.createElement("div");
+          (echarts.init as ReturnType<typeof vi.fn>).mockReturnValue(createMockInstance(element));
+          const { result } = renderHook(() => useEcharts({ option: baseOption, theme }));
+          act(() => {
+            result.current.ref(element);
+          });
+        }
+
+        expect(warnSpy).not.toHaveBeenCalledWith(expect.stringContaining("theme"));
+      } finally {
+        warnSpy.mockRestore();
+        process.env.NODE_ENV = previousNodeEnv;
+      }
+    });
+
+    it("should warn in development when macarons is used before registration", () => {
       const previousNodeEnv = process.env.NODE_ENV;
       process.env.NODE_ENV = "development";
       const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
@@ -339,13 +374,13 @@ describe("useEcharts", () => {
         const mockInstance = createMockInstance(element);
         (echarts.init as ReturnType<typeof vi.fn>).mockReturnValue(mockInstance);
 
-        const { result } = renderHook(() => useEcharts({ option: baseOption, theme: "dark" }));
+        const { result } = renderHook(() => useEcharts({ option: baseOption, theme: "macarons" }));
         act(() => {
           result.current.ref(element);
         });
 
         expect(warnSpy).toHaveBeenCalledWith(
-          expect.stringContaining('built-in theme "dark" was not registered'),
+          expect.stringContaining('built-in theme "macarons" was not registered'),
         );
       } finally {
         warnSpy.mockRestore();
@@ -372,7 +407,7 @@ describe("useEcharts", () => {
 
         expect(warnSpy).toHaveBeenCalledWith(
           expect.stringContaining(
-            'theme "externally-registered-theme" is not built-in and was not registered',
+            'theme "externally-registered-theme" is not built-in and this library has not seen it registered',
           ),
         );
         // The name still reaches echarts.init untouched — the warning is advisory.
@@ -398,13 +433,13 @@ describe("useEcharts", () => {
         (echarts.init as ReturnType<typeof vi.fn>).mockReturnValue(mockInstance);
 
         registerBuiltinThemes();
-        const { result } = renderHook(() => useEcharts({ option: baseOption, theme: "dark" }));
+        const { result } = renderHook(() => useEcharts({ option: baseOption, theme: "macarons" }));
         act(() => {
           result.current.ref(element);
         });
 
         expect(warnSpy).not.toHaveBeenCalledWith(
-          expect.stringContaining('built-in theme "dark" was not registered'),
+          expect.stringContaining('built-in theme "macarons" was not registered'),
         );
       } finally {
         warnSpy.mockRestore();

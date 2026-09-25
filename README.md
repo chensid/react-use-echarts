@@ -134,14 +134,16 @@ function MyChart() {
 
 ### Themes
 
-Built-in themes require one-time registration at app startup:
+`"light"` and `"dark"` work out of the box — they use the themes ECharts 6 ships with (`"light"` is ECharts' `"default"` theme). `"macarons"` needs a one-time registration at app startup:
 
 ```tsx
+// Native ECharts 6 themes, no registration needed
+useEcharts({ option, theme: "dark" });
+
+// macarons ships as preset JSON in a separate entry
 import { registerBuiltinThemes } from "react-use-echarts/themes/registry";
 registerBuiltinThemes();
-
-// Built-in theme
-useEcharts({ option, theme: "dark" });
+useEcharts({ option, theme: "macarons" });
 
 // Any string registered via echarts.registerTheme
 useEcharts({ option, theme: "vintage" });
@@ -414,7 +416,7 @@ The returned object is **referentially stable**: its identity changes only when 
 import { useLazyInit } from "react-use-echarts"; // standalone lazy init hook -> { ref, isInView }
 import { mergeRefs } from "react-use-echarts"; // compose multiple refs into one callback ref
 import { isBuiltinTheme, isKnownTheme, registerCustomTheme } from "react-use-echarts"; // theme utils (no JSON)
-import { registerBuiltinThemes } from "react-use-echarts/themes/registry"; // ~20KB theme JSON
+import { registerBuiltinThemes } from "react-use-echarts/themes/registry"; // macarons theme JSON (~7KB)
 import { registerEchartsFull } from "react-use-echarts/preset-full"; // one-line full-set registrar (see Register ECharts modules)
 
 // All exported types: UseEchartsOptions, UseEchartsReturn, UseLazyInitReturn,
@@ -441,7 +443,7 @@ Most props map 1:1; a few are folded into existing options. Quick reference:
 | `echarts-for-react`       | `react-use-echarts`                       | Notes                                                                                                                                                                                                     |
 | ------------------------- | ----------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `option`                  | `option`                                  | Same                                                                                                                                                                                                      |
-| `theme`                   | `theme`                                   | Same; built-in themes need `registerBuiltinThemes()` first (see [Themes](#themes))                                                                                                                        |
+| `theme`                   | `theme`                                   | Same; `"macarons"` needs `registerBuiltinThemes()` first (see [Themes](#themes))                                                                                                                          |
 | `notMerge` / `lazyUpdate` | `setOptionOpts: { notMerge, lazyUpdate }` | Folded into a single object passed to `setOption`                                                                                                                                                         |
 | `showLoading`             | `showLoading`                             | Same                                                                                                                                                                                                      |
 | `loadingOption`           | `loadingOption`                           | Same                                                                                                                                                                                                      |

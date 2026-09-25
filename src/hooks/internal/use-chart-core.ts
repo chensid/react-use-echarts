@@ -20,6 +20,7 @@ import {
   isBuiltinTheme,
   isBuiltinThemeRegistered,
   isKnownTheme,
+  resolveBuiltinAlias,
 } from "../../themes";
 import { shallowEqual } from "../../utils/shallow-equal";
 import { computeStableKey } from "../../utils/stable-key";
@@ -60,8 +61,8 @@ function resolveThemeName(
       warnedThemeNames.add(theme);
       console.warn(
         `react-use-echarts: built-in theme "${theme}" was not registered. ` +
-          `Import registerBuiltinThemes() from "react-use-echarts/themes/registry" and call it once before using built-in themes. ` +
-          `Unregistered themes silently fall back to the default theme.`,
+          `Import registerBuiltinThemes() from "react-use-echarts/themes/registry" and call it once before using it ` +
+          `("light" and "dark" need no registration). Unregistered themes are ignored by ECharts.`,
       );
     } else if (
       process.env.NODE_ENV !== "production" &&
@@ -71,12 +72,12 @@ function resolveThemeName(
     ) {
       warnedThemeNames.add(theme);
       console.warn(
-        `react-use-echarts: theme "${theme}" is not built-in and was not registered via registerCustomTheme(). ` +
-          `If you registered it directly with echarts.registerTheme(), switch to registerCustomTheme() to silence this warning. ` +
-          `Unknown names silently fall back to the default theme.`,
+        `react-use-echarts: theme "${theme}" is not built-in and this library has not seen it registered. ` +
+          `If you registered it with echarts.registerTheme(), it works as-is; registerCustomTheme() does the same and silences this warning. ` +
+          `Otherwise check the name for typos: ECharts ignores unregistered themes.`,
       );
     }
-    return theme;
+    return resolveBuiltinAlias(theme);
   }
   if (typeof theme !== "object") return null;
   // computeStableKey returns non-null for any object (JSON string or per-ref

@@ -134,14 +134,16 @@ function MyChart() {
 
 ### 主题
 
-内置主题需在应用入口注册一次：
+`"light"` 与 `"dark"` 开箱即用——直接使用 ECharts 6 自带主题（`"light"` 即 ECharts 的 `"default"` 主题）。`"macarons"` 需在应用入口注册一次：
 
 ```tsx
+// ECharts 6 原生主题，无需注册
+useEcharts({ option, theme: "dark" });
+
+// macarons 以预设 JSON 形式放在独立入口
 import { registerBuiltinThemes } from "react-use-echarts/themes/registry";
 registerBuiltinThemes();
-
-// 内置主题
-useEcharts({ option, theme: "dark" });
+useEcharts({ option, theme: "macarons" });
 
 // 任意通过 echarts.registerTheme 注册的主题
 useEcharts({ option, theme: "vintage" });
@@ -409,7 +411,7 @@ export default function Page() {
 import { useLazyInit } from "react-use-echarts"; // 独立的懒加载 Hook -> { ref, isInView }
 import { mergeRefs } from "react-use-echarts"; // 将多个 ref 合并为一个 callback ref
 import { isBuiltinTheme, isKnownTheme, registerCustomTheme } from "react-use-echarts"; // 主题工具（不含 JSON）
-import { registerBuiltinThemes } from "react-use-echarts/themes/registry"; // 内置主题 JSON（~20KB）
+import { registerBuiltinThemes } from "react-use-echarts/themes/registry"; // macarons 主题 JSON（~7KB）
 import { registerEchartsFull } from "react-use-echarts/preset-full"; // 一行注册全套（参见「注册 ECharts 模块」）
 
 // 所有导出类型：UseEchartsOptions, UseEchartsReturn, UseLazyInitReturn,
@@ -435,7 +437,7 @@ return <div ref={mergeRefs(ref, myRef)} style={{ height: 400 }} />;
 | `echarts-for-react`       | `react-use-echarts`                       | 说明                                                                                                                                                              |
 | ------------------------- | ----------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `option`                  | `option`                                  | 一致                                                                                                                                                              |
-| `theme`                   | `theme`                                   | 一致；内置主题需先调用 `registerBuiltinThemes()`（见[主题](#主题)）                                                                                               |
+| `theme`                   | `theme`                                   | 一致；`"macarons"` 需先调用 `registerBuiltinThemes()`（见[主题](#主题)）                                                                                          |
 | `notMerge` / `lazyUpdate` | `setOptionOpts: { notMerge, lazyUpdate }` | 合并为单个对象传给 `setOption`                                                                                                                                    |
 | `showLoading`             | `showLoading`                             | 一致                                                                                                                                                              |
 | `loadingOption`           | `loadingOption`                           | 一致                                                                                                                                                              |

@@ -3,7 +3,9 @@ import * as echarts from "echarts/core";
 import {
   isBuiltinTheme,
   isBuiltinThemeRegistered,
+  isKnownTheme,
   markBuiltinThemeRegistered,
+  resolveBuiltinAlias,
   registerCustomTheme,
   getOrRegisterCustomTheme,
   __clearThemeCacheForTesting__,
@@ -43,20 +45,42 @@ describe("themes utilities", () => {
   });
 
   describe("builtin theme registration state", () => {
-    it("should track registered builtin themes separately from builtin names", () => {
-      expect(isBuiltinTheme("dark")).toBe(true);
-      expect(isBuiltinThemeRegistered("dark")).toBe(false);
-
-      markBuiltinThemeRegistered("dark");
-
+    it("should treat light/dark as always registered (ECharts 6 native)", () => {
+      expect(isBuiltinThemeRegistered("light")).toBe(true);
       expect(isBuiltinThemeRegistered("dark")).toBe(true);
     });
 
+    it("should track registered builtin themes separately from builtin names", () => {
+      expect(isBuiltinTheme("macarons")).toBe(true);
+      expect(isBuiltinThemeRegistered("macarons")).toBe(false);
+
+      markBuiltinThemeRegistered("macarons");
+
+      expect(isBuiltinThemeRegistered("macarons")).toBe(true);
+    });
+
     it("should clear registered builtin theme state", () => {
-      markBuiltinThemeRegistered("dark");
+      markBuiltinThemeRegistered("macarons");
       __clearThemeCacheForTesting__();
 
-      expect(isBuiltinThemeRegistered("dark")).toBe(false);
+      expect(isBuiltinThemeRegistered("macarons")).toBe(false);
+    });
+  });
+
+  describe("isKnownTheme", () => {
+    it("should know built-ins and the names echarts/core registers itself", () => {
+      for (const name of ["light", "dark", "macarons", "default"]) {
+        expect(isKnownTheme(name)).toBe(true);
+      }
+      expect(isKnownTheme("not-registered")).toBe(false);
+    });
+  });
+
+  describe("resolveBuiltinAlias", () => {
+    it("should map light to the ECharts default theme and pass other names through", () => {
+      expect(resolveBuiltinAlias("light")).toBe("default");
+      expect(resolveBuiltinAlias("dark")).toBe("dark");
+      expect(resolveBuiltinAlias("my-theme")).toBe("my-theme");
     });
   });
 

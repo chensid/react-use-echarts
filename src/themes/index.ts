@@ -9,6 +9,22 @@ import { resetDevWarnings } from "../utils/dev-warnings";
 const BUILTIN_THEME_NAMES: ReadonlySet<string> = new Set<string>(["light", "dark", "macarons"]);
 
 /**
+ * Built-in names served natively by ECharts 6 — no registry call needed.
+ * `echarts/core` registers `"default"` and `"dark"`; `"light"` resolves to
+ * `"default"` (see `resolveBuiltinAlias`). Only `"macarons"` ships as JSON in
+ * the registry subpath.
+ * ECharts 6 原生提供的内置主题：core 已注册 "default" 与 "dark"，"light" 映射到
+ * "default"；只有 "macarons" 需要通过 registry 子入口注册。
+ */
+const NATIVE_BUILTIN_THEME_NAMES: ReadonlySet<string> = new Set<string>(["light", "dark"]);
+
+/**
+ * Names `echarts/core` registers itself, known without going through this library.
+ * echarts/core 自身注册的主题名。
+ */
+const ECHARTS_NATIVE_THEME_NAMES: ReadonlySet<string> = new Set<string>(["default", "dark"]);
+
+/**
  * Maximum entries kept in the content-hash cache before FIFO eviction.
  * 内容哈希缓存的上限，超出后按 FIFO 淘汰最旧条目。
  */
@@ -91,15 +107,34 @@ export function isBuiltinTheme(themeName: string): themeName is BuiltinTheme {
  * `echarts.registerTheme` 注册的名称会返回 `false`。
  */
 export function isKnownTheme(themeName: string): boolean {
-  return BUILTIN_THEME_NAMES.has(themeName) || state.knownThemeNames.has(themeName);
+  return (
+    BUILTIN_THEME_NAMES.has(themeName) ||
+    ECHARTS_NATIVE_THEME_NAMES.has(themeName) ||
+    state.knownThemeNames.has(themeName)
+  );
 }
 
 /**
- * Whether a built-in theme has been registered through the registry entry.
+ * Whether a built-in theme is usable: `"light"` / `"dark"` always are (ECharts 6
+ * provides them), `"macarons"` only after `registerBuiltinThemes()`.
  * Used internally for dev-time warnings without importing preset JSON.
  */
 export function isBuiltinThemeRegistered(themeName: BuiltinTheme): boolean {
-  return state.registeredBuiltinThemeNames.has(themeName);
+  return (
+    NATIVE_BUILTIN_THEME_NAMES.has(themeName) || state.registeredBuiltinThemeNames.has(themeName)
+  );
+}
+
+/**
+ * Map the `"light"` built-in to ECharts' own `"default"` theme. ECharts 6 does
+ * not register a `"light"` theme, and `instance.setTheme()` keeps the current
+ * theme for unregistered names, so switching `"dark"` → `"light"` needs a real
+ * registered name to land on.
+ * 将内置 "light" 映射为 ECharts 自带的 "default"：ECharts 6 未注册 "light"，而
+ * setTheme 遇到未注册名称会保留当前主题。
+ */
+export function resolveBuiltinAlias(themeName: string): string {
+  return themeName === "light" ? "default" : themeName;
 }
 
 /**
