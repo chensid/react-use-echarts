@@ -157,7 +157,7 @@ useEcharts({ option, theme: customTheme });
 
 ### Event Handling
 
-Supports shorthand (function) and full config (object with query/context). Known echarts events have their `params` type auto-inferred from `EChartsEventPayloadMap` — no manual cast needed.
+Supports shorthand (function) and full config (object with query/context). Known echarts events have their `params` type auto-inferred from `EChartsEventPayloadMap` — no manual cast needed. Typed events: the mouse events, `selectchanged`, `highlight` / `downplay`, `axisbreakchanged`, the `legend*` events, `datazoom` (range inline, or batched under `batch` for inside zoom), `timelinechanged` / `timelineplaychanged`, `rendered` and `finished`.
 
 ```tsx
 useEcharts({
@@ -169,7 +169,7 @@ useEcharts({
       handler: (params) => console.log("hovered", params.value),
       query: "series",
     },
-    // `params` is auto-typed as `SelectChangedPayload`
+    // `params` is auto-typed as `SelectChangedEvent`
     selectchanged: (params) => console.log("selection changed", params),
   },
 });

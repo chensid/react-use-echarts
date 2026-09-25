@@ -157,7 +157,7 @@ useEcharts({ option, theme: customTheme });
 
 ### 事件处理
 
-支持简写（函数）和完整配置（带 query/context 的对象）两种写法。已知 echarts 事件的 `params` 类型会从 `EChartsEventPayloadMap` 自动推导，无需手动断言。
+支持简写（函数）和完整配置（带 query/context 的对象）两种写法。已知 echarts 事件的 `params` 类型会从 `EChartsEventPayloadMap` 自动推导，无需手动断言。已提供类型的事件：鼠标事件、`selectchanged`、`highlight` / `downplay`、`axisbreakchanged`、`legend*` 系列事件、`datazoom`（范围直接在事件上，inside 缩放时批量放在 `batch` 中）、`timelinechanged` / `timelineplaychanged`、`rendered` 与 `finished`。
 
 ```tsx
 useEcharts({
@@ -169,7 +169,7 @@ useEcharts({
       handler: (params) => console.log("hovered", params.value),
       query: "series",
     },
-    // params 自动推导为 SelectChangedPayload
+    // params 自动推导为 SelectChangedEvent
     selectchanged: (params) => console.log("selection changed", params),
   },
 });

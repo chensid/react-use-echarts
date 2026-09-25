@@ -76,6 +76,17 @@ const documentedFinders: ChartFinder[] = [
 // @ts-expect-error — finder values keep ECharts' index query type.
 const badFinder: ChartFinder = { calendarIndex: { nested: true } };
 const layoutRect: NonNullable<ChartLayout>["rect"] = { x: 0, y: 0, width: 1, height: 1 };
+// Handler params are inferred for documented events without annotations.
+const typedEvents: EChartsEvents = {
+  legendselectchanged: (params) => params.selected[params.name] satisfies boolean | undefined,
+  legendselectall: (params) => params.legendIndex satisfies number[],
+  datazoom: (params) => (params.batch?.[0]?.start ?? params.start) satisfies number | undefined,
+  selectchanged: (params) => params.fromAction satisfies "select" | "unselect" | "toggleSelected",
+  rendered: (params) => params.elapsedTime satisfies number,
+  finished: () => undefined,
+  // @ts-expect-error — legend payloads carry `selected`, not `data`.
+  legendselected: (params) => params.data,
+};
 
 describe("public API types", () => {
   it("exposes the intended runtime API from the package root", () => {
@@ -104,5 +115,9 @@ describe("public API types", () => {
     expect(documentedFinders).toHaveLength(6);
     expect(badFinder).toBeDefined();
     expect(layoutRect.width).toBe(1);
+  });
+
+  it("infers payload types for documented events", () => {
+    expect(Object.keys(typedEvents)).toHaveLength(7);
   });
 });

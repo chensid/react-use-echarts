@@ -5,7 +5,7 @@ import type {
   Payload,
   ResizeOpts,
   ECElementEvent,
-  SelectChangedPayload,
+  SelectChangedEvent,
   HighlightPayload,
   DownplayPayload,
   AxisBreakChangedEvent,
@@ -88,6 +88,20 @@ export type EChartsEventConfig<TParams = unknown> =
       readonly context?: object;
     };
 
+/** Legend selection state keyed by legend item name. 图例名称 → 是否选中。 */
+type LegendSelectedMap = Record<string, boolean>;
+
+/** One zoom range in a `datazoom` event. `datazoom` 事件中的一个缩放范围。 */
+interface DataZoomEventRange {
+  dataZoomId?: string;
+  /** Start percentage, 0–100. */
+  start?: number;
+  /** End percentage, 0–100. */
+  end?: number;
+  startValue?: number | string | Date;
+  endValue?: number | string | Date;
+}
+
 /**
  * Map known echarts event names to their payload types.
  * 将已知 echarts 事件名映射到对应的 payload 类型。
@@ -120,12 +134,36 @@ export interface EChartsEventPayloadMap {
   contextmenu: ECElementEvent;
 
   // Selection lifecycle
-  selectchanged: SelectChangedPayload;
+  selectchanged: SelectChangedEvent;
   highlight: HighlightPayload;
   downplay: DownplayPayload;
 
   // Axis break
   axisbreakchanged: AxisBreakChangedEvent;
+
+  // Legend (shapes from the ECharts events docs, checked against legendAction)
+  legendselectchanged: { type: "legendselectchanged"; name: string; selected: LegendSelectedMap };
+  legendselected: { type: "legendselected"; name: string; selected: LegendSelectedMap };
+  legendunselected: { type: "legendunselected"; name: string; selected: LegendSelectedMap };
+  legendselectall: { type: "legendselectall"; selected: LegendSelectedMap; legendIndex: number[] };
+  legendinverseselect: {
+    type: "legendinverseselect";
+    selected: LegendSelectedMap;
+    legendIndex: number[];
+  };
+  legendscroll: { type: "legendscroll"; scrollDataIndex: number; legendId?: string };
+
+  // dataZoom: slider/toolbox zooms carry the range inline; inside (wheel/drag)
+  // zooms arrive batched as `{ type, batch: [...] }`.
+  datazoom: DataZoomEventRange & { type: "datazoom"; batch?: DataZoomEventRange[] };
+
+  // Timeline
+  timelinechanged: { type: "timelinechanged"; currentIndex: number };
+  timelineplaychanged: { type: "timelineplaychanged"; playState: boolean };
+
+  // Rendering lifecycle
+  rendered: { elapsedTime: number };
+  finished: undefined;
 }
 
 type KnownEChartsEvents = {
@@ -146,7 +184,7 @@ type KnownEChartsEvents = {
  * ```typescript
  * const events: EChartsEvents = {
  *   click: (params) => console.log(params.data),                  // params: ECElementEvent
- *   selectchanged: (params) => console.log(params.fromAction),    // params: SelectChangedPayload
+ *   selectchanged: (params) => console.log(params.fromAction),    // params: SelectChangedEvent
  *   mouseover: { handler: (e) => console.log(e), query: "series" },
  * };
  * ```
