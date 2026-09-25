@@ -13,7 +13,12 @@ import type { BuiltinTheme } from "../../types";
 import { __clearThemeCacheForTesting__ } from "../../themes";
 import { registerBuiltinThemes } from "../../themes/registry";
 import { __resetVisibilityCoordinatorForTesting__ } from "../../utils/visibility-coordinator";
-import { createMockInstance, MockResizeObserver, MockIntersectionObserver } from "../helpers";
+import {
+  boundProxy,
+  createMockInstance,
+  MockResizeObserver,
+  MockIntersectionObserver,
+} from "../helpers";
 import { resetDevWarnings } from "../../utils/dev-warnings";
 
 // Mock ECharts
@@ -296,7 +301,9 @@ describe("useEcharts", () => {
       expect(result.current.instance).toBe(mockInstance2);
       expect(mockInstance2.setOption).toHaveBeenCalledWith(option2, undefined);
       expect(mockInstance2.showLoading).toHaveBeenCalled();
-      expect(mockInstance2.on).toHaveBeenCalledWith("click", onClick, undefined);
+      expect(mockInstance2.on).toHaveBeenCalledWith("click", expect.any(Function), undefined);
+      boundProxy(mockInstance2, "click")("params");
+      expect(onClick).toHaveBeenCalledWith("params");
       expect(getGroupInstances("swapGroup")).toContain(mockInstance2);
       expect(getGroupInstances("swapGroup")).not.toContain(mockInstance1);
     });
@@ -329,7 +336,41 @@ describe("useEcharts", () => {
       expect(echarts.init).toHaveBeenCalledWith(element, "dark", expect.any(Object));
     });
 
-    it("should warn in development when a builtin theme is used before registration", () => {
+    it("should pass light through to ECharts, which falls back to its default theme", () => {
+      const element = document.createElement("div");
+      const mockInstance = createMockInstance(element);
+      (echarts.init as ReturnType<typeof vi.fn>).mockReturnValue(mockInstance);
+
+      const { result } = renderHook(() => useEcharts({ option: baseOption, theme: "light" }));
+      act(() => {
+        result.current.ref(element);
+      });
+
+      expect(echarts.init).toHaveBeenCalledWith(element, "light", expect.any(Object));
+    });
+    it("should not warn in development for light/dark, which ECharts 6 provides natively", () => {
+      const previousNodeEnv = process.env.NODE_ENV;
+      process.env.NODE_ENV = "development";
+      const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+
+      try {
+        for (const theme of ["light", "dark", "default"] as const) {
+          const element = document.createElement("div");
+          (echarts.init as ReturnType<typeof vi.fn>).mockReturnValue(createMockInstance(element));
+          const { result } = renderHook(() => useEcharts({ option: baseOption, theme }));
+          act(() => {
+            result.current.ref(element);
+          });
+        }
+
+        expect(warnSpy).not.toHaveBeenCalledWith(expect.stringContaining("theme"));
+      } finally {
+        warnSpy.mockRestore();
+        process.env.NODE_ENV = previousNodeEnv;
+      }
+    });
+
+    it("should warn in development when macarons is used before registration", () => {
       const previousNodeEnv = process.env.NODE_ENV;
       process.env.NODE_ENV = "development";
       const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
@@ -339,13 +380,13 @@ describe("useEcharts", () => {
         const mockInstance = createMockInstance(element);
         (echarts.init as ReturnType<typeof vi.fn>).mockReturnValue(mockInstance);
 
-        const { result } = renderHook(() => useEcharts({ option: baseOption, theme: "dark" }));
+        const { result } = renderHook(() => useEcharts({ option: baseOption, theme: "macarons" }));
         act(() => {
           result.current.ref(element);
         });
 
         expect(warnSpy).toHaveBeenCalledWith(
-          expect.stringContaining('built-in theme "dark" was not registered'),
+          expect.stringContaining('built-in theme "macarons" was not registered'),
         );
       } finally {
         warnSpy.mockRestore();
@@ -372,7 +413,7 @@ describe("useEcharts", () => {
 
         expect(warnSpy).toHaveBeenCalledWith(
           expect.stringContaining(
-            'theme "externally-registered-theme" is not built-in and was not registered',
+            'theme "externally-registered-theme" is not built-in and this library has not seen it registered',
           ),
         );
         // The name still reaches echarts.init untouched — the warning is advisory.
@@ -398,13 +439,13 @@ describe("useEcharts", () => {
         (echarts.init as ReturnType<typeof vi.fn>).mockReturnValue(mockInstance);
 
         registerBuiltinThemes();
-        const { result } = renderHook(() => useEcharts({ option: baseOption, theme: "dark" }));
+        const { result } = renderHook(() => useEcharts({ option: baseOption, theme: "macarons" }));
         act(() => {
           result.current.ref(element);
         });
 
         expect(warnSpy).not.toHaveBeenCalledWith(
-          expect.stringContaining('built-in theme "dark" was not registered'),
+          expect.stringContaining('built-in theme "macarons" was not registered'),
         );
       } finally {
         warnSpy.mockRestore();
@@ -412,7 +453,7 @@ describe("useEcharts", () => {
       }
     });
 
-    it("should register and use custom theme object", () => {
+    it("should pass a custom theme object straight to echarts.init without registering it", () => {
       const element = document.createElement("div");
       const mockInstance = createMockInstance(element);
       (echarts.init as ReturnType<typeof vi.fn>).mockReturnValue(mockInstance);
@@ -424,12 +465,34 @@ describe("useEcharts", () => {
         result.current.ref(element);
       });
 
-      expect(echarts.registerTheme).toHaveBeenCalledWith(
-        expect.stringContaining("__custom_"),
-        customTheme,
-      );
+      expect(echarts.init).toHaveBeenCalledWith(element, customTheme, expect.any(Object));
+      expect(echarts.registerTheme).not.toHaveBeenCalled();
     });
 
+    it("should not recreate the instance for a content-equal inline theme object", () => {
+      const element = document.createElement("div");
+      (echarts.init as ReturnType<typeof vi.fn>).mockReturnValue(createMockInstance(element));
+
+      const { result, rerender } = renderHook(
+        ({ color }: { color: string }) =>
+          useEcharts({ option: baseOption, theme: { color: [color] } }),
+        { initialProps: { color: "#111" } },
+      );
+      act(() => {
+        result.current.ref(element);
+      });
+
+      rerender({ color: "#111" });
+      expect(echarts.init).toHaveBeenCalledTimes(1);
+
+      rerender({ color: "#222" });
+      expect(echarts.init).toHaveBeenCalledTimes(2);
+      expect(echarts.init).toHaveBeenLastCalledWith(
+        element,
+        { color: ["#222"] },
+        expect.any(Object),
+      );
+    });
     it("should treat runtime theme=null as default theme without throwing", () => {
       // Public TS type forbids null, but JS callers (or escape hatches) can still
       // pass it. typeof null === "object", so without the nullish guard
@@ -706,7 +769,9 @@ describe("useEcharts", () => {
         result.current.ref(element);
       });
 
-      expect(mockInstance.on).toHaveBeenCalledWith("click", clickHandler, undefined);
+      expect(mockInstance.on).toHaveBeenCalledWith("click", expect.any(Function), undefined);
+      boundProxy(mockInstance, "click")("params");
+      expect(clickHandler).toHaveBeenCalledWith("params");
     });
 
     it("should bind events with query", () => {
@@ -724,7 +789,14 @@ describe("useEcharts", () => {
         result.current.ref(element);
       });
 
-      expect(mockInstance.on).toHaveBeenCalledWith("click", "series", clickHandler, undefined);
+      expect(mockInstance.on).toHaveBeenCalledWith(
+        "click",
+        "series",
+        expect.any(Function),
+        undefined,
+      );
+      boundProxy(mockInstance, "click")("params");
+      expect(clickHandler).toHaveBeenCalledWith("params");
     });
 
     it("should bind events with object query", () => {
@@ -743,7 +815,7 @@ describe("useEcharts", () => {
         result.current.ref(element);
       });
 
-      expect(mockInstance.on).toHaveBeenCalledWith("click", query, clickHandler, undefined);
+      expect(mockInstance.on).toHaveBeenCalledWith("click", query, expect.any(Function), undefined);
     });
 
     it("should bind events with empty string query", () => {
@@ -761,7 +833,7 @@ describe("useEcharts", () => {
         result.current.ref(element);
       });
 
-      expect(mockInstance.on).toHaveBeenCalledWith("click", "", clickHandler, undefined);
+      expect(mockInstance.on).toHaveBeenCalledWith("click", "", expect.any(Function), undefined);
     });
 
     it("should bind events with context", () => {
@@ -780,7 +852,11 @@ describe("useEcharts", () => {
         result.current.ref(element);
       });
 
-      expect(mockInstance.on).toHaveBeenCalledWith("click", clickHandler, context);
+      expect(mockInstance.on).toHaveBeenCalledWith("click", expect.any(Function), context);
+      // ECharts invokes the proxy with `context` as `this`; it is forwarded.
+      boundProxy(mockInstance, "click").call(context, "params");
+      expect(clickHandler).toHaveBeenCalledWith("params");
+      expect(clickHandler.mock.contexts[0]).toBe(context);
     });
 
     it("should unbind events on unmount", () => {
@@ -798,9 +874,10 @@ describe("useEcharts", () => {
         result.current.ref(element);
       });
 
+      const proxy = boundProxy(mockInstance, "click");
       unmount();
 
-      expect(mockInstance.off).toHaveBeenCalledWith("click", clickHandler);
+      expect(mockInstance.off).toHaveBeenCalledWith("click", proxy);
     });
 
     it("should route initial event bind errors through onError without breaking cleanup", () => {
@@ -830,7 +907,7 @@ describe("useEcharts", () => {
       expect(mockInstance.dispose).toHaveBeenCalled();
     });
 
-    it("should rebind events when onEvents changes", async () => {
+    it("should not rebind when only the handler changes, and call the latest handler", async () => {
       const element = document.createElement("div");
       const mockInstance = createMockInstance(element);
       (echarts.init as ReturnType<typeof vi.fn>).mockReturnValue(mockInstance);
@@ -839,31 +916,65 @@ describe("useEcharts", () => {
       const clickHandler2 = vi.fn();
 
       const { rerender, result } = renderHook(
-        ({ handler }) => useEcharts({ option: baseOption, onEvents: { click: { handler } } }),
+        // A fresh inline `onEvents` object every render, as most callers write it.
+        ({ handler }) => useEcharts({ option: baseOption, onEvents: { click: handler } }),
         { initialProps: { handler: clickHandler1 } },
       );
       act(() => {
         result.current.ref(element);
       });
+      const proxy = boundProxy(mockInstance, "click");
 
       rerender({ handler: clickHandler2 });
+      rerender({ handler: clickHandler2 });
 
-      await waitFor(() => {
-        expect(mockInstance.off).toHaveBeenCalledWith("click", clickHandler1);
-        expect(mockInstance.on).toHaveBeenCalledWith("click", clickHandler2, undefined);
-      });
+      expect(mockInstance.on).toHaveBeenCalledTimes(1);
+      expect(mockInstance.off).not.toHaveBeenCalled();
+
+      proxy("params");
+      expect(clickHandler2).toHaveBeenCalledWith("params");
+      expect(clickHandler1).not.toHaveBeenCalled();
     });
 
+    it("should rebind when an event is added or removed", async () => {
+      const element = document.createElement("div");
+      const mockInstance = createMockInstance(element);
+      (echarts.init as ReturnType<typeof vi.fn>).mockReturnValue(mockInstance);
+
+      const click = vi.fn();
+      const dblclick = vi.fn();
+
+      const { rerender, result } = renderHook(
+        ({ withDblclick }) =>
+          useEcharts({
+            option: baseOption,
+            onEvents: withDblclick ? { click, dblclick } : { click },
+          }),
+        { initialProps: { withDblclick: false } },
+      );
+      act(() => {
+        result.current.ref(element);
+      });
+      const firstClickProxy = boundProxy(mockInstance, "click");
+
+      rerender({ withDblclick: true });
+
+      await waitFor(() => {
+        expect(mockInstance.off).toHaveBeenCalledWith("click", firstClickProxy);
+        expect(mockInstance.on).toHaveBeenCalledWith("dblclick", expect.any(Function), undefined);
+      });
+      boundProxy(mockInstance, "dblclick")("params");
+      expect(dblclick).toHaveBeenCalledWith("params");
+    });
     it("should route dynamic rebind bind errors through onError", async () => {
       const element = document.createElement("div");
       const mockInstance = createMockInstance(element);
       (echarts.init as ReturnType<typeof vi.fn>).mockReturnValue(mockInstance);
 
-      const handler1 = vi.fn();
-      const handler2 = vi.fn();
+      const handler = vi.fn();
       const bindError = new Error("rebind on() failed");
 
-      // First mount binds handler1 successfully; rerender with handler2 fails on bind.
+      // First mount binds successfully; the query change rebinds and fails.
       mockInstance.on.mockImplementationOnce(() => {});
       mockInstance.on.mockImplementationOnce(() => {
         throw bindError;
@@ -871,23 +982,23 @@ describe("useEcharts", () => {
 
       const onError = vi.fn();
       const { rerender, result } = renderHook(
-        ({ handler }) =>
-          useEcharts({ option: baseOption, onEvents: { click: { handler } }, onError }),
-        { initialProps: { handler: handler1 } },
+        ({ query }) =>
+          useEcharts({ option: baseOption, onEvents: { click: { handler, query } }, onError }),
+        { initialProps: { query: "series" } },
       );
       act(() => {
         result.current.ref(element);
       });
+      const firstProxy = boundProxy(mockInstance, "click");
 
-      rerender({ handler: handler2 });
+      rerender({ query: "xAxis" });
 
       await waitFor(() => {
         expect(onError).toHaveBeenCalledWith(bindError);
       });
-      // The old handler must still have been off()'d so it doesn't double-fire.
-      expect(mockInstance.off).toHaveBeenCalledWith("click", handler1);
+      // The old proxy must still have been off()'d so it doesn't double-fire.
+      expect(mockInstance.off).toHaveBeenCalledWith("click", firstProxy);
     });
-
     it("should clear bound events when onEvents transitions to undefined", async () => {
       const element = document.createElement("div");
       const mockInstance = createMockInstance(element);
@@ -904,11 +1015,12 @@ describe("useEcharts", () => {
         result.current.ref(element);
       });
 
-      // Drop onEvents — must off the previously-bound handler so cleanup
+      // Drop onEvents — must off the previously-bound proxy so cleanup
       // becomes a no-op afterward.
+      const proxy = boundProxy(mockInstance, "click");
       rerender({ events: undefined });
       await waitFor(() => {
-        expect(mockInstance.off).toHaveBeenCalledWith("click", handler);
+        expect(mockInstance.off).toHaveBeenCalledWith("click", proxy);
       });
 
       mockInstance.off.mockClear();
@@ -917,10 +1029,9 @@ describe("useEcharts", () => {
       expect(mockInstance.off).not.toHaveBeenCalled();
     });
 
-    it("should unbind old events before binding when the handler reference is reused", async () => {
-      // ECharts off(name, handler) ignores query/context — so a same-handler
-      // rebind from query A → query B must off() BEFORE on(); otherwise the
-      // unbind would remove the freshly-bound handler.
+    it("should rebind with a fresh proxy when the query changes for the same handler", async () => {
+      // ECharts off(name, handler) ignores query/context. Each binding gets
+      // its own proxy, so unbinding the old one can never remove the new one.
       const element = document.createElement("div");
       const mockInstance = createMockInstance(element);
       (echarts.init as ReturnType<typeof vi.fn>).mockReturnValue(mockInstance);
@@ -955,8 +1066,13 @@ describe("useEcharts", () => {
         // Rebind path must run off() before the new on().
         expect(sequence).toEqual(["on", "off", "on"]);
       });
-      expect(mockInstance.off).toHaveBeenLastCalledWith("click", handler);
-      expect(mockInstance.on).toHaveBeenLastCalledWith("click", "series1", handler, undefined);
+      const [oldProxy, newProxy] = [
+        boundProxy(mockInstance, "click", 0),
+        boundProxy(mockInstance, "click", 1),
+      ];
+      expect(newProxy).not.toBe(oldProxy);
+      expect(mockInstance.off).toHaveBeenLastCalledWith("click", oldProxy);
+      expect(mockInstance.on).toHaveBeenLastCalledWith("click", "series1", newProxy, undefined);
     });
 
     it("should still release the cached instance when cleanup unbind throws", () => {
@@ -2029,7 +2145,7 @@ describe("useEcharts", () => {
       });
     });
 
-    describe("convertToPixel / convertFromPixel / containPixel", () => {
+    describe("convertToPixel / convertToLayout / convertFromPixel / containPixel", () => {
       it("forward finder + value to instance", () => {
         const { element, mockInstance } = setupReady();
         mockInstance.convertToPixel.mockReturnValue([100, 200]);
@@ -2043,17 +2159,48 @@ describe("useEcharts", () => {
 
         const finder = { seriesIndex: 0 };
         expect(result.current.convertToPixel(finder, [10, 20])).toEqual([100, 200]);
-        expect(mockInstance.convertToPixel).toHaveBeenCalledWith(finder, [10, 20]);
+        expect(mockInstance.convertToPixel).toHaveBeenCalledWith(finder, [10, 20], undefined);
         expect(result.current.convertToPixel("series", 10)).toEqual([100, 200]);
-        expect(mockInstance.convertToPixel).toHaveBeenCalledWith("series", 10);
+        expect(mockInstance.convertToPixel).toHaveBeenCalledWith("series", 10, undefined);
 
         expect(result.current.convertFromPixel(finder, [100, 200])).toEqual([1, 2]);
         expect(result.current.containPixel(finder, [50, 60])).toBe(true);
       });
 
+      it("forward the coordinate-system opt and support convertToLayout", () => {
+        const { element, mockInstance } = setupReady();
+        const layout = { rect: { x: 1, y: 2, width: 3, height: 4 } };
+        mockInstance.convertToLayout.mockReturnValue(layout);
+
+        const { result } = renderHook(() => useEcharts({ option: baseOption }));
+        act(() => {
+          result.current.ref(element);
+        });
+
+        const matrix = { matrixIndex: 0 };
+        const opt = { clamp: 1 };
+        result.current.convertToPixel(matrix, ["AA", "NN"], opt);
+        expect(mockInstance.convertToPixel).toHaveBeenCalledWith(matrix, ["AA", "NN"], opt);
+        // Called as a method, so ECharts' `this` is the instance.
+        expect(mockInstance.convertToPixel.mock.contexts[0]).toBe(mockInstance);
+
+        result.current.convertFromPixel(matrix, [10, 20], opt);
+        expect(mockInstance.convertFromPixel).toHaveBeenCalledWith(matrix, [10, 20], opt);
+        expect(mockInstance.convertFromPixel.mock.contexts[0]).toBe(mockInstance);
+
+        expect(result.current.convertToLayout(matrix, [["AA", "CC"], "MM"], opt)).toBe(layout);
+        expect(mockInstance.convertToLayout).toHaveBeenCalledWith(
+          matrix,
+          [["AA", "CC"], "MM"],
+          opt,
+        );
+        expect(result.current.convertToLayout({ calendarIndex: 0 }, "2021-01-01")).toBe(layout);
+      });
+
       it("return undefined / false when instance is not initialized", () => {
         const { result } = renderHook(() => useEcharts({ option: baseOption }));
         expect(result.current.convertToPixel("series", 10)).toBeUndefined();
+        expect(result.current.convertToLayout({ matrixIndex: 0 }, [0, 0])).toBeUndefined();
         expect(result.current.convertFromPixel("series", 10)).toBeUndefined();
         expect(result.current.containPixel("series", [10, 20])).toBe(false);
       });
@@ -2127,7 +2274,9 @@ describe("useEcharts", () => {
         result.current.ref(element);
       });
 
-      expect(mockInstance.on).toHaveBeenCalledWith("click", clickHandler, undefined);
+      expect(mockInstance.on).toHaveBeenCalledWith("click", expect.any(Function), undefined);
+      boundProxy(mockInstance, "click")("params");
+      expect(clickHandler).toHaveBeenCalledWith("params");
     });
 
     it("should unbind function shorthand events on unmount", () => {
@@ -2143,9 +2292,10 @@ describe("useEcharts", () => {
         result.current.ref(element);
       });
 
+      const proxy = boundProxy(mockInstance, "click");
       unmount();
 
-      expect(mockInstance.off).toHaveBeenCalledWith("click", clickHandler);
+      expect(mockInstance.off).toHaveBeenCalledWith("click", proxy);
     });
 
     it("should support mixed shorthand and full config", () => {
@@ -2165,13 +2315,17 @@ describe("useEcharts", () => {
         result.current.ref(element);
       });
 
-      expect(mockInstance.on).toHaveBeenCalledWith("click", clickHandler, undefined);
+      expect(mockInstance.on).toHaveBeenCalledWith("click", expect.any(Function), undefined);
       expect(mockInstance.on).toHaveBeenCalledWith(
         "mouseover",
         "series",
-        mouseoverHandler,
+        expect.any(Function),
         undefined,
       );
+      boundProxy(mockInstance, "click")("c");
+      boundProxy(mockInstance, "mouseover")("m");
+      expect(clickHandler).toHaveBeenCalledWith("c");
+      expect(mouseoverHandler).toHaveBeenCalledWith("m");
     });
   });
 
@@ -2735,65 +2889,48 @@ describe("useEcharts", () => {
       expect(echarts.init).toHaveBeenCalled();
     });
 
-    it("should reuse cached key when same circular theme is used in a new hook instance", () => {
+    it("should keep the instance for the same circular theme reference", () => {
       const circularTheme: Record<string, unknown> = { color: ["#def"] };
       circularTheme.self = circularTheme;
 
-      // First hook instance — registers the circular theme ID
-      const el1 = document.createElement("div");
-      const mock1 = createMockInstance(el1);
-      (echarts.init as ReturnType<typeof vi.fn>).mockReturnValue(mock1);
+      const element = document.createElement("div");
+      (echarts.init as ReturnType<typeof vi.fn>).mockReturnValue(createMockInstance(element));
 
-      const hook1 = renderHook(() => useEcharts({ option: baseOption, theme: circularTheme }));
+      const { result, rerender } = renderHook(() =>
+        useEcharts({ option: baseOption, theme: circularTheme }),
+      );
       act(() => {
-        hook1.result.current.ref(el1);
+        result.current.ref(element);
       });
-      hook1.unmount();
+      rerender();
 
-      // Second hook instance — should hit WeakMap cache for the same circular theme
-      const el2 = document.createElement("div");
-      const mock2 = createMockInstance(el2);
-      (echarts.init as ReturnType<typeof vi.fn>).mockReturnValue(mock2);
-
-      const hook2 = renderHook(() => useEcharts({ option: baseOption, theme: circularTheme }));
-      act(() => {
-        hook2.result.current.ref(el2);
-      });
-
-      expect(echarts.registerTheme).toHaveBeenCalledTimes(1);
-      const firstThemeName = (echarts.init as ReturnType<typeof vi.fn>).mock.calls[0]![1];
-      const secondThemeName = (echarts.init as ReturnType<typeof vi.fn>).mock.calls[1]![1];
-      expect(firstThemeName).toBe(secondThemeName);
+      expect(echarts.init).toHaveBeenCalledTimes(1);
+      expect(echarts.init).toHaveBeenCalledWith(element, circularTheme, expect.any(Object));
+      expect(echarts.registerTheme).not.toHaveBeenCalled();
     });
-
-    it("should assign distinct IDs to distinct circular theme objects", () => {
+    it("should recreate the instance when switching between distinct circular themes", () => {
       const theme1: Record<string, unknown> = { color: ["#111"] };
       theme1.self = theme1;
       const theme2: Record<string, unknown> = { color: ["#222"] };
       theme2.self = theme2;
 
-      const el1 = document.createElement("div");
-      const mock1 = createMockInstance(el1);
-      (echarts.init as ReturnType<typeof vi.fn>).mockReturnValueOnce(mock1);
+      const element = document.createElement("div");
+      (echarts.init as ReturnType<typeof vi.fn>)
+        .mockReturnValueOnce(createMockInstance(element))
+        .mockReturnValueOnce(createMockInstance(element));
 
-      const hook1 = renderHook(() => useEcharts({ option: baseOption, theme: theme1 }));
+      const { result, rerender } = renderHook(
+        ({ theme }: { theme: object }) => useEcharts({ option: baseOption, theme }),
+        { initialProps: { theme: theme1 as object } },
+      );
       act(() => {
-        hook1.result.current.ref(el1);
+        result.current.ref(element);
       });
 
-      const el2 = document.createElement("div");
-      const mock2 = createMockInstance(el2);
-      (echarts.init as ReturnType<typeof vi.fn>).mockReturnValueOnce(mock2);
+      rerender({ theme: theme2 });
 
-      const hook2 = renderHook(() => useEcharts({ option: baseOption, theme: theme2 }));
-      act(() => {
-        hook2.result.current.ref(el2);
-      });
-
-      expect(echarts.registerTheme).toHaveBeenCalledTimes(2);
-      const firstThemeName = (echarts.init as ReturnType<typeof vi.fn>).mock.calls[0]![1];
-      const secondThemeName = (echarts.init as ReturnType<typeof vi.fn>).mock.calls[1]![1];
-      expect(firstThemeName).not.toBe(secondThemeName);
+      expect(echarts.init).toHaveBeenCalledTimes(2);
+      expect(echarts.init).toHaveBeenLastCalledWith(element, theme2, expect.any(Object));
     });
   });
 

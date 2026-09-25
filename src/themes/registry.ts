@@ -4,21 +4,17 @@ import * as echarts from "echarts/core";
 import type { BuiltinTheme } from "../types";
 import { isBuiltinThemeRegistered, markBuiltinThemeRegistered } from "./index";
 
-// Import theme presets (heavy — ~20KB JSON)
-import lightTheme from "./presets/light.json";
-import darkTheme from "./presets/dark.json";
+// ECharts 6 ships "dark" natively and "light" maps to its "default" theme, so
+// only macarons needs preset JSON.
 import macaronsTheme from "./presets/macarons.json";
 
-const builtinThemes: ReadonlyArray<readonly [BuiltinTheme, object]> = [
-  ["light", lightTheme],
-  ["dark", darkTheme],
-  ["macarons", macaronsTheme],
-];
+const builtinThemes: ReadonlyArray<readonly [BuiltinTheme, object]> = [["macarons", macaronsTheme]];
 
 /**
- * Register all built-in themes with ECharts.
- * Call once at app startup to use built-in themes like "dark", "light", "macarons".
- * 向 ECharts 注册所有内置主题。在应用入口调用一次即可使用内置主题。
+ * Register the built-in themes that ECharts 6 does not provide itself
+ * (currently `"macarons"`). `"light"` and `"dark"` work without this call.
+ * Idempotent; call once at app startup.
+ * 注册 ECharts 6 未自带的内置主题（目前为 "macarons"）。"light" / "dark" 无需调用。
  */
 export function registerBuiltinThemes(): void {
   for (const [themeName, themeConfig] of builtinThemes) {

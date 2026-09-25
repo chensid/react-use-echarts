@@ -134,14 +134,16 @@ function MyChart() {
 
 ### 主题
 
-内置主题需在应用入口注册一次：
+`"light"` 与 `"dark"` 开箱即用——直接使用 ECharts 6 自带主题（`"light"` 即 ECharts 的 `"default"` 主题）。`"macarons"` 需在应用入口注册一次：
 
 ```tsx
+// ECharts 6 原生主题，无需注册
+useEcharts({ option, theme: "dark" });
+
+// macarons 以预设 JSON 形式放在独立入口
 import { registerBuiltinThemes } from "react-use-echarts/themes/registry";
 registerBuiltinThemes();
-
-// 内置主题
-useEcharts({ option, theme: "dark" });
+useEcharts({ option, theme: "macarons" });
 
 // 任意通过 echarts.registerTheme 注册的主题
 useEcharts({ option, theme: "vintage" });
@@ -155,7 +157,7 @@ useEcharts({ option, theme: customTheme });
 
 ### 事件处理
 
-支持简写（函数）和完整配置（带 query/context 的对象）两种写法。已知 echarts 事件的 `params` 类型会从 `EChartsEventPayloadMap` 自动推导，无需手动断言。
+支持简写（函数）和完整配置（带 query/context 的对象）两种写法。已知 echarts 事件的 `params` 类型会从 `EChartsEventPayloadMap` 自动推导，无需手动断言。已提供类型的事件：鼠标事件、`selectchanged`、`highlight` / `downplay`、`axisbreakchanged`、`legend*` 系列事件、`datazoom`（范围直接在事件上，inside 缩放时批量放在 `batch` 中）、`timelinechanged` / `timelineplaychanged`、`rendered` 与 `finished`。
 
 ```tsx
 useEcharts({
@@ -167,7 +169,7 @@ useEcharts({
       handler: (params) => console.log("hovered", params.value),
       query: "series",
     },
-    // params 自动推导为 SelectChangedPayload
+    // params 自动推导为 SelectChangedEvent
     selectchanged: (params) => console.log("selection changed", params),
   },
 });
@@ -309,7 +311,7 @@ export default function Page() {
 
 - **容器必须有明确尺寸** — 高度为 0 时图表不可见；请为容器设置 `height`（以及 `width` 如果不是 100%）。
 - **不要忘记注册 ECharts 模块** — `useEcharts()` 在 ECharts 全局 registry 上初始化实例，所以图表/组件/渲染器/特性必须先注册（通过 `registerEchartsFull()` 或 `echarts.use([...])`）。忘记注册通常表现为 `Renderer 'undefined' is not imported` 报错，或图表静默不渲染；参见 [注册 ECharts 模块](#注册-echarts-模块)。开发模式下若 init 抛出 `… is not a constructor`，库还会打印一次性提示指向此处。
-- **保持 `onEvents` 内容稳定** — 只要 handler/query/context 的引用不变，内联外层对象也会被去重；但内联 lambda 会产生新 handler 并触发重新绑定。频繁渲染的图表应缓存或提升 handler。
+- **内联 `onEvents` 无需缓存** — 每个事件名只绑定一次代理函数，触发时调用最新一次渲染中的 handler，因此 handler 引用变化（内联 lambda、闭包捕获新 state）既不会重新绑定，也不会读到过期的 props。只有增删事件名、`query` 变化（浅比较）或 `context` 引用变化才会重新绑定。
 - **不要让多个 `useEcharts` 共享同一个 DOM 元素** — 实例缓存会复用同一个 ECharts 实例并在开发模式下打印警告；多个 hook 的更新会互相覆盖。
 - **`initOpts` 和自定义 `theme` 对象按序列化内容生成 key** — 对可序列化对象，只有 `JSON.stringify` 输出相同时才视为相同；属性插入顺序会影响输出，因此语义等价但顺序不同的对象仍可能重建实例。memo 能避免重复序列化并让意图更清楚。不要原地修改这两个对象：相同引用会被视为未变化。
 - **`option` 更新由引用驱动** — 每个新的 `option` 引用都会调用 `setOption`；原地修改同一对象不会被观察到。父组件频繁渲染时应缓存昂贵 option，并在图表数据变化时替换外层对象。
@@ -395,13 +397,14 @@ export default function Page() {
 
 **坐标转换**
 
-| 方法               | 类型                                                                                                                                                   | 说明                                                 |
-| ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------- |
-| `convertToPixel`   | `(finder: ChartFinder, value: ChartScaleValue \| Array<ChartScaleValue \| ChartScaleValue[] \| null \| undefined>) => number \| number[] \| undefined` | 逻辑坐标 → 像素坐标                                  |
-| `convertFromPixel` | `(finder: ChartFinder, value: number \| number[]) => number \| number[] \| undefined`                                                                  | 像素坐标 → 逻辑坐标                                  |
-| `containPixel`     | `(finder: ChartFinder, value: number[]) => boolean`                                                                                                    | 像素点是否落在指定组件内（实例未初始化时返回 false） |
+| 方法               | 类型                                                                                                                                                                                | 说明                                                        |
+| ------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------- |
+| `convertToPixel`   | `(finder: ChartFinder, value: ChartScaleValue \| Array<ChartScaleValue \| ChartScaleValue[] \| null \| undefined>, opt?: unknown) => number \| number[] \| undefined`               | 逻辑坐标 → 像素坐标                                         |
+| `convertToLayout`  | `(finder: ChartFinder, value: ChartScaleValue \| null \| undefined \| Array<ChartScaleValue \| ChartScaleValue[] \| null \| undefined>, opt?: unknown) => ChartLayout \| undefined` | calendar / matrix 坐标 → 单元格布局（`rect` 等）；ECharts 6 |
+| `convertFromPixel` | `(finder: ChartFinder, value: number \| number[], opt?: unknown) => number \| number[] \| undefined`                                                                                | 像素坐标 → 逻辑坐标                                         |
+| `containPixel`     | `(finder: ChartFinder, value: number[]) => boolean`                                                                                                                                 | 像素点是否落在指定组件内（实例未初始化时返回 false）        |
 
-`ChartFinder` 为 `string | { seriesIndex?, seriesId?, …, geoIndex?, … }` —— 字符串简写或查询对象。`ChartScaleValue` 为 `number | string | Date`。
+`ChartFinder` 为字符串简写（`"series"`）或以任意 `<组件类型>Index | Id | Name` 为键的查询对象（`seriesIndex`、`calendarIndex`、`matrixId` 等，与 ECharts 文档一致）。`ChartScaleValue` 为 `number | string | Date`。`opt` 由坐标系定义，例如 `matrix` 的 `{ clamp, ignoreMergeCells }`。`ChartLayout` 为 ECharts 返回的 `{ rect?, contentRect?, matrixXYLocatorRange? }`。
 
 ### 其他导出
 
@@ -409,13 +412,13 @@ export default function Page() {
 import { useLazyInit } from "react-use-echarts"; // 独立的懒加载 Hook -> { ref, isInView }
 import { mergeRefs } from "react-use-echarts"; // 将多个 ref 合并为一个 callback ref
 import { isBuiltinTheme, isKnownTheme, registerCustomTheme } from "react-use-echarts"; // 主题工具（不含 JSON）
-import { registerBuiltinThemes } from "react-use-echarts/themes/registry"; // 内置主题 JSON（~20KB）
+import { registerBuiltinThemes } from "react-use-echarts/themes/registry"; // macarons 主题 JSON（~7KB）
 import { registerEchartsFull } from "react-use-echarts/preset-full"; // 一行注册全套（参见「注册 ECharts 模块」）
 
 // 所有导出类型：UseEchartsOptions, UseEchartsReturn, UseLazyInitReturn,
 // EChartProps, EChartHandle, EChartsEvents, EChartsEventConfig, EChartsEventHandler,
 // EChartsEventPayloadMap, EChartsInitOpts, BuiltinTheme, LoadingOption,
-// ChartFinder, ChartScaleValue, Payload。
+// ChartFinder, ChartLayout, ChartScaleValue, Payload。
 // EChartsOption、SetOptionOpts、ResizeOpts 也从此处转出（源自 "echarts" 包），
 // 可与上面的类型一起从 react-use-echarts 统一导入，无需再单独 import "echarts"。
 ```
@@ -435,7 +438,7 @@ return <div ref={mergeRefs(ref, myRef)} style={{ height: 400 }} />;
 | `echarts-for-react`       | `react-use-echarts`                       | 说明                                                                                                                                                              |
 | ------------------------- | ----------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `option`                  | `option`                                  | 一致                                                                                                                                                              |
-| `theme`                   | `theme`                                   | 一致；内置主题需先调用 `registerBuiltinThemes()`（见[主题](#主题)）                                                                                               |
+| `theme`                   | `theme`                                   | 一致；`"macarons"` 需先调用 `registerBuiltinThemes()`（见[主题](#主题)）                                                                                          |
 | `notMerge` / `lazyUpdate` | `setOptionOpts: { notMerge, lazyUpdate }` | 合并为单个对象传给 `setOption`                                                                                                                                    |
 | `showLoading`             | `showLoading`                             | 一致                                                                                                                                                              |
 | `loadingOption`           | `loadingOption`                           | 一致                                                                                                                                                              |

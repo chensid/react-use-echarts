@@ -22,6 +22,7 @@ export function createMockInstance(element?: HTMLElement) {
     renderToSVGString: vi.fn(() => "<svg></svg>"),
     getSvgDataURL: vi.fn(() => "data:image/svg+xml;base64,svg-mock"),
     convertToPixel: vi.fn(() => [10, 20]),
+    convertToLayout: vi.fn(() => ({ rect: { x: 0, y: 0, width: 10, height: 10 } })),
     convertFromPixel: vi.fn(() => [1, 2]),
     containPixel: vi.fn(() => false),
   };
@@ -57,4 +58,19 @@ export class MockIntersectionObserver {
       this as unknown as IntersectionObserver,
     );
   });
+}
+
+/**
+ * The proxy the hook registered via `on(eventName, …)` (the n-th such call,
+ * last by default). The hook binds proxies that forward to the latest
+ * `onEvents` handler, so tests invoke this instead of matching the handler.
+ */
+export function boundProxy(
+  instance: ReturnType<typeof createMockInstance>,
+  eventName: string,
+  nth = -1,
+): (this: unknown, params: unknown) => void {
+  const call = instance.on.mock.calls.filter((args) => args[0] === eventName).at(nth);
+  if (!call) throw new Error(`no on("${eventName}", …) call recorded`);
+  return call[call.length - 2] as (this: unknown, params: unknown) => void;
 }

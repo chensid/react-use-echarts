@@ -3,6 +3,7 @@ import * as echarts from "echarts/core";
 import type { ECharts, SetOptionOpts } from "echarts/core";
 import type { EChartsOption } from "echarts";
 import type {
+  ChartFinder,
   EChartsEvents,
   EChartsInitOpts,
   UseEchartsOptions,
@@ -15,12 +16,7 @@ import {
   releaseCachedInstance,
 } from "../../utils/instance-cache";
 import { updateGroup } from "../../utils/connect";
-import {
-  getOrRegisterCustomTheme,
-  isBuiltinTheme,
-  isBuiltinThemeRegistered,
-  isKnownTheme,
-} from "../../themes";
+import { isBuiltinTheme, isBuiltinThemeRegistered, isKnownTheme } from "../../themes";
 import { shallowEqual } from "../../utils/shallow-equal";
 import { computeStableKey } from "../../utils/stable-key";
 import {
@@ -29,25 +25,18 @@ import {
   warnedMissingRegistration,
 } from "../../utils/dev-warnings";
 import { routeImperativeError } from "../../utils/error";
-import { bindEvents, unbindEvents, eventsEqual } from "./event-utils";
+import { bindEvents, bindingsMatch, unbindEvents, type BoundEvents } from "./event-utils";
 
 /**
- * Resolve theme to a registered ECharts theme name (has side effects).
- * Must only be called inside effects, not during render.
- * 将主题解析为已注册的 ECharts 主题名称（有副作用，仅可在 effect 内调用）。
- *
- * @param themeKey Pre-computed key from computeStableKey — passed as contentHash
- *   to avoid redundant JSON.stringify inside getOrRegisterCustomTheme.
- *   `null` only for nullish theme; object themes always get a non-null key
- *   (JSON string or per-reference id), so the object branch below can assert it.
+ * Resolve the `theme` prop to what `echarts.init` accepts: a theme name, a
+ * theme object (ECharts clones it, so it is passed through unregistered), or
+ * `null` for the default theme. Emits dev-only warnings for unregistered names,
+ * so call it from effects only.
+ * 将 theme 解析为 echarts.init 接受的值：主题名、主题对象（ECharts 会克隆，无需注册）
+ * 或 null（默认主题）。会输出 dev 警告，仅在 effect 内调用。
  */
-function resolveThemeName(
-  theme: string | object | undefined,
-  themeKey: string | null,
-): string | null {
-  // Public type forbids null, but JS callers can still pass it. typeof null
-  // is "object" so without this guard we'd hit getOrRegisterCustomTheme(null)
-  // and throw inside the WeakMap path — outside the init effect's try/catch.
+function resolveTheme(theme: string | object | undefined): string | object | null {
+  // Public type forbids null, but JS callers can still pass it (typeof null is "object").
   if (theme == null) return null;
   if (typeof theme === "string") {
     if (
@@ -60,8 +49,8 @@ function resolveThemeName(
       warnedThemeNames.add(theme);
       console.warn(
         `react-use-echarts: built-in theme "${theme}" was not registered. ` +
-          `Import registerBuiltinThemes() from "react-use-echarts/themes/registry" and call it once before using built-in themes. ` +
-          `Unregistered themes silently fall back to the default theme.`,
+          `Import registerBuiltinThemes() from "react-use-echarts/themes/registry" and call it once before using it ` +
+          `("light" and "dark" need no registration). Unregistered themes are ignored by ECharts.`,
       );
     } else if (
       process.env.NODE_ENV !== "production" &&
@@ -71,17 +60,14 @@ function resolveThemeName(
     ) {
       warnedThemeNames.add(theme);
       console.warn(
-        `react-use-echarts: theme "${theme}" is not built-in and was not registered via registerCustomTheme(). ` +
-          `If you registered it directly with echarts.registerTheme(), switch to registerCustomTheme() to silence this warning. ` +
-          `Unknown names silently fall back to the default theme.`,
+        `react-use-echarts: theme "${theme}" is not built-in and this library has not seen it registered. ` +
+          `If you registered it with echarts.registerTheme(), it works as-is; registerCustomTheme() does the same and silences this warning. ` +
+          `Otherwise check the name for typos: ECharts ignores unregistered themes.`,
       );
     }
     return theme;
   }
-  if (typeof theme !== "object") return null;
-  // computeStableKey returns non-null for any object (JSON string or per-ref
-  // fallback id), so themeKey is guaranteed populated on this branch.
-  return getOrRegisterCustomTheme(theme, themeKey!);
+  return typeof theme === "object" ? theme : null;
 }
 
 function warnZeroSizeContainer(element: HTMLElement): void {
@@ -186,18 +172,30 @@ interface ChartCoreConfig {
 }
 
 /**
- * Fields read by the imperative API (`withInstance` closure, created inside
- * the `useMemo([element])` block that produces the API surface).
- * `useEffectEvent` is forbidden outside Effects, so the imperative path keeps
- * a ref-sync bridge for the two values it needs:
+ * Fields read outside Effects, where `useEffectEvent` is unavailable (it also
+ * throws when invoked during render, which an ECharts event triggered from
+ * someone's render would do). Synced by a ref bridge:
  *   - `onError`: routed via `routeImperativeError` on imperative throws
  *   - `setOptionOpts`: merged with caller-supplied opts in imperative setOption
+ *   - `onEvents`: read by the event proxies when ECharts fires
  * Effect-context error routing uses `useEffectEvent` directly — no ref needed.
  */
 interface ImperativeLatest {
   setOptionOpts: SetOptionOpts | undefined;
   onError: ((e: unknown) => void) | undefined;
+  onEvents: EChartsEvents | undefined;
 }
+
+// ECharts' finder typing omits documented keys such as `calendarIndex`
+// (ChartFinder widens it), and its convertToPixel / convertFromPixel typings
+// omit the third `opt` that the runtime and API docs accept.
+type EChartsFinder = Parameters<ECharts["containPixel"]>[0];
+type ConvertWithOpt = (
+  this: ECharts,
+  finder: ChartFinder,
+  value: unknown,
+  opt?: unknown,
+) => number | number[];
 
 // `ref` is owned by the outer `useEcharts` (callback-ref + cleanup lives
 // there); useChartCore returns everything else from the public surface.
@@ -230,25 +228,22 @@ export function useChartCore(
     onError,
   } = config;
 
-  // --- Imperative-only latest ref: 2 fields used by `withInstance` (created
-  // inside the `useMemo([element])` API block, NOT an effect). `useEffectEvent`
-  // cannot be called outside Effects, so the imperative path still needs a
-  // ref-sync bridge. All other config fields are either reactive deps in
-  // their owning effect or captured via closure inside the lifecycle effect.
+  // --- Latest ref for the 3 fields read outside Effects (see ImperativeLatest).
+  // All other config fields are either reactive deps in their owning effect or
+  // captured via closure inside the lifecycle effect.
   const latestRef = useRef<ImperativeLatest>(null!);
   if (latestRef.current === null) {
-    latestRef.current = { setOptionOpts, onError };
+    latestRef.current = { setOptionOpts, onError, onEvents };
   }
 
-  // Sync the two fields every render via a layout effect — keeps the committed
-  // timing the imperative API depends on (the closure only reads latestRef
-  // post-commit, from event handlers / imperative calls). Mutate the existing
-  // object in place rather than allocating a fresh `{ setOptionOpts, onError }`
-  // each render: the ref identity is stable and never read during render, so
-  // in-place writes are sufficient and save one allocation per render per chart.
+  // Sync every render via a layout effect, so readers (imperative calls, event
+  // proxies) see committed values. Declared before the lifecycle effect so the
+  // first bind already reads this commit's handlers. Mutated in place: the ref
+  // is never read during render.
   useLayoutEffect(() => {
     latestRef.current.setOptionOpts = setOptionOpts;
     latestRef.current.onError = onError;
+    latestRef.current.onEvents = onEvents;
   });
 
   // --- Effect-context error routing. `useEffectEvent` reads the latest
@@ -261,9 +256,9 @@ export function useChartCore(
   });
 
   // --- Internal shared state ---
-  // Event map currently bound to the instance (undefined when none bound).
+  // Proxies currently bound to the instance (undefined when none bound).
   // Used by Event Rebinding effect to dedup and unbind on prop changes.
-  const lastBoundRef = useRef<EChartsEvents | undefined>(undefined);
+  const lastBoundRef = useRef<BoundEvents | undefined>(undefined);
   const lastAppliedRef = useRef<LastApplied | null>(null);
   const lastLoadingRef = useRef<LastLoading | null>(null);
   // The group this hook last assigned the instance to — the single source of
@@ -303,6 +298,13 @@ export function useChartCore(
   // When theme, renderer, or initOpts changes, cleanup disposes the old
   // instance and the effect re-runs to create a new one.
   // All instance state (option, events, loading, group) is re-applied.
+  //
+  // Theme changes deliberately recreate instead of calling ECharts 6
+  // `instance.setTheme()`. Its API docs carry a CAVEAT: after several
+  // merge-mode `setOption` calls, `setTheme` discards earlier options (6.1
+  // rebuilds from the option backup taken at the first call), and the only
+  // documented fix is `notMerge` on every `setOption`. This library merges by
+  // default, so a chart whose option changed since would snap back to stale data.
   // =====================================================================
   useLayoutEffect(() => {
     if (!shouldInit) return;
@@ -311,7 +313,7 @@ export function useChartCore(
 
     warnZeroSizeContainer(element);
 
-    const resolvedTheme = resolveThemeName(theme, themeKey);
+    const resolvedTheme = resolveTheme(theme);
 
     const existing = getCachedInstance(element);
     let instance: ECharts;
@@ -370,9 +372,10 @@ export function useChartCore(
 
     // Track for cleanup regardless of partial bind failure so off() can still
     // be attempted on any handlers that did get bound.
-    lastBoundRef.current = onEvents;
+    const bound: BoundEvents = new Map();
+    lastBoundRef.current = bound;
     try {
-      bindEvents(instance, onEvents);
+      bindEvents(instance, onEvents, latestRef, bound);
     } catch (error) {
       handleEffectError(error, "ECharts event bind failed:");
     }
@@ -464,35 +467,30 @@ export function useChartCore(
   // =====================================================================
   // EVENT REBINDING
   //
-  // When onEvents reference changes, unbind old and bind new handlers.
-  // Uses lastBoundRef to dedup against the currently-bound map.
+  // Handlers are reached through per-event proxies that read the latest
+  // `onEvents` at call time, so a changed handler reference needs no work.
+  // Only a structural change — event names, a `query` (shallow), or a
+  // `context` — unbinds the old proxies and binds new ones.
   // =====================================================================
   useEffect(() => {
     if (!element) return;
     const instance = getCachedInstance(element);
     if (!instance) return;
 
-    if (eventsEqual(lastBoundRef.current, onEvents)) return;
+    if (bindingsMatch(lastBoundRef.current, onEvents)) return;
 
-    // Order matters: ECharts `off(name, handler)` matches by handler reference
-    // and ignores query/context, so a same-handler rebind (query A → query B)
-    // must unbind the old binding BEFORE the new one is registered — otherwise
-    // the off call would remove the freshly-bound handler too.
-    //
     // off() is bare here (no try/catch): zrender Eventful.off is a filter loop
-    // that cannot throw on a real instance. Adding a single-handler "current"
-    // ref + try/catch route would imply we tracked failed unbinds and retried
-    // them — which we deliberately don't (would require the queue this module
-    // removed). Leaving off() bare keeps the contract honest: if ECharts
-    // somehow broke this invariant, the rebind effect surfaces the throw
+    // that cannot throw on a real instance, and we don't track failed unbinds
+    // for retry. If ECharts ever broke that invariant, the throw surfaces
     // instead of silently leaking an old listener.
     unbindEvents(instance, lastBoundRef.current);
+    const bound: BoundEvents = new Map();
+    lastBoundRef.current = bound;
     try {
-      bindEvents(instance, onEvents);
+      bindEvents(instance, onEvents, latestRef, bound);
     } catch (error) {
       handleEffectError(error, "ECharts event bind failed:");
     }
-    lastBoundRef.current = onEvents;
   }, [element, onEvents]);
 
   // =====================================================================
@@ -623,18 +621,25 @@ export function useChartCore(
       renderToSVGString: (opts) =>
         withInstance((instance) => instance.renderToSVGString(opts), undefined),
       getSvgDataURL: () => withInstance((instance) => instance.getSvgDataURL(), undefined),
-      convertToPixel: (finder, value) =>
+      convertToPixel: (finder, value, opt) =>
         withInstance(
           (instance) =>
-            Array.isArray(value)
-              ? instance.convertToPixel(finder, value)
-              : instance.convertToPixel(finder, value),
+            (instance.convertToPixel as ConvertWithOpt).call(instance, finder, value, opt),
           undefined,
         ),
-      convertFromPixel: (finder, value) =>
-        withInstance((instance) => instance.convertFromPixel(finder, value), undefined),
+      convertToLayout: (finder, value, opt) =>
+        withInstance(
+          (instance) => instance.convertToLayout(finder as EChartsFinder, value, opt),
+          undefined,
+        ),
+      convertFromPixel: (finder, value, opt) =>
+        withInstance(
+          (instance) =>
+            (instance.convertFromPixel as ConvertWithOpt).call(instance, finder, value, opt),
+          undefined,
+        ),
       containPixel: (finder, value) =>
-        withInstance((instance) => instance.containPixel(finder, value), false),
+        withInstance((instance) => instance.containPixel(finder as EChartsFinder, value), false),
       appendData: (params) =>
         withInstance((instance) => {
           instance.appendData(params);

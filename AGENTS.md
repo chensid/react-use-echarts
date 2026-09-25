@@ -16,7 +16,7 @@ Options: `option` (required), `theme`, `renderer` (`'canvas'`|`'svg'`, default `
 - `instance` — `ECharts | undefined` (reactive — defined after init, undefined before/after dispose)
 - `setOption(option, opts?)` — update chart config
 - `resize(opts?)` — manual resize trigger
-- Imperative methods: `dispatchAction`, `clear`, `appendData`, `getOption`, `getDataURL`, `getConnectedDataURL`, `renderToSVGString`, `getSvgDataURL`, `getWidth`, `getHeight`, `getDom`, `isDisposed`, `convertToPixel`, `convertFromPixel`, `containPixel`
+- Imperative methods: `dispatchAction`, `clear`, `appendData`, `getOption`, `getDataURL`, `getConnectedDataURL`, `renderToSVGString`, `getSvgDataURL`, `getWidth`, `getHeight`, `getDom`, `isDisposed`, `convertToPixel`, `convertToLayout`, `convertFromPixel`, `containPixel` (convert methods take an optional coordinate-system `opt`, e.g. matrix `clamp`)
 - The returned object is referentially stable — its identity only changes when `instance` or the container element changes, so it can go straight into a dependency array
 
 ### `<EChart />` Component
@@ -27,7 +27,7 @@ All `useEcharts` options as props + native `div` attributes (`id`, `role`, `aria
 
 - `isBuiltinTheme(name)`, `isKnownTheme(name)`, `registerCustomTheme(name, config)` — from `'react-use-echarts'`
 - `mergeRefs(...refs)` — compose multiple refs (RefObject, legacy callback ref, or React 19 callback ref returning a cleanup) into one callback ref; `null` / `undefined` entries are skipped, and throws are isolated per-ref so a misbehaving 3rd-party ref can't strand the chart
-- `registerBuiltinThemes()` — from `'react-use-echarts/themes/registry'` (separate entry, ~20KB theme JSON)
+- `registerBuiltinThemes()` — from `'react-use-echarts/themes/registry'` (separate entry, ~7KB macarons theme JSON)
 - `registerEchartsFull()` — from `'react-use-echarts/preset-full'`; one-line registrar that calls `echarts.use(...)` with every built-in chart, component, renderer and feature. Call once at app entry.
 - `useLazyInit(options)` → `{ ref, isInView }` — standalone lazy-init hook; enabled mode defaults to `rootMargin: '50px'` and `threshold: 0.1`
 
@@ -39,8 +39,8 @@ All `useEcharts` options as props + native `div` attributes (`id`, `role`, `aria
 - **`option` is reference-reactive** — a new reference auto-triggers `setOption`; in-place mutation is not observed
 - **Custom theme objects are `JSON.stringify`-keyed** — distinct serializable objects dedup only when their serialized output matches; serialization is not canonical, so property order affects the key. Memoize to avoid repeated serialization, and never mutate in place
 - **`initOpts` is `JSON.stringify`-keyed** — a changed serialized output recreates the instance; serialization is not canonical, so property order affects the key. Memoize for performance and never mutate in place
-- **Built-in themes need registration** — `import { registerBuiltinThemes } from 'react-use-echarts/themes/registry'` and call once before using `"light"`, `"dark"`, `"macarons"`
-- **`onEvents` supports two forms** — shorthand `(params) => void` or full `{ handler, query?, context? }`; equivalent wrapper objects dedup, but new inline handlers rebind
+- **Only `"macarons"` needs registration** — `"light"` / `"dark"` are ECharts 6's own themes (`"light"` = ECharts `"default"`); call `registerBuiltinThemes()` from `'react-use-echarts/themes/registry'` once before using `"macarons"`
+- **`onEvents` supports two forms** — shorthand `(params) => void` or full `{ handler, query?, context? }`; inline objects/handlers are fine — proxies call the latest handler; only event-name, `query` (shallow) or `context` changes rebind
 - **Chart linkage** — same `group` string syncs tooltips/highlights across charts
 
 For usage examples and full API details, see `README.md` in this package.

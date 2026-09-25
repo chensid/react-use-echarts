@@ -15,15 +15,13 @@ describe("themes registry", () => {
   });
 
   describe("registerBuiltinThemes", () => {
-    it("should register all builtin themes and be idempotent on subsequent calls", () => {
+    it("should register only the non-native builtin themes and be idempotent", () => {
       registerBuiltinThemes();
 
-      expect(echarts.registerTheme).toHaveBeenCalledWith("light", expect.any(Object));
-      expect(echarts.registerTheme).toHaveBeenCalledWith("dark", expect.any(Object));
+      // ECharts 6 provides "dark" itself and "light" maps to its "default"
+      // theme, so neither is overridden with preset JSON.
       expect(echarts.registerTheme).toHaveBeenCalledWith("macarons", expect.any(Object));
-      expect(echarts.registerTheme).toHaveBeenCalledTimes(3);
-      expect(isBuiltinThemeRegistered("light")).toBe(true);
-      expect(isBuiltinThemeRegistered("dark")).toBe(true);
+      expect(echarts.registerTheme).toHaveBeenCalledTimes(1);
       expect(isBuiltinThemeRegistered("macarons")).toBe(true);
 
       // Calling again should be a no-op (idempotent)

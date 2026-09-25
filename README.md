@@ -134,14 +134,16 @@ function MyChart() {
 
 ### Themes
 
-Built-in themes require one-time registration at app startup:
+`"light"` and `"dark"` work out of the box — they use the themes ECharts 6 ships with (`"light"` is ECharts' `"default"` theme). `"macarons"` needs a one-time registration at app startup:
 
 ```tsx
+// Native ECharts 6 themes, no registration needed
+useEcharts({ option, theme: "dark" });
+
+// macarons ships as preset JSON in a separate entry
 import { registerBuiltinThemes } from "react-use-echarts/themes/registry";
 registerBuiltinThemes();
-
-// Built-in theme
-useEcharts({ option, theme: "dark" });
+useEcharts({ option, theme: "macarons" });
 
 // Any string registered via echarts.registerTheme
 useEcharts({ option, theme: "vintage" });
@@ -155,7 +157,7 @@ useEcharts({ option, theme: customTheme });
 
 ### Event Handling
 
-Supports shorthand (function) and full config (object with query/context). Known echarts events have their `params` type auto-inferred from `EChartsEventPayloadMap` — no manual cast needed.
+Supports shorthand (function) and full config (object with query/context). Known echarts events have their `params` type auto-inferred from `EChartsEventPayloadMap` — no manual cast needed. Typed events: the mouse events, `selectchanged`, `highlight` / `downplay`, `axisbreakchanged`, the `legend*` events, `datazoom` (range inline, or batched under `batch` for inside zoom), `timelinechanged` / `timelineplaychanged`, `rendered` and `finished`.
 
 ```tsx
 useEcharts({
@@ -167,7 +169,7 @@ useEcharts({
       handler: (params) => console.log("hovered", params.value),
       query: "series",
     },
-    // `params` is auto-typed as `SelectChangedPayload`
+    // `params` is auto-typed as `SelectChangedEvent`
     selectchanged: (params) => console.log("selection changed", params),
   },
 });
@@ -313,7 +315,7 @@ export default function Page() {
 
 - **Container needs explicit size** — the chart won't render in a zero-height div; give the container `height` (and `width` if not 100%).
 - **Forgetting to register ECharts modules** — `useEcharts()` initializes a chart against ECharts' shared global registry, so charts/components/renderers/features must be registered (via `registerEchartsFull()` or `echarts.use([...])`) **before** the first render. A missing registration usually shows up as `Renderer 'undefined' is not imported` or a chart that silently never paints; see [Register ECharts modules](#register-echarts-modules). In dev, if init throws `… is not a constructor`, the library also prints a one-time hint pointing you here.
-- **Keep `onEvents` contents stable** — inline wrapper objects are deduplicated when their handler/query/context references are unchanged, but inline lambdas create new handlers and trigger a rebind. Memoize or hoist handlers used in frequently-rendered charts.
+- **Inline `onEvents` is fine** — each event name is bound once to a proxy that calls the handler from the latest render, so new handler references (inline lambdas, handlers closing over fresh state) never rebind and never see stale props. Only adding/removing an event name, changing a `query` (compared shallowly), or changing a `context` reference rebinds.
 - **Don't share one DOM element across multiple `useEcharts` hooks** — the instance cache reuses a single ECharts instance and emits a dev warning; updates from different hooks will overwrite each other.
 - **`initOpts` and custom `theme` objects are keyed by `JSON.stringify` output** — separately allocated objects that produce the same JSON string do not recreate the instance. Property order affects that string, so objects with the same fields in a different insertion order do recreate it. Memoizing avoids repeated serialization and makes intent clear. Never mutate either object in place: the same reference is treated as unchanged.
 - **`option` updates are reference-driven** — every new `option` reference calls `setOption`, while in-place mutation of the same object is not observed. Memoize expensive options when parent renders are frequent, and replace the wrapper object when chart data changes.
@@ -400,13 +402,14 @@ The returned object is **referentially stable**: its identity changes only when 
 
 **Coordinate conversion**
 
-| Method             | Type                                                                                                                                                   | Description                                                               |
-| ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------- |
-| `convertToPixel`   | `(finder: ChartFinder, value: ChartScaleValue \| Array<ChartScaleValue \| ChartScaleValue[] \| null \| undefined>) => number \| number[] \| undefined` | Logical → pixel coordinates                                               |
-| `convertFromPixel` | `(finder: ChartFinder, value: number \| number[]) => number \| number[] \| undefined`                                                                  | Pixel → logical coordinates                                               |
-| `containPixel`     | `(finder: ChartFinder, value: number[]) => boolean`                                                                                                    | Whether a pixel point is inside the matched component (false when uninit) |
+| Method             | Type                                                                                                                                                                                | Description                                                               |
+| ------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------- |
+| `convertToPixel`   | `(finder: ChartFinder, value: ChartScaleValue \| Array<ChartScaleValue \| ChartScaleValue[] \| null \| undefined>, opt?: unknown) => number \| number[] \| undefined`               | Logical → pixel coordinates                                               |
+| `convertToLayout`  | `(finder: ChartFinder, value: ChartScaleValue \| null \| undefined \| Array<ChartScaleValue \| ChartScaleValue[] \| null \| undefined>, opt?: unknown) => ChartLayout \| undefined` | Calendar / matrix coordinate → cell layout (`rect`, …); ECharts 6         |
+| `convertFromPixel` | `(finder: ChartFinder, value: number \| number[], opt?: unknown) => number \| number[] \| undefined`                                                                                | Pixel → logical coordinates                                               |
+| `containPixel`     | `(finder: ChartFinder, value: number[]) => boolean`                                                                                                                                 | Whether a pixel point is inside the matched component (false when uninit) |
 
-`ChartFinder` is `string | { seriesIndex?, seriesId?, …, geoIndex?, … }` — a string shorthand or a model finder object. `ChartScaleValue` is `number | string | Date`.
+`ChartFinder` is a string shorthand (`"series"`) or a finder object keyed by any `<componentType>Index | Id | Name` (`seriesIndex`, `calendarIndex`, `matrixId`, …), as documented by ECharts. `ChartScaleValue` is `number | string | Date`. `opt` is defined by the coordinate system — e.g. `{ clamp, ignoreMergeCells }` for `matrix`. `ChartLayout` is the `{ rect?, contentRect?, matrixXYLocatorRange? }` object returned by ECharts.
 
 ### Other Exports
 
@@ -414,13 +417,13 @@ The returned object is **referentially stable**: its identity changes only when 
 import { useLazyInit } from "react-use-echarts"; // standalone lazy init hook -> { ref, isInView }
 import { mergeRefs } from "react-use-echarts"; // compose multiple refs into one callback ref
 import { isBuiltinTheme, isKnownTheme, registerCustomTheme } from "react-use-echarts"; // theme utils (no JSON)
-import { registerBuiltinThemes } from "react-use-echarts/themes/registry"; // ~20KB theme JSON
+import { registerBuiltinThemes } from "react-use-echarts/themes/registry"; // macarons theme JSON (~7KB)
 import { registerEchartsFull } from "react-use-echarts/preset-full"; // one-line full-set registrar (see Register ECharts modules)
 
 // All exported types: UseEchartsOptions, UseEchartsReturn, UseLazyInitReturn,
 // EChartProps, EChartHandle, EChartsEvents, EChartsEventConfig, EChartsEventHandler,
 // EChartsEventPayloadMap, EChartsInitOpts, BuiltinTheme, LoadingOption,
-// ChartFinder, ChartScaleValue, Payload.
+// ChartFinder, ChartLayout, ChartScaleValue, Payload.
 // EChartsOption, SetOptionOpts, ResizeOpts are also re-exported here for
 // convenience (they originate in the "echarts" package), so you can import them
 // from react-use-echarts alongside the types above instead of reaching into echarts.
@@ -441,7 +444,7 @@ Most props map 1:1; a few are folded into existing options. Quick reference:
 | `echarts-for-react`       | `react-use-echarts`                       | Notes                                                                                                                                                                                                     |
 | ------------------------- | ----------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `option`                  | `option`                                  | Same                                                                                                                                                                                                      |
-| `theme`                   | `theme`                                   | Same; built-in themes need `registerBuiltinThemes()` first (see [Themes](#themes))                                                                                                                        |
+| `theme`                   | `theme`                                   | Same; `"macarons"` needs `registerBuiltinThemes()` first (see [Themes](#themes))                                                                                                                          |
 | `notMerge` / `lazyUpdate` | `setOptionOpts: { notMerge, lazyUpdate }` | Folded into a single object passed to `setOption`                                                                                                                                                         |
 | `showLoading`             | `showLoading`                             | Same                                                                                                                                                                                                      |
 | `loadingOption`           | `loadingOption`                           | Same                                                                                                                                                                                                      |
