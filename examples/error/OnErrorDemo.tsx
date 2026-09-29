@@ -13,8 +13,8 @@ const validOption: EChartsOption = {
 
 // ECharts 6 silently console.errors most malformed input — it rarely throws.
 // To produce a real, hook-routable error we hand dispatchAction() a Proxy
-// whose `get` trap throws on first read. ECharts reads `payload.type` early
-// in dispatchAction (echarts/lib/core/echarts.js:991), the trap fires
+// whose `get` trap throws on first read. ECharts reads `payload.type` at the
+// top of dispatchAction (echarts/lib/core/echarts.js), the trap fires
 // synchronously, the throw escapes through the hook's try/catch, and the
 // hook routes it to onError. Crucially, we use the dispatchAction path —
 // not setOption — because setOption sets an internal `inMainProcess` flag
@@ -45,7 +45,7 @@ const OnErrorDemo: React.FC = () => {
     setLastError(null);
     // Imperative dispatchAction is wrapped in the hook's try/catch; the
     // proxy's get trap fires when ECharts reads `payload.type`, the throw
-    // escapes setOption's call frame, and the hook hands the error to
+    // escapes dispatchAction's call frame, and the hook hands the error to
     // onError instead of re-throwing.
     dispatchAction(throwingPayload);
   };

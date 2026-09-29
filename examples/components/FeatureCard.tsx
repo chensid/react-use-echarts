@@ -1,5 +1,5 @@
 import React from "react";
-import { Link } from "react-router-dom";
+import { Link } from "react-router";
 import Icon from "./Icon";
 import type { FeatureItem } from "../data/features";
 import styles from "./FeatureCard.module.css";

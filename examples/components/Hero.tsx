@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link } from "react-router";
 import { useEcharts, type EChartsOption } from "../../src";
 import { useTheme } from "./theme-context";
 import Icon from "./Icon";
