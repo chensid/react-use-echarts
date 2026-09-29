@@ -104,7 +104,10 @@ export default defineConfig({
   plugins: [react(), babel({ presets: [reactCompilerPreset()] })],
   pack: [
     {
-      deps: { resolveDepSubpath: true },
+      // tsdown 0.23's default: keep external subpath imports (`echarts/core`)
+      // as written. Stated explicitly in every entry because `vp migrate`
+      // inserts the pre-0.23 `true` wherever the key is absent.
+      deps: { resolveDepSubpath: false },
       entry: "src/index.ts",
       format: ["esm"],
       // TypeScript 7's native declaration compiler consumes a single project
@@ -112,6 +115,9 @@ export default defineConfig({
       tsconfig: "tsconfig.lib.json",
       dts: { generator: "tsgo" },
       publint: true,
+      // Also tsdown 0.23's default, kept explicit for the same reason: a bare
+      // `attw: true` gets the pre-0.23 `strict` profile from `vp migrate`, whose
+      // node10/CJS checks flag every entry of this ESM-only package.
       attw: { profile: "esm-only" },
       platform: "browser",
       outputOptions: stripDocComments,
@@ -119,7 +125,7 @@ export default defineConfig({
       plugins: [babel({ presets: [reactCompilerPreset()] })],
     },
     {
-      deps: { resolveDepSubpath: true },
+      deps: { resolveDepSubpath: false },
       entry: { "themes/registry": "src/themes/registry.ts" },
       format: ["esm"],
       tsconfig: "tsconfig.lib.json",
@@ -128,7 +134,7 @@ export default defineConfig({
       outputOptions: stripDocComments,
     },
     {
-      deps: { resolveDepSubpath: true },
+      deps: { resolveDepSubpath: false },
       // publint/attw run once from the index entry.
       entry: { "preset-full": "src/preset-full.ts" },
       format: ["esm"],

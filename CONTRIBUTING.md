@@ -4,9 +4,9 @@ Thanks for your interest in improving `react-use-echarts`!
 
 ## Prerequisites
 
-- Node.js 22.19+ on 22.x, 24.11+ on 24.x, or 26+ (CI covers the 22.x minimum and latest 24.x)
+- Node.js 22.19+ on 22.x, 24.11+ on 24.x, or 26+ (CI covers the 22.x minimum and latest 24.x); the pre-commit hook's `vp staged` needs 22.22.1+ on 22.x
 - Vite+ CLI (`vp`) available in your shell
-- Git
+- Git 2.32+ (required by `vp staged`)
 
 ## Quick Start
 
