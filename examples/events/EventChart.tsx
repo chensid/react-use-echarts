@@ -1,5 +1,5 @@
-import React, { useMemo, useState } from "react";
-import { useEcharts, type EChartsEvents, type EChartsOption } from "../../src";
+import React, { useState } from "react";
+import { useEcharts, type EChartsOption } from "../../src";
 import { useTheme } from "../components/theme-context";
 import type { ECElementEvent } from "echarts";
 
@@ -31,7 +31,7 @@ const option: EChartsOption = {
 
 const describePointEvent = (name: string, params: ECElementEvent): string => {
   // `params` is inferred as ECElementEvent thanks to the typed
-  // EChartsEvents map; only narrow `value` to a number tuple here.
+  // onEvents map; only narrow `value` to a number tuple here.
   const [x = 0, y = 0] = params.value as number[];
   return `${name}: [${x}, ${y}]`;
 };
@@ -40,21 +40,18 @@ const EventChart: React.FC = () => {
   const { mode } = useTheme();
   const [lastEvent, setLastEvent] = useState<string>("(click on chart)");
 
-  const onEvents = useMemo<EChartsEvents>(
-    () => ({
+  // Inline handlers need no memoization: each event name is bound once to a
+  // proxy that calls the handler from the latest render.
+  const { ref } = useEcharts({
+    option,
+    theme: mode,
+    onEvents: {
       click: (params) => setLastEvent(describePointEvent("click", params)),
       mouseover: {
         handler: (params) => setLastEvent(describePointEvent("mouseover", params)),
         query: "series",
       },
-    }),
-    [],
-  );
-
-  const { ref } = useEcharts({
-    option,
-    theme: mode,
-    onEvents,
+    },
   });
 
   return (

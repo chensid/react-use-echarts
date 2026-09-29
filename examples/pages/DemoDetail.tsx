@@ -1,5 +1,5 @@
 import React from "react";
-import { Navigate, useParams } from "react-router-dom";
+import { Navigate, useParams } from "react-router";
 import PageHeader from "./PageHeader";
 import DemoTabs from "../components/DemoTabs";
 import { findGalleryItem } from "../data/gallery";

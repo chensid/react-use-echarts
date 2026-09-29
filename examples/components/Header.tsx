@@ -1,5 +1,5 @@
 import React from "react";
-import { Link, NavLink } from "react-router-dom";
+import { Link, NavLink } from "react-router";
 import Icon from "./Icon";
 import { useTheme } from "./theme-context";
 import { APP_VERSION } from "../data/meta";

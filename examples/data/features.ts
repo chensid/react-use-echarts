@@ -46,7 +46,7 @@ export const featureItems: readonly FeatureItem[] = [
   {
     id: "events",
     title: "Events",
-    description: "Shorthand and full event config for click and hover.",
+    description: "Inline click and hover handlers — shorthand or full config, no memoization.",
     icon: "mouse",
     component: React.lazy(() => import("../events/EventChart")),
     source: () => import("../events/EventChart.tsx?raw"),

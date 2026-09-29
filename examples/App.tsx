@@ -1,5 +1,5 @@
 import React from "react";
-import { HashRouter, Navigate, Route, Routes } from "react-router-dom";
+import { HashRouter, Navigate, Route, Routes } from "react-router";
 import Layout from "./components/Layout";
 import Home from "./pages/Home";
 import GalleryIndex from "./pages/GalleryIndex";

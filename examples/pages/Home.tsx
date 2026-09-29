@@ -1,5 +1,5 @@
 import React from "react";
-import { Link } from "react-router-dom";
+import { Link } from "react-router";
 import Hero from "../components/Hero";
 import StatsStrip from "../components/StatsStrip";
 import CompareTable from "../components/CompareTable";
