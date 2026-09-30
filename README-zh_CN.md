@@ -230,6 +230,7 @@ useEcharts({
 启用懒加载后，未提供的观察器配置默认使用 `root: null`、
 `rootMargin: "50px"` 和 `threshold: 0.1`。独立导出的 `useLazyInit(options)`
 使用相同默认值，并返回自己的 `{ ref, isInView }` callback-ref 组合。
+
 公开参数类型保留为 `IntersectionObserverInit`，但当前实现只向原生观察器转发
 `root`、`rootMargin` 和 `threshold`；较新的 `scrollMargin` 字段暂不支持并会被忽略。
 
@@ -311,7 +312,7 @@ export default function Page() {
 
 - **容器必须有明确尺寸** — 高度为 0 时图表不可见；请为容器设置 `height`（以及 `width` 如果不是 100%）。
 - **不要忘记注册 ECharts 模块** — `useEcharts()` 在 ECharts 全局 registry 上初始化实例，所以图表/组件/渲染器/特性必须先注册（通过 `registerEchartsFull()` 或 `echarts.use([...])`）。忘记注册通常表现为 `Renderer 'undefined' is not imported` 报错，或图表静默不渲染；参见 [注册 ECharts 模块](#注册-echarts-模块)。开发模式下若 init 抛出 `… is not a constructor`，库还会打印一次性提示指向此处。
-- **内联 `onEvents` 无需缓存** — 每个事件名只绑定一次代理函数，触发时调用最新一次渲染中的 handler，因此 handler 引用变化（内联 lambda、闭包捕获新 state）既不会重新绑定，也不会读到过期的 props。只有增删事件名、`query` 变化（浅比较）或 `context` 引用变化才会重新绑定。
+- **内联 `onEvents` 无需缓存** — 每个事件名只绑定一次代理函数，触发时调用最新一次渲染中的 handler，因此 handler 引用变化（内联 lambda、闭包捕获新 state）既不会重新绑定，也不会读到过期的 props。只有增删事件名、`query` 变化（浅比较）或 `context` 引用变化才会重新绑定。由于 ECharts 持有的是代理函数而非你的 handler，直接调用 `instance.off(name, yourHandler)` 无法移除通过 `onEvents` 绑定的监听，请改为从 `onEvents` 中删除对应条目。
 - **不要让多个 `useEcharts` 共享同一个 DOM 元素** — 实例缓存会复用同一个 ECharts 实例并在开发模式下打印警告；多个 hook 的更新会互相覆盖。
 - **`initOpts` 和自定义 `theme` 对象按序列化内容生成 key** — 对可序列化对象，只有 `JSON.stringify` 输出相同时才视为相同；属性插入顺序会影响输出，因此语义等价但顺序不同的对象仍可能重建实例。memo 能避免重复序列化并让意图更清楚。不要原地修改这两个对象：相同引用会被视为未变化。
 - **`option` 更新由引用驱动** — 每个新的 `option` 引用都会调用 `setOption`；原地修改同一对象不会被观察到。父组件频繁渲染时应缓存昂贵 option，并在图表数据变化时替换外层对象。
@@ -349,7 +350,7 @@ export default function Page() {
 | `loadingOption` | `LoadingOption`                       | —          | 加载指示器配置                                                                                                                                                     |
 | `onEvents`      | `EChartsEvents`                       | —          | 事件处理器（`fn` 或 `{ handler, query?, context? }`）                                                                                                              |
 | `autoResize`    | `boolean`                             | `true`     | 通过 ResizeObserver 自动 resize                                                                                                                                    |
-| `initOpts`      | `EChartsInitOpts`                     | —          | 传递给 `echarts.init()`（devicePixelRatio、locale 等）                                                                                                             |
+| `initOpts`      | `EChartsInitOpts`                     | —          | 传递给 `echarts.init()`（devicePixelRatio、locale、width 等）                                                                                                      |
 | `onError`       | `(error: unknown) => void`            | —          | 处理库已包裹的图表操作和命令式 API 错误；动态事件重绑中的 `off` 异常不在路由保证范围内。未提供时，已包裹的 effect 操作失败走 `console.error`，命令式方法则直接抛出 |
 
 #### 返回值

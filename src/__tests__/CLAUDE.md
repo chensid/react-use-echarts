@@ -2,7 +2,7 @@
 
 > Loaded when working under `src/__tests__/`. Project layout, coverage thresholds, and the `vitest`-import prohibition live in the root `CLAUDE.md`.
 
-- Shared mocks in `src/__tests__/helpers.ts`: `createMockInstance`, `MockResizeObserver`, `MockIntersectionObserver`; import test APIs from `"vite-plus/test"` (`globals: true`)
+- Shared mocks in `src/__tests__/helpers.ts`: `createMockInstance`, `MockResizeObserver`, `MockIntersectionObserver`, and `boundProxy` (the proxy the hook bound via `on(eventName, …)` — `onEvents` binds proxies, so invoke this instead of matching the consumer's handler); import test APIs from `"vite-plus/test"` (`globals: true`)
 
 ## Test Gotchas
 
