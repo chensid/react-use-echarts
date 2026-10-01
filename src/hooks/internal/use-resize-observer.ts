@@ -1,6 +1,7 @@
-import { useEffect, useEffectEvent } from "react";
+import { useEffect, useLayoutEffect, useRef } from "react";
 import { getCachedInstance } from "../../utils/instance-cache";
 import { subscribeVisibilityResume } from "../../utils/visibility-coordinator";
+import { reportEffectError } from "../../utils/error";
 
 /**
  * Internal hook: ResizeObserver-based auto-resize with RAF throttle.
@@ -11,11 +12,12 @@ export function useResizeObserver(
   autoResize: boolean,
   onError?: (error: unknown) => void,
 ): void {
-  // `useEffectEvent` reads the latest `onError` at call time without re-triggering
-  // the observer effect, replacing the React 18-era `onErrorRef` ping-pong.
-  const handleResizeError = useEffectEvent((error: unknown, message: string) => {
-    if (onError) onError(error);
-    else console.error(message, error);
+  // Latest `onError`, read when a resize fails, so changing it never recreates
+  // the observer. A ref rather than `useEffectEvent`: React 19.2.x leaves that
+  // callback stale inside memo() / forwardRef components (see utils/error.ts).
+  const onErrorRef = useRef(onError);
+  useLayoutEffect(() => {
+    onErrorRef.current = onError;
   });
 
   useEffect(() => {
@@ -36,7 +38,7 @@ export function useResizeObserver(
       try {
         getCachedInstance(element)?.resize();
       } catch (error) {
-        handleResizeError(error, "ECharts resize failed:");
+        reportEffectError(error, onErrorRef.current, "ECharts resize failed:");
       }
     };
 
@@ -50,7 +52,7 @@ export function useResizeObserver(
       });
       resizeObserver.observe(element);
     } catch (error) {
-      handleResizeError(error, "ResizeObserver not available:");
+      reportEffectError(error, onErrorRef.current, "ResizeObserver not available:");
     }
 
     // Browsers throttle requestAnimationFrame in hidden tabs, so a resize that
