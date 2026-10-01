@@ -168,14 +168,12 @@ export default defineConfig({
       exclude: ["node_modules/", "src/__tests__/**", "src/types/**"],
     },
     testTimeout: 10000,
-    clearMocks: true,
     mockReset: true,
     restoreMocks: true,
     projects: [
       {
         // Default unit-test project: happy-dom + ECharts mocked.
         // Excludes browser smoke tests so they only run via the browser project.
-        extends: true,
         test: {
           name: "unit",
           pool: "threads",
@@ -190,7 +188,6 @@ export default defineConfig({
         // Covers what happy-dom can't simulate — IntersectionObserver in a real
         // viewport, ResizeObserver + RAF interactions, real DOM layout.
         // Smoke level: assert effects are observable, not exact frame counts.
-        extends: true,
         test: {
           name: "browser",
           globals: true,
