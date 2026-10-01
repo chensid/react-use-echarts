@@ -2,7 +2,9 @@ overrides:
   vite@*: "catalog:"
   vitest@*: "catalog:"
 
-# Auto-prune stale minimumReleaseAgeExclude entries on pnpm add/update/remove (pnpm 11.22+).
+# Drop minimumReleaseAgeExclude entries the lockfile no longer resolves, on
+# pnpm install/add/update/remove/dedupe (pnpm 11.22+). Never prunes by age:
+# matured but still-locked entries are removed by hand (see CLAUDE.md).
 minimumReleaseAgeExcludePrune: true
 
 catalog:

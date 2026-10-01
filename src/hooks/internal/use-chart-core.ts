@@ -1,4 +1,4 @@
-import { useEffect, useEffectEvent, useMemo, useRef, useState, useLayoutEffect } from "react";
+import { useEffect, useMemo, useRef, useState, useLayoutEffect } from "react";
 import * as echarts from "echarts/core";
 import type { ECharts, SetOptionOpts } from "echarts/core";
 import type { EChartsOption } from "echarts";
@@ -24,7 +24,7 @@ import {
   warnedZeroSizeContainers,
   warnedMissingRegistration,
 } from "../../utils/dev-warnings";
-import { routeImperativeError } from "../../utils/error";
+import { reportEffectError, routeImperativeError } from "../../utils/error";
 import { bindEvents, bindingsMatch, unbindEvents, type BoundEvents } from "./event-utils";
 
 /**
@@ -172,13 +172,14 @@ interface ChartCoreConfig {
 }
 
 /**
- * Fields read outside Effects, where `useEffectEvent` is unavailable (it also
- * throws when invoked during render, which an ECharts event triggered from
- * someone's render would do). Synced by a ref bridge:
- *   - `onError`: routed via `routeImperativeError` on imperative throws
+ * Latest values read at call time rather than captured by an effect, synced by
+ * a layout effect every render:
+ *   - `onError`: routes every failure — effects via `reportEffectError`,
+ *     imperative calls via `routeImperativeError`. Not `useEffectEvent`: React
+ *     19.2.x leaves that callback stale inside memo() / forwardRef components.
  *   - `setOptionOpts`: merged with caller-supplied opts in imperative setOption
- *   - `onEvents`: read by the event proxies when ECharts fires
- * Effect-context error routing uses `useEffectEvent` directly — no ref needed.
+ *   - `onEvents`: read by the event proxies when ECharts fires (an event can
+ *     fire from a consumer's render, where calling `useEffectEvent` throws)
  */
 interface ImperativeLatest {
   setOptionOpts: SetOptionOpts | undefined;
@@ -228,7 +229,7 @@ export function useChartCore(
     onError,
   } = config;
 
-  // --- Latest ref for the 3 fields read outside Effects (see ImperativeLatest).
+  // --- Latest ref for the 3 fields read at call time (see ImperativeLatest).
   // All other config fields are either reactive deps in their owning effect or
   // captured via closure inside the lifecycle effect.
   const latestRef = useRef<ImperativeLatest>(null!);
@@ -236,23 +237,14 @@ export function useChartCore(
     latestRef.current = { setOptionOpts, onError, onEvents };
   }
 
-  // Sync every render via a layout effect, so readers (imperative calls, event
-  // proxies) see committed values. Declared before the lifecycle effect so the
-  // first bind already reads this commit's handlers. Mutated in place: the ref
-  // is never read during render.
+  // Sync every render via a layout effect, so readers (effect error routing,
+  // imperative calls, event proxies) see committed values. Declared before the
+  // lifecycle effect so the first init / bind already reads this commit's
+  // values. Mutated in place: the ref is never read during render.
   useLayoutEffect(() => {
     latestRef.current.setOptionOpts = setOptionOpts;
     latestRef.current.onError = onError;
     latestRef.current.onEvents = onEvents;
-  });
-
-  // --- Effect-context error routing. `useEffectEvent` reads the latest
-  // `onError` at call time without re-triggering enclosing effects, replacing
-  // the React 18-era `latestRef.current.onError` ping-pong. Only callable
-  // from within Effects — imperative API path uses `latestRef` instead.
-  const handleEffectError = useEffectEvent((error: unknown, message: string) => {
-    if (onError) onError(error);
-    else console.error(message, error);
   });
 
   // --- Internal shared state ---
@@ -335,7 +327,7 @@ export function useChartCore(
         });
       } catch (error) {
         warnMissingRegistration(error);
-        handleEffectError(error, "ECharts init failed:");
+        reportEffectError(error, latestRef.current.onError, "ECharts init failed:");
         return;
       }
       setCachedInstance(element, instance);
@@ -344,7 +336,7 @@ export function useChartCore(
     try {
       instance.setOption(option, setOptionOpts);
     } catch (error) {
-      handleEffectError(error, "ECharts setOption failed:");
+      reportEffectError(error, latestRef.current.onError, "ECharts setOption failed:");
     } finally {
       // Record the attempt regardless of success: a throw here means the
       // option is malformed. Option-Sync's useEffect runs immediately after
@@ -361,7 +353,7 @@ export function useChartCore(
         instance.showLoading(loadingOption);
       }
     } catch (error) {
-      handleEffectError(error, "ECharts loading toggle failed:");
+      reportEffectError(error, latestRef.current.onError, "ECharts loading toggle failed:");
     } finally {
       // Mirror the setOption pattern above: record the attempt unconditionally
       // so Loading-Toggle's useEffect (also fires on the same mount) dedups
@@ -377,7 +369,7 @@ export function useChartCore(
     try {
       bindEvents(instance, onEvents, latestRef, bound);
     } catch (error) {
-      handleEffectError(error, "ECharts event bind failed:");
+      reportEffectError(error, latestRef.current.onError, "ECharts event bind failed:");
     }
 
     if (group) {
@@ -388,7 +380,7 @@ export function useChartCore(
       try {
         updateGroup(instance, undefined, group);
       } catch (error) {
-        handleEffectError(error, "ECharts group assignment failed:");
+        reportEffectError(error, latestRef.current.onError, "ECharts group assignment failed:");
       }
     }
     // Record what this fresh instance was assigned to (including `undefined`),
@@ -416,14 +408,14 @@ export function useChartCore(
         try {
           unbindEvents(inst, lastBoundRef.current);
         } catch (error) {
-          handleEffectError(error, "ECharts event unbind failed:");
+          reportEffectError(error, latestRef.current.onError, "ECharts event unbind failed:");
         }
       } finally {
         lastBoundRef.current = undefined;
         try {
           releaseCachedInstance(element);
         } catch (error) {
-          handleEffectError(error, "ECharts release failed:");
+          reportEffectError(error, latestRef.current.onError, "ECharts release failed:");
         }
       }
     };
@@ -455,7 +447,7 @@ export function useChartCore(
     try {
       instance.setOption(option, setOptionOpts);
     } catch (error) {
-      handleEffectError(error, "ECharts setOption failed:");
+      reportEffectError(error, latestRef.current.onError, "ECharts setOption failed:");
     } finally {
       // Record the attempt even on failure so a subsequent rerender with
       // the same option ref dedups via the fast path above instead of
@@ -489,7 +481,7 @@ export function useChartCore(
     try {
       bindEvents(instance, onEvents, latestRef, bound);
     } catch (error) {
-      handleEffectError(error, "ECharts event bind failed:");
+      reportEffectError(error, latestRef.current.onError, "ECharts event bind failed:");
     }
   }, [element, onEvents]);
 
@@ -517,7 +509,7 @@ export function useChartCore(
         instance.hideLoading();
       }
     } catch (error) {
-      handleEffectError(error, "ECharts loading toggle failed:");
+      reportEffectError(error, latestRef.current.onError, "ECharts loading toggle failed:");
     } finally {
       // Record the attempt even on failure so a rerender with the same
       // (showLoading, loadingOption) pair dedups instead of re-firing.
@@ -546,7 +538,7 @@ export function useChartCore(
     try {
       updateGroup(instance, currentGroup, group);
     } catch (error) {
-      handleEffectError(error, "ECharts group switch failed:");
+      reportEffectError(error, latestRef.current.onError, "ECharts group switch failed:");
     } finally {
       // Record the attempt even on failure: updateGroup may have partially
       // moved the instance before throwing, so lastGroupRef must reflect the
@@ -616,8 +608,10 @@ export function useChartCore(
       // falling back to true so consumers don't act on a half-broken instance.
       isDisposed: () => withInstance((instance) => instance.isDisposed(), true),
       getDataURL: (opts) => withInstance((instance) => instance.getDataURL(opts), undefined),
+      // ECharts 6.1.0 reads `opts.type` without defaulting `opts` (fixed on its
+      // release branch, apache/echarts#21736), so a no-argument call threw.
       getConnectedDataURL: (opts) =>
-        withInstance((instance) => instance.getConnectedDataURL(opts), undefined),
+        withInstance((instance) => instance.getConnectedDataURL(opts ?? {}), undefined),
       renderToSVGString: (opts) =>
         withInstance((instance) => instance.renderToSVGString(opts), undefined),
       getSvgDataURL: () => withInstance((instance) => instance.getSvgDataURL(), undefined),

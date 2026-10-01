@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vite-plus/test";
-import { renderHook, act, waitFor } from "@testing-library/react";
+import { renderHook, render, act, waitFor } from "@testing-library/react";
+import { createElement, forwardRef, memo, type ReactElement } from "react";
 import * as echarts from "echarts/core";
 import { useEcharts } from "../../hooks/use-echarts";
 import {
@@ -28,6 +29,11 @@ vi.mock("echarts/core", () => ({
   disconnect: vi.fn(),
   registerTheme: vi.fn(),
 }));
+
+interface WrappedChartProps {
+  option: EChartsOption;
+  onError: (error: unknown) => void;
+}
 
 // Track ResizeObserver instances for specific tests
 let resizeObserverInstances: MockResizeObserver[] = [];
@@ -2130,7 +2136,11 @@ describe("useEcharts", () => {
         expect(mockInstance.getDataURL).toHaveBeenCalledWith({ type: "png", pixelRatio: 2 });
 
         expect(result.current.getConnectedDataURL()).toBe("data:image/png;base64,connected-mock");
-        expect(mockInstance.getConnectedDataURL).toHaveBeenCalled();
+        // ECharts 6.1.0 dereferences opts unconditionally, so the hook defaults it.
+        expect(mockInstance.getConnectedDataURL).toHaveBeenCalledWith({});
+        const exportOpts = { type: "png" as const, pixelRatio: 2 };
+        result.current.getConnectedDataURL(exportOpts);
+        expect(mockInstance.getConnectedDataURL).toHaveBeenLastCalledWith(exportOpts);
 
         expect(result.current.getSvgDataURL()).toBe("data:image/svg+xml;base64,svg-mock");
         expect(result.current.renderToSVGString({ useViewBox: true })).toBe("<svg></svg>");
@@ -3373,6 +3383,87 @@ describe("useEcharts", () => {
 
       expect(onError2).toHaveBeenCalledWith(error);
       expect(onError1).not.toHaveBeenCalled();
+    });
+
+    // React 19.2.x only refreshes useEffectEvent callbacks on plain function
+    // component fibers, not on memo() / forwardRef ones (fixed in 19.3,
+    // facebook/react#34831). Callers routinely memo-wrap chart components, so
+    // effect-time routing must reach the latest onError there as well.
+    describe.each([
+      [
+        "memo()",
+        (inner: (props: WrappedChartProps) => ReactElement) =>
+          memo(inner) as unknown as (props: WrappedChartProps) => ReactElement,
+      ],
+      [
+        "forwardRef",
+        (inner: (props: WrappedChartProps) => ReactElement) =>
+          forwardRef<unknown, WrappedChartProps>((props, _ref) => inner(props)) as unknown as (
+            props: WrappedChartProps,
+          ) => ReactElement,
+      ],
+    ])("inside a %s component", (_label, wrap) => {
+      const originalRAF = globalThis.requestAnimationFrame;
+      afterEach(() => {
+        globalThis.requestAnimationFrame = originalRAF;
+      });
+
+      it("routes option-sync, resize and cleanup errors to the latest onError", () => {
+        const mockInstance = createMockInstance();
+        (echarts.init as ReturnType<typeof vi.fn>).mockReturnValue(mockInstance);
+        globalThis.requestAnimationFrame = vi.fn((cb: FrameRequestCallback) => {
+          cb(0);
+          return 1;
+        });
+
+        const Chart = wrap(function WrappedChart({ option, onError }: WrappedChartProps) {
+          const { ref } = useEcharts({ option, onError });
+          return createElement("div", { ref });
+        });
+
+        const onError1 = vi.fn();
+        const onError2 = vi.fn();
+        const { rerender, unmount } = render(
+          createElement(Chart, { option: baseOption, onError: onError1 }),
+        );
+
+        // Option-Sync effect
+        const setOptionError = new Error("setOption after onError swap");
+        mockInstance.setOption.mockImplementation(() => {
+          throw setOptionError;
+        });
+        rerender(
+          createElement(Chart, {
+            option: { series: [{ type: "bar", data: [1] }] },
+            onError: onError2,
+          }),
+        );
+        expect(onError2).toHaveBeenCalledWith(setOptionError);
+
+        // Resize observer (separate hook, separate latest-onError bridge)
+        const resizeError = new Error("resize after onError swap");
+        mockInstance.resize.mockImplementation(() => {
+          throw resizeError;
+        });
+        const observer = resizeObserverInstances[0] as unknown as MockResizeObserver;
+        act(() => {
+          observer.callback(
+            [] as unknown as ResizeObserverEntry[],
+            observer as unknown as ResizeObserver,
+          );
+        });
+        expect(onError2).toHaveBeenCalledWith(resizeError);
+
+        // Lifecycle cleanup
+        const disposeError = new Error("dispose after onError swap");
+        mockInstance.dispose.mockImplementation(() => {
+          throw disposeError;
+        });
+        unmount();
+        expect(onError2).toHaveBeenCalledWith(disposeError);
+
+        expect(onError1).not.toHaveBeenCalled();
+      });
     });
 
     it("routes resize errors to the latest onError after rerender", () => {
