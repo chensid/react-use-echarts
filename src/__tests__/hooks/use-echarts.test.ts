@@ -2136,7 +2136,11 @@ describe("useEcharts", () => {
         expect(mockInstance.getDataURL).toHaveBeenCalledWith({ type: "png", pixelRatio: 2 });
 
         expect(result.current.getConnectedDataURL()).toBe("data:image/png;base64,connected-mock");
-        expect(mockInstance.getConnectedDataURL).toHaveBeenCalled();
+        // ECharts 6.1.0 dereferences opts unconditionally, so the hook defaults it.
+        expect(mockInstance.getConnectedDataURL).toHaveBeenCalledWith({});
+        const exportOpts = { type: "png" as const, pixelRatio: 2 };
+        result.current.getConnectedDataURL(exportOpts);
+        expect(mockInstance.getConnectedDataURL).toHaveBeenLastCalledWith(exportOpts);
 
         expect(result.current.getSvgDataURL()).toBe("data:image/svg+xml;base64,svg-mock");
         expect(result.current.renderToSVGString({ useViewBox: true })).toBe("<svg></svg>");
