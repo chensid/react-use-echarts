@@ -1,4 +1,4 @@
-import { defineConfig } from "vite-plus";
+import { defineConfig, type Plugin } from "vite-plus";
 import babel from "@rolldown/plugin-babel";
 import react, { reactCompilerPreset } from "@vitejs/plugin-react";
 // Playwright browser provider — installed via the
@@ -34,6 +34,27 @@ const preserveProcessEnvNodeEnv = { "process.env.NODE_ENV": "process.env.NODE_EN
 // plain `//` and `/* */` comments; legal and `@__PURE__`-style annotations are
 // kept, the latter because consumer bundlers rely on them for tree-shaking.
 const stripDocComments = { comments: { legal: true, annotation: true, jsdoc: false } };
+
+// Every library entry starts with "use client" so RSC frameworks treat it as
+// client code. Rolldown only warns that a module-level directive "may not be
+// preserved" (`vp pack` prints it for every entry, though each one keeps the
+// directive today), so fail the pack — and with it CI and `prepublishOnly` — if
+// an emitted entry ever loses it.
+const requireUseClient: Plugin = {
+  name: "require-use-client",
+  generateBundle(_options, bundle) {
+    for (const chunk of Object.values(bundle)) {
+      if (
+        chunk.type === "chunk" &&
+        chunk.isEntry &&
+        chunk.fileName.endsWith(".js") &&
+        !chunk.code.startsWith('"use client";')
+      ) {
+        this.error(`${chunk.fileName} lost its "use client" directive`);
+      }
+    }
+  },
+};
 
 // https://viteplus.dev/config/
 export default defineConfig({
@@ -122,7 +143,7 @@ export default defineConfig({
       platform: "browser",
       outputOptions: stripDocComments,
       define: preserveProcessEnvNodeEnv,
-      plugins: [babel({ presets: [reactCompilerPreset()] })],
+      plugins: [babel({ presets: [reactCompilerPreset()] }), requireUseClient],
     },
     {
       deps: { resolveDepSubpath: false },
@@ -132,6 +153,7 @@ export default defineConfig({
       dts: { generator: "tsgo" },
       platform: "browser",
       outputOptions: stripDocComments,
+      plugins: [requireUseClient],
     },
     {
       deps: { resolveDepSubpath: false },
@@ -143,7 +165,7 @@ export default defineConfig({
       platform: "browser",
       outputOptions: stripDocComments,
       define: preserveProcessEnvNodeEnv,
-      plugins: [babel({ presets: [reactCompilerPreset()] })],
+      plugins: [babel({ presets: [reactCompilerPreset()] }), requireUseClient],
     },
   ],
   server: {
