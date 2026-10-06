@@ -1,5 +1,12 @@
 # react-use-echarts
 
+## 3.2.2
+
+### Patch Changes
+
+- fba0a3d: Fix `getConnectedDataURL()` called without options. ECharts 6.1.0 reads `opts.type` without defaulting `opts`, so the documented no-argument call threw a `TypeError` (routed to `onError`, or rethrown without one) instead of returning the image. The hook now passes `{}` when no options are given.
+- 7774c5f: Fix `onError` going stale on React 19.2 when the chart lives inside a `memo()` or `forwardRef` component — for example `memo(EChart)`, or a memoized component that calls `useEcharts`. Errors raised inside effects (init, option sync, loading, events, group, auto-resize, cleanup) kept going to the `onError` from the first render, because React 19.2.x never refreshes `useEffectEvent` callbacks in those components (fixed upstream in React 19.3). The library now reads the latest `onError` from a ref instead, so the peer range stays `react ^19.2.0`.
+
 ## 3.2.1
 
 ### Patch Changes
