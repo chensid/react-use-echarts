@@ -277,15 +277,17 @@ export interface UseEchartsOptions {
    * Theme. Accepts one of:
    * - a built-in name: `"light" | "dark" | "macarons"`
    * - any theme name already registered via `registerCustomTheme()` or `echarts.registerTheme()`
-   *   — unknown strings silently fall back to the default theme (typos are NOT detected at runtime)
-   * - a custom theme config object (auto-deduplicated by content hash)
+   *   — unknown strings fall back to the default theme (dev builds warn once for names this
+   *   library has not seen registered; production never checks for typos)
+   * - a custom theme config object (deduplicated by its `JSON.stringify` output, so
+   *   property order matters)
    * - omit the field for the default theme
    *
    * 主题。可为：
    * - 内置主题名：`"light" | "dark" | "macarons"`
    * - 已通过 `registerCustomTheme()` 或 `echarts.registerTheme()` 注册过的任意主题名
-   *   —— 未知字符串会静默回退到默认主题（运行时不会检测拼写错误）
-   * - 自定义主题配置对象（按内容哈希自动去重）
+   *   —— 未知字符串会回退到默认主题（开发环境对本库未见过注册的名称警告一次；生产环境不检查拼写）
+   * - 自定义主题配置对象（按 `JSON.stringify` 结果去重，属性顺序会影响结果）
    * - 省略字段表示默认主题
    */
   theme?: BuiltinTheme | (string & {}) | object;
@@ -354,9 +356,9 @@ export interface UseEchartsOptions {
    * Error handler for chart operations (init, setOption, etc.)
    * 图表操作（init、setOption 等）的错误处理回调
    * Without this: failures inside React effects are logged via console.error,
-   * while imperative setOption calls throw.
+   * while imperative methods (setOption, dispatchAction, getOption, …) rethrow.
    * 未提供时：React effect 内部失败通过 console.error 输出，
-   * 命令式 setOption 调用失败则直接抛出异常。
+   * 命令式方法（setOption、dispatchAction、getOption 等）失败则直接重新抛出。
    */
   onError?: (error: unknown) => void;
 }
