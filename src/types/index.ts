@@ -313,8 +313,12 @@ export interface UseEchartsOptions {
   group?: string;
 
   /**
-   * Default setOption options
-   * setOption 默认选项（替代原 notMerge / lazyUpdate）
+   * Default setOption options. Compared by value (keyed by its `JSON.stringify`
+   * output, so property order matters): an inline object with the same value
+   * does not re-run `setOption`; a changed value re-applies the current `option`.
+   * setOption 默认选项（替代原 notMerge / lazyUpdate）。按值比较（以 `JSON.stringify`
+   * 输出为 key，属性顺序会影响结果）：值相同的内联对象不会重新调用 `setOption`，
+   * 值变化时会重新应用当前 `option`。
    */
   setOptionOpts?: SetOptionOpts;
 
@@ -405,8 +409,11 @@ export interface UseEchartsReturn {
   instance: ECharts | undefined;
 
   /**
-   * Function to update chart options
-   * 动态更新配置
+   * Function to update chart options. The result survives unrelated re-renders
+   * and lasts until the next real prop change (a new `option` reference or a
+   * changed `setOptionOpts` value), which re-applies the declarative option.
+   * 动态更新配置。结果不受无关的重新渲染影响，保留到下一次真实的 prop 变化
+   *（新的 `option` 引用或 `setOptionOpts` 值变化），届时重新应用声明式 option。
    */
   setOption: (option: EChartsOption, opts?: SetOptionOpts) => void;
 
@@ -547,10 +554,12 @@ export interface UseEchartsReturn {
 
   /**
    * Append data to a series; useful for streaming. After a successful append,
-   * prop-sync bookkeeping is invalidated so the next relevant reactive update
-   * can restore the declarative option.
+   * prop-sync bookkeeping is invalidated so the next real prop change (a new
+   * `option` reference or a changed `setOptionOpts` value) restores the
+   * declarative option; unrelated re-renders keep the appended data.
    * 向 series 追加数据，常用于流式更新。追加后内部数据会与声明式 option 偏离，
-   * 同步记录会失效，以便下一次相关的响应式更新恢复声明式状态。
+   * 同步记录会失效，以便下一次真实的 prop 变化（新的 `option` 引用或 `setOptionOpts`
+   * 值变化）恢复声明式状态；无关的重新渲染会保留追加的数据。
    * @see https://echarts.apache.org/en/api.html#echartsInstance.appendData
    */
   appendData: (params: Parameters<ECharts["appendData"]>[0]) => void;
