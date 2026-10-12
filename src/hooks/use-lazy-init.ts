@@ -82,8 +82,11 @@ export function useLazyInitForElement(
     try {
       observer = new IntersectionObserver(
         (entries) => {
-          const [entry] = entries;
-          if (entry?.isIntersecting) {
+          // Records queue up until the callback task runs, so one batch can hold
+          // a stale `isIntersecting: false` ahead of the current `true`. Reading
+          // only entries[0] would miss it, and an element that then stays in
+          // view never fires again. Any intersecting record latches.
+          if (entries.some((entry) => entry.isIntersecting)) {
             setHasIntersected(true);
             // Once visible, stop observing
             // 一旦可见，就停止观察

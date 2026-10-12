@@ -142,6 +142,25 @@ describe("useLazyInit", () => {
     expect(mockDisconnect).toHaveBeenCalled();
   });
 
+  // The observer queues one record per threshold crossing until its callback
+  // task runs, so a single batch can start with a stale non-intersecting record
+  // (e.g. the initial one) followed by the current intersecting one.
+  it("should latch when a later record in a batch intersects", () => {
+    const element = document.createElement("div");
+
+    const { result } = renderHook(() => useLazyInit(true));
+    act(() => {
+      result.current.ref(element);
+    });
+
+    act(() => {
+      intersectionCallback([{ isIntersecting: false }, { isIntersecting: true }]);
+    });
+
+    expect(result.current.isInView).toBe(true);
+    expect(mockDisconnect).toHaveBeenCalled();
+  });
+
   it("should not change state when element does not intersect", () => {
     const element = document.createElement("div");
 
