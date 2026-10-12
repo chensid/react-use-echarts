@@ -263,6 +263,39 @@ describe("useEcharts", () => {
         MockIntersectionObserver as unknown as typeof IntersectionObserver;
     });
 
+    it("should keep an eagerly initialized chart when lazyInit is enabled later", () => {
+      class NonTriggeringIntersectionObserver {
+        observe = vi.fn();
+        disconnect = vi.fn();
+        unobserve = vi.fn();
+        constructor() {}
+      }
+      globalThis.IntersectionObserver =
+        NonTriggeringIntersectionObserver as unknown as typeof IntersectionObserver;
+
+      const element = document.createElement("div");
+      const mockInstance = createMockInstance(element);
+      (echarts.init as ReturnType<typeof vi.fn>).mockReturnValue(mockInstance);
+
+      const { result, rerender } = renderHook(
+        ({ lazyInit }: { lazyInit: boolean }) => useEcharts({ option: baseOption, lazyInit }),
+        { initialProps: { lazyInit: false } },
+      );
+      act(() => {
+        result.current.ref(element);
+      });
+      expect(result.current.instance).toBe(mockInstance);
+
+      rerender({ lazyInit: true });
+
+      expect(mockInstance.dispose).not.toHaveBeenCalled();
+      expect(result.current.instance).toBe(mockInstance);
+      expect(echarts.init).toHaveBeenCalledTimes(1);
+
+      globalThis.IntersectionObserver =
+        MockIntersectionObserver as unknown as typeof IntersectionObserver;
+    });
+
     it("should recreate the instance when ref.current changes to a new element", async () => {
       const element1 = document.createElement("div");
       const element2 = document.createElement("div");

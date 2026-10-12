@@ -212,7 +212,10 @@ export interface EChartsEvents extends KnownEChartsEvents {
 export interface UseLazyInitReturn {
   /** Callback ref to attach to the element you want to lazily initialize. */
   ref: RefCallback<Element>;
-  /** Whether eager mode is active or the element has intersected at least once. */
+  /**
+   * Whether eager mode is active, or the hook has latched: the element intersected
+   * once, or was attached while eager mode was active.
+   */
   isInView: boolean;
 }
 

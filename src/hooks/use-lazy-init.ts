@@ -13,8 +13,13 @@ import type { UseLazyInitReturn } from "../types";
  * Latching semantics: lazy means "defer until first visible", not "track
  * visibility". Once intersected the hook latches for its lifetime — neither
  * DOM-node replacement nor toggling lazy mode off/on re-arms observation.
- * Remount the component for fresh per-element tracking.
+ * Eager mode latches too once an element is attached: switching lazy mode on
+ * afterwards keeps `isInView` true instead of re-deferring what already
+ * initialized (like `<img loading>` changing to "lazy" after load). Lazy mode
+ * enabled before any element is attached still defers. Remount the component
+ * for fresh per-element tracking.
  * 锁存语义：一旦相交过即终身锁存——更换 DOM 节点或重新开启 lazy 模式都不会重新观察。
+ * 立即模式下挂载元素后同样锁存：之后再开启 lazy 不会把已初始化的内容重新推迟。
  *
  * A malformed `IntersectionObserverInit` (out-of-range `threshold`, unit-less
  * `rootMargin`, non-Element `root`) makes the observer constructor throw. The
@@ -51,16 +56,24 @@ export function useLazyInitForElement(
   // the `!== null` check on isObject below, `typeof null === "object"` would make
   // the option reads deref null and throw during render on every pass.
   const isLazyMode = options != null && options !== false;
-  // State holds ONLY the observer's "has fired with isIntersecting" verdict.
-  // Initial visibility (when lazy mode is disabled) is derived at return,
-  // NOT seeded via useState(!isLazyMode) — that initializer only runs on
-  // first mount, so flipping `lazyInit` from false→true at runtime would
-  // otherwise leave the value permanently `true` and skip observation.
+  // `latched` records that whatever this hook gates has initialized: the
+  // observer fired with isIntersecting, or an element was attached while lazy
+  // mode was off. It deliberately NEVER resets (the effect below early-returns
+  // on it): re-observing after a node swap or a lazyInit false→true toggle
+  // would re-defer — i.e. tear down — an already-initialized chart. Platform
+  // precedent agrees: `<img loading>` switching eager→lazy after load is a
+  // no-op, and react-intersection-observer keeps `inView` when `skip` toggles.
   //
-  // hasIntersected deliberately NEVER resets (the effect below early-returns
-  // on it): re-observing after a node swap or lazyInit false→true would
-  // re-defer — i.e. tear down — an already-initialized chart.
-  const [hasIntersected, setHasIntersected] = useState(false);
+  // Not seeded via useState(!isLazyMode): that would also latch an eager hook
+  // with no element yet, so lazy mode enabled before the container attaches
+  // would never observe.
+  const [latched, setLatched] = useState(false);
+  // Eager mode with an attached element has initialized: latch during render
+  // (React's "store information from previous renders" pattern) so a later
+  // switch to lazy mode can't flip the result back to false for one render.
+  if (!isLazyMode && element !== null && !latched) {
+    setLatched(true);
+  }
 
   // Extract config values for stable dependency comparison
   // 提取配置值用于稳定的依赖比较
@@ -76,7 +89,7 @@ export function useLazyInitForElement(
   useEffect(() => {
     // Skip if lazy mode is disabled or already in view
     // 如果禁用了懒加载模式或已经可见，则跳过
-    if (!isLazyMode || hasIntersected || !element) return;
+    if (!isLazyMode || latched || !element) return;
 
     let observer: IntersectionObserver;
     try {
@@ -87,7 +100,7 @@ export function useLazyInitForElement(
           // only entries[0] would miss it, and an element that then stays in
           // view never fires again. Any intersecting record latches.
           if (entries.some((entry) => entry.isIntersecting)) {
-            setHasIntersected(true);
+            setLatched(true);
             // Once visible, stop observing
             // 一旦可见，就停止观察
             observer.disconnect();
@@ -114,18 +127,18 @@ export function useLazyInitForElement(
         "useLazyInit: invalid IntersectionObserver options; falling back to eager init.",
         error,
       );
-      setHasIntersected(true);
+      setLatched(true);
       return;
     }
 
     return () => {
       observer.disconnect();
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- hasIntersected excluded (observer self-disconnects); thresholdDep stabilizes inline number[] in place of optThreshold
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- latched excluded (observer self-disconnects); thresholdDep stabilizes inline number[] in place of optThreshold
   }, [element, isLazyMode, optRoot, optRootMargin, thresholdDep]);
 
-  // Derive visibility: visible when lazy mode is off (instant init) OR the
-  // observer has fired at least once. Toggling lazy mode at runtime is
-  // therefore correctly handled in both directions.
-  return !isLazyMode || hasIntersected;
+  // Visible when lazy mode is off (instant init) OR the hook has latched.
+  // lazy→eager resumes a pending deferral; eager→lazy after an element was
+  // attached stays visible via the latch.
+  return !isLazyMode || latched;
 }
