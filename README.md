@@ -54,6 +54,8 @@ Already using `echarts-for-react`? Most props map 1:1 — see [Migrating from ec
 > **CSR only.** ECharts needs a live DOM; SSR is not supported.
 >
 > **ESM-only since 1.3.0.** The package publishes ESM entries for the main API (`dist/index.js`) plus the `preset-full` and `themes/registry` subpaths. Every modern bundler (Vite, Next.js, webpack 5+, Rspack, Parcel, Turbopack) and Node 22+ (`require(ESM)`) consume them natively. If you still depend on CJS-only tooling, pin to `1.2.x`.
+>
+> **Development and production builds.** The main entry ships a production build (`default` export condition, dev-only warnings removed) and a development build (`development` condition, with the dev-only warnings). Vite, webpack, Rspack, Next.js (webpack and Turbopack) and Vitest pick the development build automatically in dev; esbuild, Bun and Parcel's defaults resolve the production build, so add the `development` condition there to get the warnings. Neither build needs a `process` global. Consumer tests in a Node environment (`NODE_ENV=test`) stay quiet, while Vitest browser mode shows the warnings.
 
 ## Installation
 
