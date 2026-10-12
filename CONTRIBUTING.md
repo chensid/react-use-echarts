@@ -69,10 +69,17 @@ Releases are driven by [changesets](https://github.com/changesets/changesets):
 2. Pushes to `main` run `ci.yml`; successful push-triggered CI completions start `release.yml` so Changesets can keep an open "Version Packages" PR or publish a merged version bump via npm OIDC.
 3. The release job checks out `main` (Changesets needs the branch) and continues only when its HEAD is the commit the triggering CI run tested. If `main` has moved on, the job skips; the newer push's own CI run triggers the release once it passes, so an untested commit is never versioned or published.
 
-The "Version Packages" PR needs one manual step before it can be merged. Changesets opens it from a workflow using `GITHUB_TOKEN`, and GitHub creates the `pull_request` workflow run for such a PR in the `action_required` state rather than running it. Its `test (22)` / `test (24)` checks therefore never report, and because both are required the merge is refused with `405 2 of 2 required status checks are expected`. Unblock it either way:
+The "Version Packages" PR needs one manual step before it can be merged. Changesets opens it from a workflow using `GITHUB_TOKEN`, and GitHub creates the `pull_request` workflow run for such a PR in the `action_required` state rather than running it. Its `test (22)` / `test (24)` checks therefore never report, and because both are required the merge is refused with `405 2 of 2 required status checks are expected`. Unblock it by approving that parked run (any user with write access), then merge once it passes:
 
-- approve the parked run from the PR's checks tab (any user with write access), or
-- run the CI workflow against the `changeset-release/main` branch from the Actions tab — `workflow_dispatch` is exempt from the `GITHUB_TOKEN` restrictions and is kept on `ci.yml` for exactly this.
+- in the browser, open the run from the PR's checks tab (or the Actions tab) and choose **Approve and run**, or
+- from the CLI, find the run and approve it:
+
+  ```bash
+  gh run list --workflow CI --branch changeset-release/main --event pull_request --limit 1
+  gh api -X POST repos/chensid/react-use-echarts/actions/runs/<run-id>/approve
+  ```
+
+Running CI on `changeset-release/main` through `workflow_dispatch` does **not** unblock the merge. On the 3.2.3 release PR (#594), a dispatched run reported passing `test (22)` / `test (24)` check runs on the PR head commit, but the PR's check rollup never listed them and the merge stayed blocked. It became mergeable only after the parked `pull_request` run was approved and passed.
 
 Do not push a throwaway commit to the release branch to start CI. The documented behavior is in [Events that trigger workflows](https://docs.github.com/en/actions/reference/workflows-and-actions/events-that-trigger-workflows#pull_request); the approval settings under Actions cover forks only, so there is no repository toggle that removes this step. Creating the PR with a personal access token or GitHub App token instead of `GITHUB_TOKEN` would avoid it, at the cost of managing that credential.
 
