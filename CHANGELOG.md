@@ -1,5 +1,13 @@
 # react-use-echarts
 
+## 3.2.3
+
+### Patch Changes
+
+- 9abf05e: `lazyInit` / `useLazyInit` now latch when any record in an IntersectionObserver batch intersects. Previously only the first record was read, so a batch holding a stale non-intersecting record ahead of the current intersecting one was ignored, and a container that then stayed in view never initialized the chart.
+- 1e39f51: Switching `lazyInit` from `false` to `true` no longer disposes a chart that already initialized eagerly; `useLazyInit` likewise keeps `isInView` true once an element was attached in eager mode. Lazy mode now only defers what has not initialized yet, matching `<img loading>` and react-intersection-observer's `skip`. Enabling lazy mode before any container is attached still defers as before.
+- a8cbc0b: `setOptionOpts` is now compared by value (keyed by its `JSON.stringify` output, like `theme` and `initOpts`). An inline `setOptionOpts={{ replaceMerge: ["series"] }}`, or any opts object with a nested `replaceMerge` array or `transition` object, no longer re-runs `setOption` on every render. As a result, what an imperative `setOption`, `clear` or `appendData` leaves on the chart now survives unrelated re-renders whether or not `setOptionOpts` is referentially stable, and lasts until the next real prop change: a new `option` reference or a changed `setOptionOpts` value. Before, an inline `setOptionOpts` made the next re-render re-apply the declarative option.
+
 ## 3.2.2
 
 ### Patch Changes
