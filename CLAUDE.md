@@ -2,7 +2,7 @@
 
 React hooks library for Apache ECharts. Hook + declarative component, TypeScript, zero runtime deps.
 
-- **CSR only** | **ESM-only** | The pre-commit hook's `vp staged` needs Node 22.22.1+ on 22.x — stricter than `engines`
+- **CSR only** | **ESM-only** | The pre-commit hook's `vp staged` needs Node 22.22.1+ on 22.x — stricter than `devEngines.runtime`
 
 ## Vite+ Toolchain
 
