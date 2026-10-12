@@ -236,7 +236,7 @@ The public option type remains `IntersectionObserverInit`, but the current
 implementation forwards only `root`, `rootMargin`, and `threshold` to the
 observer. `scrollMargin` is not currently supported.
 
-> Note: lazy init is a one-shot latch — "lazy" means "defer until first visible", not "track visibility". Once the element has intersected, the chart stays initialized for the hook's lifetime: replacing the container DOM node or toggling `lazyInit` off and back on does not re-arm observation. To start deferring again, remount the component.
+> Note: lazy init is a one-shot latch — "lazy" means "defer until first visible", not "track visibility". Once the element has intersected, the chart stays initialized for the hook's lifetime: replacing the container DOM node or toggling `lazyInit` off and back on does not re-arm observation. The same holds for a chart that started eager: switching `lazyInit` on after it initialized keeps it alive (like `<img loading>` changing to `"lazy"` after load). To start deferring again, remount the component.
 
 > Invalid observer settings never break the chart: an out-of-range `threshold`, a unit-less `rootMargin`, or a `root` that is neither an `Element` nor a `Document` makes the `IntersectionObserver` constructor throw, so the hook logs via `console.error` and degrades to eager init — the chart renders immediately instead of staying blank.
 

@@ -369,11 +369,10 @@ describe("useLazyInit", () => {
     expect(mockDisconnect).toHaveBeenCalled();
   });
 
-  // Regression: previously the hook's `useState(!isLazyMode)` seeded
-  // `isInView` from the initial `lazyInit` value and never reset it, so
-  // flipping `lazyInit` from false → true at runtime left the hook
-  // reporting `isInView: true` forever — the observer was never installed.
-  it("starts observing when lazy mode is enabled after mount", async () => {
+  // An element attached in eager mode has initialized whatever the hook
+  // gates. Enabling lazy mode afterwards must not re-defer (tear down) it —
+  // like `<img loading>` switching eager→lazy after load.
+  it("keeps an element attached in eager mode visible when lazy mode is enabled later", () => {
     const element = document.createElement("div");
 
     const { result, rerender } = renderHook(
@@ -383,21 +382,37 @@ describe("useLazyInit", () => {
     act(() => {
       result.current.ref(element);
     });
-
-    // Lazy mode off → instantly visible, observer not used.
     expect(result.current.isInView).toBe(true);
-    expect(mockObserve).not.toHaveBeenCalled();
 
     rerender({ lazyInit: true });
 
-    // Lazy mode on → visibility must drop back to false, observer installed.
+    expect(result.current.isInView).toBe(true);
+    expect(mockObserve).not.toHaveBeenCalled();
+  });
+
+  // Regression: the hook once seeded `isInView` via `useState(!isLazyMode)`,
+  // so enabling lazy mode after mount never installed the observer. Before an
+  // element is attached nothing has initialized, so lazy mode must still defer.
+  it("starts observing when lazy mode is enabled before an element is attached", async () => {
+    const element = document.createElement("div");
+
+    const { result, rerender } = renderHook(
+      ({ lazyInit }: { lazyInit: boolean }) => useLazyInit(lazyInit),
+      { initialProps: { lazyInit: false } },
+    );
+    expect(result.current.isInView).toBe(true);
+
+    rerender({ lazyInit: true });
+    act(() => {
+      result.current.ref(element);
+    });
+
     await waitFor(() => {
       expect(result.current.isInView).toBe(false);
     });
     expect(mockObserve).toHaveBeenCalledTimes(1);
     expect(mockObserve).toHaveBeenLastCalledWith(element);
 
-    // Observer firing flips visibility back to true.
     act(() => {
       intersectionCallback([{ isIntersecting: true }]);
     });
