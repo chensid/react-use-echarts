@@ -1502,10 +1502,54 @@ describe("useEcharts", () => {
       });
     });
 
-    it("should keep prop dedup consistent after imperative setOption", async () => {
-      // Imperative setOption must update lastAppliedRef so the subsequent
-      // prop-driven OPTION-SYNC effect sees the actual instance state, not a
-      // stale "what props sent last".
+    it("should dedup inline setOptionOpts with nested values by value", () => {
+      // `replaceMerge` is an array and `transition` an object, so a shallow
+      // compare never matched a fresh inline wrapper and Option Sync re-ran
+      // setOption on mount and on every later render.
+      const element = document.createElement("div");
+      const mockInstance = createMockInstance(element);
+      (echarts.init as ReturnType<typeof vi.fn>).mockReturnValue(mockInstance);
+
+      const stableOption: EChartsOption = { series: [{ type: "line", data: [1, 2, 3] }] };
+      const { result, rerender } = renderHook(
+        ({ replaceMerge }) =>
+          useEcharts({
+            option: stableOption,
+            setOptionOpts: {
+              replaceMerge: [...replaceMerge],
+              transition: {
+                from: { seriesIndex: 0, dimension: "x" },
+                to: { seriesIndex: 0, dimension: "x" },
+              },
+            },
+          }),
+        { initialProps: { replaceMerge: ["series"] } },
+      );
+      act(() => {
+        result.current.ref(element);
+      });
+      expect(mockInstance.setOption).toHaveBeenCalledTimes(1);
+
+      rerender({ replaceMerge: ["series"] });
+      rerender({ replaceMerge: ["series"] });
+      expect(mockInstance.setOption).toHaveBeenCalledTimes(1);
+
+      // Control: a changed value is a real prop change and re-applies.
+      rerender({ replaceMerge: ["series", "xAxis"] });
+      expect(mockInstance.setOption).toHaveBeenCalledTimes(2);
+      expect(mockInstance.setOption).toHaveBeenLastCalledWith(stableOption, {
+        replaceMerge: ["series", "xAxis"],
+        transition: {
+          from: { seriesIndex: 0, dimension: "x" },
+          to: { seriesIndex: 0, dimension: "x" },
+        },
+      });
+    });
+
+    it("should keep an imperative setOption until the next real prop change", async () => {
+      // An unrelated render (same option ref, fresh but value-equal inline
+      // opts) must not re-apply the declarative option over an imperative one;
+      // previously it did, but only when the opts wrapper was inline.
       const element = document.createElement("div");
       const mockInstance = createMockInstance(element);
       (echarts.init as ReturnType<typeof vi.fn>).mockReturnValue(mockInstance);
@@ -1513,11 +1557,10 @@ describe("useEcharts", () => {
       const sharedSeries = baseOption.series;
       const propOptionA: EChartsOption = { series: sharedSeries };
       const imperativeOption: EChartsOption = { series: [{ type: "bar", data: [9] }] };
-      const stableOpts = { notMerge: false };
 
       const { result, rerender } = renderHook(
         ({ option, opts }) => useEcharts({ option, setOptionOpts: opts }),
-        { initialProps: { option: propOptionA, opts: stableOpts } },
+        { initialProps: { option: propOptionA, opts: { notMerge: false } } },
       );
       act(() => {
         result.current.ref(element);
@@ -1540,15 +1583,17 @@ describe("useEcharts", () => {
         );
       });
 
-      // 3. Re-render with the same prop option and a fresh but shallow-equal
-      //    opts object. Without updating lastAppliedRef, the stable-option fast
-      //    path would skip and leave the imperative option active. Recording B
-      //    makes the option comparison differ and restores declarative A.
+      // 3. Unrelated render: same option ref, fresh value-equal opts. The
+      //    imperative option stays.
       rerender({ option: propOptionA, opts: { notMerge: false } });
+      expect(mockInstance.setOption).toHaveBeenCalledTimes(2);
+
+      // 4. A real prop change (opts value) re-applies the declarative option.
+      rerender({ option: propOptionA, opts: { notMerge: true } });
       await waitFor(() => {
         expect(mockInstance.setOption).toHaveBeenCalledTimes(3);
         expect(mockInstance.setOption).toHaveBeenLastCalledWith(propOptionA, {
-          notMerge: false,
+          notMerge: true,
         });
       });
     });
@@ -1870,17 +1915,16 @@ describe("useEcharts", () => {
       }).toThrow("clear boom");
     });
 
-    it("should re-apply prop option after imperative clear on the next prop sync", async () => {
+    it("should re-apply prop option after imperative clear on the next real prop change", async () => {
       // Without resetting lastAppliedRef inside clear(), the option-sync
-      // effect's dedup fast path sees an unchanged option vs lastApplied and
-      // skips setOption, leaving the chart blank after clear(). Resetting
-      // forces re-application.
+      // effect's dedup fast path would match the option an imperative
+      // setOption recorded and skip, leaving the chart blank after clear().
       const element = document.createElement("div");
       const mockInstance = createMockInstance(element);
       (echarts.init as ReturnType<typeof vi.fn>).mockReturnValue(mockInstance);
 
-      const sharedSeries = baseOption.series;
-      const propOptionA: EChartsOption = { series: sharedSeries };
+      const propOptionA: EChartsOption = { series: baseOption.series };
+      const optionB: EChartsOption = { series: [{ type: "bar", data: [9] }] };
       const stableOpts = { notMerge: false };
 
       const { result, rerender } = renderHook(
@@ -1891,10 +1935,11 @@ describe("useEcharts", () => {
         result.current.ref(element);
       });
 
-      // 1. Init applied propOptionA.
-      await waitFor(() => {
-        expect(mockInstance.setOption).toHaveBeenCalledTimes(1);
+      // 1. Init applied propOptionA; an imperative call then applied optionB.
+      act(() => {
+        result.current.setOption(optionB);
       });
+      expect(mockInstance.setOption).toHaveBeenCalledTimes(2);
 
       // 2. Imperative clear() — chart is now blank; lastAppliedRef must be cleared.
       act(() => {
@@ -1902,15 +1947,16 @@ describe("useEcharts", () => {
       });
       expect(mockInstance.clear).toHaveBeenCalledTimes(1);
 
-      // 3. Keep the same option ref, but use a fresh shallow-equal opts wrapper
-      //    to trigger the sync effect. Without clearing lastAppliedRef, the
-      //    stable-option fast path skips; with it cleared, the chart restores.
+      // 3. An unrelated render (fresh value-equal opts) leaves it cleared.
       rerender({ option: propOptionA, opts: { notMerge: false } });
+      expect(mockInstance.setOption).toHaveBeenCalledTimes(2);
+
+      // 4. The prop moves to optionB — the object setOption last recorded.
+      //    With the memory reset, the chart restores instead of staying blank.
+      rerender({ option: optionB, opts: stableOpts });
       await waitFor(() => {
-        expect(mockInstance.setOption).toHaveBeenCalledTimes(2);
-        expect(mockInstance.setOption).toHaveBeenLastCalledWith(propOptionA, {
-          notMerge: false,
-        });
+        expect(mockInstance.setOption).toHaveBeenCalledTimes(3);
+        expect(mockInstance.setOption).toHaveBeenLastCalledWith(optionB, stableOpts);
       });
     });
   });
@@ -1942,15 +1988,16 @@ describe("useEcharts", () => {
       }).not.toThrow();
     });
 
-    it("should reset sync memory so the next relevant prop sync re-applies setOption", async () => {
+    it("should reset sync memory so the next real prop change re-applies setOption", async () => {
       // Same drift mechanic as clear(): appendData mutates instance state
-      // outside the declarative option, so the next relevant prop sync must
-      // not be skipped by the stable-option fast path.
+      // outside the declarative option, so the next real prop change must not
+      // be skipped by the stable-option fast path.
       const element = document.createElement("div");
       const mockInstance = createMockInstance(element);
       (echarts.init as ReturnType<typeof vi.fn>).mockReturnValue(mockInstance);
 
       const propA = { series: baseOption.series } as EChartsOption;
+      const optionB: EChartsOption = { series: [{ type: "line", data: [7] }] };
       const stableOpts = { notMerge: false };
 
       const { result, rerender } = renderHook(
@@ -1960,21 +2007,26 @@ describe("useEcharts", () => {
       act(() => {
         result.current.ref(element);
       });
-      await waitFor(() => {
-        expect(mockInstance.setOption).toHaveBeenCalledTimes(1);
+      act(() => {
+        result.current.setOption(optionB);
       });
+      expect(mockInstance.setOption).toHaveBeenCalledTimes(2);
 
       act(() => {
         result.current.appendData({ seriesIndex: 0, data: [42] });
       });
       expect(mockInstance.appendData).toHaveBeenCalledTimes(1);
 
+      // An unrelated render keeps the appended data.
       rerender({ option: propA, opts: { notMerge: false } });
+      expect(mockInstance.setOption).toHaveBeenCalledTimes(2);
+
+      // The prop moves to the object setOption last recorded; the reset makes
+      // Option Sync re-apply it over the drifted instance.
+      rerender({ option: optionB, opts: stableOpts });
       await waitFor(() => {
-        expect(mockInstance.setOption).toHaveBeenCalledTimes(2);
-        expect(mockInstance.setOption).toHaveBeenLastCalledWith(propA, {
-          notMerge: false,
-        });
+        expect(mockInstance.setOption).toHaveBeenCalledTimes(3);
+        expect(mockInstance.setOption).toHaveBeenLastCalledWith(optionB, stableOpts);
       });
     });
 
