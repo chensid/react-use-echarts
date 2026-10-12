@@ -1,5 +1,15 @@
 # react-use-echarts
 
+## 3.3.0
+
+### Minor Changes
+
+- 401998c: The main entry now ships two builds, and neither needs a `process` global, so loading the package as raw ESM no longer throws `ReferenceError: process is not defined`. `dist/index.js` (the `default` export condition) is a production build with the dev-only warnings removed (about 1 KB smaller gzipped). `dist/development/index.js` (the new `development` condition) keeps the warnings, and consumers' Node-based test runs (`NODE_ENV=test`) still silence them. Vite, webpack, Rspack, Next.js (webpack and Turbopack) and Vitest select the development build automatically in dev. Setups that do not set the `development` condition by default (esbuild, Bun, Parcel's default resolver) now resolve the production build and no longer show dev-only warnings; add the `development` condition to keep them.
+
+### Patch Changes
+
+- cca8cf9: The published package no longer declares `engines.node`. That range only described this repository's build tooling, yet package managers applied it to consumers' installs: npm and pnpm printed unsupported-engine warnings, and Yarn 1 refused to install on Node.js versions outside it. The library is browser-only ESM, so the range now lives in `devEngines.runtime`, which consumers' installs ignore.
+
 ## 3.2.3
 
 ### Patch Changes
