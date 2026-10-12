@@ -33,7 +33,25 @@ jobs:
           ref: main
           fetch-depth: 0
 
+      # Changesets needs the `main` branch checked out, but `main` can move past
+      # the commit the triggering CI run tested. Release only that tested commit:
+      # when `main` has moved on, the newer push's own CI run releases it once it
+      # passes, so nothing untested is versioned or published.
+      - name: Require the CI-tested commit
+        id: tested
+        env:
+          TESTED_SHA: ${{ github.event.workflow_run.head_sha }}
+        run: |
+          head_sha="$(git rev-parse HEAD)"
+          if [ "$head_sha" = "$TESTED_SHA" ]; then
+            echo "match=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "match=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::Skipping release: main is at $head_sha but CI tested $TESTED_SHA. The newer push's CI run will release it."
+          fi
+
       - name: Setup Vite+
+        if: steps.tested.outputs.match == 'true'
         uses: voidzero-dev/setup-vp@v1.21.1
         with:
           node-version: "24"
@@ -41,9 +59,11 @@ jobs:
           run-install: false # Install once below with the lockfile frozen.
 
       - name: Install dependencies
+        if: steps.tested.outputs.match == 'true'
         run: vp install --frozen-lockfile
 
       - name: Create release PR or publish
+        if: steps.tested.outputs.match == 'true'
         uses: changesets/action@v2
         with:
           # `vp run <script>` dispatches to package.json scripts:
