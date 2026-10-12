@@ -49,7 +49,7 @@ React Hooks & 组件，用于 Apache ECharts — TypeScript、自动 resize、�
 
 - React 19.2+（`react` + `react-dom`）
 - ECharts 6.x
-- Node.js 22.19+（22.x）、24.11+（24.x）或 26+（package metadata 对安装与构建工具的要求；运行时图表代码仍是仅浏览器 ESM）
+- 本包自身不限制 Node.js 版本：它是仅浏览器的 ESM，只需满足你所用打包工具对 Node.js 的要求（本仓库 `devEngines` 中的 Node.js 范围仅用于[参与开发](./CONTRIBUTING.md)）
 
 > **仅支持 CSR。** ECharts 需要真实 DOM，不支持 SSR。
 >

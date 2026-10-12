@@ -49,7 +49,7 @@ Already using `echarts-for-react`? Most props map 1:1 — see [Migrating from ec
 
 - React 19.2+ (`react` + `react-dom`)
 - ECharts 6.x
-- Node.js 22.19+ on 22.x, 24.11+ on 24.x, or 26+ (required by the package metadata for installation and build tooling; the runtime chart code remains browser-only ESM)
+- No Node.js version requirement of its own: the package is browser-only ESM, so only your bundler's Node.js support applies (the Node.js range in this repo's `devEngines` is for [contributing](./CONTRIBUTING.md))
 
 > **CSR only.** ECharts needs a live DOM; SSR is not supported.
 >
