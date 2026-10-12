@@ -316,6 +316,8 @@ export default function Page() {
 - **不要让多个 `useEcharts` 共享同一个 DOM 元素** — 实例缓存会复用同一个 ECharts 实例并在开发模式下打印警告；多个 hook 的更新会互相覆盖。
 - **`initOpts` 和自定义 `theme` 对象按序列化内容生成 key** — 对可序列化对象，只有 `JSON.stringify` 输出相同时才视为相同；属性插入顺序会影响输出，因此语义等价但顺序不同的对象仍可能重建实例。memo 能避免重复序列化并让意图更清楚。不要原地修改这两个对象：相同引用会被视为未变化。
 - **`option` 更新由引用驱动** — 每个新的 `option` 引用都会调用 `setOption`；原地修改同一对象不会被观察到。父组件频繁渲染时应缓存昂贵 option，并在图表数据变化时替换外层对象。
+- **`setOptionOpts` 按值比较** — 以 `JSON.stringify` 输出作为 key（属性顺序会影响 key），因此内联的 `setOptionOpts={{ replaceMerge: ["series"] }}` 不会在每次渲染时重新调用 `setOption`；值变化时会重新应用当前 `option`。
+- **命令式更新保留到下一次真实的 prop 变化** — `setOption`、`clear`、`appendData` 留在图表上的状态不受无关的重新渲染影响；下一次传入新的 `option` 引用或改变 `setOptionOpts` 的值时，会重新应用声明式 option。
 - **StrictMode 安全** — 双挂载/卸载由带引用计数的实例缓存正确处理。
 
 ## API 参考
@@ -345,7 +347,7 @@ export default function Page() {
 | `renderer`      | `'canvas' \| 'svg'`                   | `'canvas'` | 渲染器类型                                                                                                                                                         |
 | `lazyInit`      | `boolean \| IntersectionObserverInit` | `false`    | 基于 IntersectionObserver 的懒加载                                                                                                                                 |
 | `group`         | `string`                              | —          | 图表联动组 ID                                                                                                                                                      |
-| `setOptionOpts` | `SetOptionOpts`                       | —          | `setOption` 的默认选项                                                                                                                                             |
+| `setOptionOpts` | `SetOptionOpts`                       | —          | `setOption` 的默认选项，按值比较                                                                                                                                   |
 | `showLoading`   | `boolean`                             | `false`    | 是否显示加载指示器                                                                                                                                                 |
 | `loadingOption` | `LoadingOption`                       | —          | 加载指示器配置                                                                                                                                                     |
 | `onEvents`      | `EChartsEvents`                       | —          | 事件处理器（`fn` 或 `{ handler, query?, context? }`）                                                                                                              |
@@ -369,13 +371,13 @@ export default function Page() {
 
 **生命周期 / 更新**
 
-| 方法             | 类型                                                                                 | 说明                                                                                     |
-| ---------------- | ------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------- |
-| `setOption`      | `(option: EChartsOption, opts?: SetOptionOpts) => void`                              | 动态更新图表配置                                                                         |
-| `dispatchAction` | `(payload: Payload, opt?: boolean \| { silent?: boolean; flush?: boolean }) => void` | 派发 ECharts 动作（`highlight`、`downplay`、`showTip` 等）                               |
-| `clear`          | `() => void`                                                                         | 清空当前图表内容                                                                         |
-| `resize`         | `(opts?: ResizeOpts) => void`                                                        | 手动触发 resize；`ResizeOpts` 支持 `width`/`height`/`animation`/`silent`                 |
-| `appendData`     | `(params: Parameters<ECharts["appendData"]>[0]) => void`                             | 向 series 流式追加数据；会使 prop 同步记录失效，以便下一次相关的响应式更新恢复声明式状态 |
+| 方法             | 类型                                                                                 | 说明                                                                                                          |
+| ---------------- | ------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------- |
+| `setOption`      | `(option: EChartsOption, opts?: SetOptionOpts) => void`                              | 动态更新图表配置；保留到下一次 `option` / `setOptionOpts` 变化                                                |
+| `dispatchAction` | `(payload: Payload, opt?: boolean \| { silent?: boolean; flush?: boolean }) => void` | 派发 ECharts 动作（`highlight`、`downplay`、`showTip` 等）                                                    |
+| `clear`          | `() => void`                                                                         | 清空当前图表内容                                                                                              |
+| `resize`         | `(opts?: ResizeOpts) => void`                                                        | 手动触发 resize；`ResizeOpts` 支持 `width`/`height`/`animation`/`silent`                                      |
+| `appendData`     | `(params: Parameters<ECharts["appendData"]>[0]) => void`                             | 向 series 流式追加数据；会使 prop 同步记录失效，以便下一次 `option` / `setOptionOpts` 变化时恢复声明式 option |
 
 **读取 / 内省**
 

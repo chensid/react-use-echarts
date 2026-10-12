@@ -67,7 +67,7 @@ Releases are driven by [changesets](https://github.com/changesets/changesets):
 
 1. PRs include a `.changeset/*.md` file describing the change.
 2. Pushes to `main` run `ci.yml`; successful push-triggered CI completions start `release.yml` so Changesets can keep an open "Version Packages" PR or publish a merged version bump via npm OIDC.
-3. The release job checks out `main` as it exists when that job runs, so the processed SHA can be newer than the CI run that triggered the workflow.
+3. The release job checks out `main` (Changesets needs the branch) and continues only when its HEAD is the commit the triggering CI run tested. If `main` has moved on, the job skips; the newer push's own CI run triggers the release once it passes, so an untested commit is never versioned or published.
 
 The "Version Packages" PR needs one manual step before it can be merged. Changesets opens it from a workflow using `GITHUB_TOKEN`, and GitHub creates the `pull_request` workflow run for such a PR in the `action_required` state rather than running it. Its `test (22)` / `test (24)` checks therefore never report, and because both are required the merge is refused with `405 2 of 2 required status checks are expected`. Unblock it either way:
 

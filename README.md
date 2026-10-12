@@ -319,6 +319,8 @@ export default function Page() {
 - **Don't share one DOM element across multiple `useEcharts` hooks** — the instance cache reuses a single ECharts instance and emits a dev warning; updates from different hooks will overwrite each other.
 - **`initOpts` and custom `theme` objects are keyed by `JSON.stringify` output** — separately allocated objects that produce the same JSON string do not recreate the instance. Property order affects that string, so objects with the same fields in a different insertion order do recreate it. Memoizing avoids repeated serialization and makes intent clear. Never mutate either object in place: the same reference is treated as unchanged.
 - **`option` updates are reference-driven** — every new `option` reference calls `setOption`, while in-place mutation of the same object is not observed. Memoize expensive options when parent renders are frequent, and replace the wrapper object when chart data changes.
+- **`setOptionOpts` is compared by value** — it is keyed by its `JSON.stringify` output (property order affects the key), so an inline `setOptionOpts={{ replaceMerge: ["series"] }}` does not re-run `setOption` on every render. Changing its value re-applies the current `option`.
+- **Imperative updates last until the next real prop change** — whatever `setOption`, `clear` or `appendData` leave on the chart survives unrelated re-renders; the next new `option` reference or changed `setOptionOpts` value re-applies the declarative option.
 - **StrictMode is safe** — double mount/unmount is handled by the reference-counted instance cache.
 
 ## API Reference
@@ -349,7 +351,7 @@ All other native `div` attributes are forwarded to the chart container, includin
 | `renderer`      | `'canvas' \| 'svg'`                   | `'canvas'` | Renderer type                                                                                                                                                                                                           |
 | `lazyInit`      | `boolean \| IntersectionObserverInit` | `false`    | Lazy initialization via IntersectionObserver                                                                                                                                                                            |
 | `group`         | `string`                              | —          | Chart linkage group ID                                                                                                                                                                                                  |
-| `setOptionOpts` | `SetOptionOpts`                       | —          | Default options for `setOption` calls                                                                                                                                                                                   |
+| `setOptionOpts` | `SetOptionOpts`                       | —          | Default options for `setOption` calls, compared by value                                                                                                                                                                |
 | `showLoading`   | `boolean`                             | `false`    | Show loading indicator                                                                                                                                                                                                  |
 | `loadingOption` | `LoadingOption`                       | —          | Loading indicator configuration                                                                                                                                                                                         |
 | `onEvents`      | `EChartsEvents`                       | —          | Event handlers (`fn` or `{ handler, query?, context? }`)                                                                                                                                                                |
@@ -373,13 +375,13 @@ The returned object is **referentially stable**: its identity changes only when 
 
 **Lifecycle / updates**
 
-| Method           | Type                                                                                 | Description                                                                                                                               |
-| ---------------- | ------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------- |
-| `setOption`      | `(option: EChartsOption, opts?: SetOptionOpts) => void`                              | Update chart configuration                                                                                                                |
-| `dispatchAction` | `(payload: Payload, opt?: boolean \| { silent?: boolean; flush?: boolean }) => void` | Dispatch an ECharts action (`highlight`, `downplay`, `showTip`, etc.)                                                                     |
-| `clear`          | `() => void`                                                                         | Clear current chart content                                                                                                               |
-| `resize`         | `(opts?: ResizeOpts) => void`                                                        | Manually trigger chart resize. `ResizeOpts` accepts `width`/`height`/`animation`/`silent`                                                 |
-| `appendData`     | `(params: Parameters<ECharts["appendData"]>[0]) => void`                             | Append data to a series (streaming). Invalidates prop-sync bookkeeping so the next relevant reactive update can restore declarative state |
+| Method           | Type                                                                                 | Description                                                                                                                                          |
+| ---------------- | ------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `setOption`      | `(option: EChartsOption, opts?: SetOptionOpts) => void`                              | Update chart configuration; kept until the next `option` / `setOptionOpts` change                                                                    |
+| `dispatchAction` | `(payload: Payload, opt?: boolean \| { silent?: boolean; flush?: boolean }) => void` | Dispatch an ECharts action (`highlight`, `downplay`, `showTip`, etc.)                                                                                |
+| `clear`          | `() => void`                                                                         | Clear current chart content                                                                                                                          |
+| `resize`         | `(opts?: ResizeOpts) => void`                                                        | Manually trigger chart resize. `ResizeOpts` accepts `width`/`height`/`animation`/`silent`                                                            |
+| `appendData`     | `(params: Parameters<ECharts["appendData"]>[0]) => void`                             | Append data to a series (streaming). Invalidates prop-sync bookkeeping so the next `option` / `setOptionOpts` change restores the declarative option |
 
 **Read / introspect**
 

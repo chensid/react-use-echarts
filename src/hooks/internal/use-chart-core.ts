@@ -150,7 +150,8 @@ function warnMissingRegistration(error: unknown): void {
 
 interface LastApplied {
   option: EChartsOption;
-  opts: SetOptionOpts | undefined;
+  /** `computeStableKey` of the opts passed with `option`. */
+  optsKey: string | null;
 }
 
 interface LastLoading {
@@ -276,6 +277,10 @@ export function useChartCore(
   // recommends). No regression for inline objects — the dep changes either way.
   const themeKey = useMemo(() => computeStableKey(theme), [theme]);
   const initOptsKey = useMemo(() => computeStableKey(initOpts), [initOpts]);
+  // Value-keyed rather than shallow-compared: `replaceMerge` (array) and
+  // `transition` (object / array of finders) nest, so an inline wrapper would
+  // never compare equal and Option Sync would re-run setOption every render.
+  const setOptionOptsKey = useMemo(() => computeStableKey(setOptionOpts), [setOptionOpts]);
 
   // --- Public API ---
 
@@ -344,7 +349,7 @@ export function useChartCore(
       // attempt" it would re-invoke setOption with the same args and fire
       // onError a second time. The user can still recover by passing a new
       // option reference (Option-Sync sees the changed ref and retries).
-      lastAppliedRef.current = { option, opts: setOptionOpts };
+      lastAppliedRef.current = { option, optsKey: setOptionOptsKey };
     }
 
     // showLoading can throw via user-registered custom loading types.
@@ -425,11 +430,16 @@ export function useChartCore(
   // =====================================================================
   // OPTION SYNC
   //
-  // Uses lastAppliedRef to skip the first run after the lifecycle effect
-  // (which already applied the same option). A new option reference always
-  // triggers setOption, even when its top-level keys are shallow-equal: the
-  // caller may have mutated shared nested ECharts data before cloning the
-  // wrapper, and shallow comparison cannot observe that change safely.
+  // Re-syncs only on a real prop change: a new `option` reference, or a
+  // `setOptionOpts` whose serialized value changed. A new option reference
+  // always triggers setOption, even when its top-level keys are
+  // shallow-equal: the caller may have mutated shared nested ECharts data
+  // before cloning the wrapper, and shallow comparison cannot observe that
+  // change safely. Keying the opts by value means an unrelated render with an
+  // inline opts literal neither re-applies the option nor overwrites what an
+  // imperative setOption / clear / appendData left on the instance; the next
+  // real prop change wins. lastAppliedRef skips the first run after the
+  // lifecycle effect (which already applied the same option).
   // =====================================================================
   useEffect(() => {
     if (!element) return;
@@ -437,24 +447,20 @@ export function useChartCore(
     if (!instance) return;
 
     const last = lastAppliedRef.current;
-    if (last?.option === option) {
-      // Keep stable option references cheap. setOptionOpts is configuration
-      // metadata rather than chart data, so shallow-equal wrapper objects are
-      // safe to deduplicate here.
-      if (last.opts === setOptionOpts || shallowEqual(last.opts, setOptionOpts)) return;
-    }
+    if (last?.option === option && last.optsKey === setOptionOptsKey) return;
 
     try {
       instance.setOption(option, setOptionOpts);
     } catch (error) {
       reportEffectError(error, latestRef.current.onError, "ECharts setOption failed:");
     } finally {
-      // Record the attempt even on failure so a subsequent rerender with
-      // the same option ref dedups via the fast path above instead of
+      // Record the attempt even on failure so a rerun with the same option
+      // ref and opts value dedups via the fast path above instead of
       // re-throwing identically.
-      lastAppliedRef.current = { option, opts: setOptionOpts };
+      lastAppliedRef.current = { option, optsKey: setOptionOptsKey };
     }
-  }, [element, option, setOptionOpts]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- setOptionOptsKey stands in for setOptionOpts so value-equal inline opts don't re-run the effect; setOptionOpts is read from the same render
+  }, [element, option, setOptionOptsKey]);
 
   // =====================================================================
   // EVENT REBINDING
@@ -555,8 +561,8 @@ export function useChartCore(
   // contract. When the instance throws: with onError, route the error and
   // return the fallback; without onError, rethrow (readers do NOT silently
   // log-and-default — same policy as setOption / dispatchAction). clear()
-  // and appendData() additionally drop lastAppliedRef so a later prop-sync
-  // run re-applies setOption (the instance state has drifted from props).
+  // and appendData() additionally drop lastAppliedRef so the next real prop
+  // change re-applies setOption (the instance state has drifted from props).
   //
   // Wrapped in `useMemo([element])` so method identities stay stable across
   // renders for a given container. Mutables (lastAppliedRef, latestRef) are
@@ -581,9 +587,9 @@ export function useChartCore(
         withInstance((instance) => {
           const finalOpts = { ...latestRef.current.setOptionOpts, ...opts };
           instance.setOption(newOption, finalOpts);
-          // Keep lastAppliedRef in sync so prop-driven Option-Sync Effect dedup
-          // reflects what's actually on the instance, not what props last sent.
-          lastAppliedRef.current = { option: newOption, opts: finalOpts };
+          // Keep lastAppliedRef in sync with what's actually on the instance, so
+          // the next real prop change re-applies the declarative option.
+          lastAppliedRef.current = { option: newOption, optsKey: computeStableKey(finalOpts) };
         }, undefined),
 
       dispatchAction: (payload, opt) =>
@@ -592,9 +598,10 @@ export function useChartCore(
       clear: () =>
         withInstance((instance) => {
           instance.clear();
-          // Drop dedup memory: instance is now blank, so the next relevant
-          // prop-sync run must re-apply it instead of being skipped by the
-          // Option-Sync Effect's stable-option fast path.
+          // Drop dedup memory: instance is now blank, so the next real prop
+          // change must re-apply the option instead of being skipped by the
+          // Option-Sync Effect's fast path (e.g. when the prop moves to the
+          // object an earlier imperative setOption recorded).
           lastAppliedRef.current = null;
         }, undefined),
 
@@ -638,8 +645,8 @@ export function useChartCore(
         withInstance((instance) => {
           instance.appendData(params);
           // appendData drifts the instance from declarative `option`, same as
-          // clear(): drop dedup memory so the next relevant option-prop sync
-          // re-applies setOption.
+          // clear(): drop dedup memory so the next real prop change re-applies
+          // setOption.
           lastAppliedRef.current = null;
         }, undefined),
     } satisfies Omit<ChartCoreReturn, "instance">;

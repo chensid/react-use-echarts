@@ -60,7 +60,7 @@ Hook decomposition (`useChartCore` / `useResizeObserver` effects) and the key de
 ## Anti-patterns
 
 - Don't leave subscriptions, listeners, observers, timers/RAFs, or other persistent resources created by an effect without paired cleanup; synchronization-only effects are exempt
-- Don't mutate `theme` or `initOpts` objects in place; distinct objects dedup only when their `JSON.stringify` output matches (property order affects the key), while memoization avoids repeated serialization
+- Don't mutate `theme`, `initOpts` or `setOptionOpts` objects in place; distinct objects dedup only when their `JSON.stringify` output matches (property order affects the key), while memoization avoids repeated serialization
 - Don't duplicate API reference from `README.md` into this file
 - Don't re-add the removed `react-use-echarts/core` subpath — v3 consumers should import from `react-use-echarts`.
 - Don't re-add `import "echarts"` to `src/index.ts` — the root entry must stay modular and must not force the full ECharts registry into every consumer bundle. Registration belongs in consumer-side code (their app entry or `registerEchartsFull()`).
