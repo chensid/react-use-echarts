@@ -35,6 +35,7 @@ All `useEcharts` options as props + native `div` attributes (`id`, `role`, `aria
 
 - **Container needs explicit width/height** — chart won't render in a zero-size div
 - **ECharts modules must be registered before first render** — the library is fully modular and does **not** auto-register anything. Call `registerEchartsFull()` (from `'react-use-echarts/preset-full'`) at app entry for an everything-included experience, or call `echarts.use([...])` selectively for tree-shake-friendly builds. Forgetting this shows up as `Renderer 'undefined' is not imported` or a silently blank chart.
+- **Dev-only warnings ship in a `development` export-condition build** — Vite, webpack, Rspack, Next.js and Vitest resolve it in dev; esbuild, Bun and default Parcel get the production build (no warnings) unless the `development` condition is added. Neither build references `process`
 - **Legacy `/core` imports are gone in v3** — use `from 'react-use-echarts'`; the old `react-use-echarts/core` alias was removed.
 - **`option` is reference-reactive** — a new reference auto-triggers `setOption`; in-place mutation is not observed
 - **`setOptionOpts` is `JSON.stringify`-keyed** — value-equal inline objects (including nested `replaceMerge` arrays) don't re-run `setOption`; property order affects the key

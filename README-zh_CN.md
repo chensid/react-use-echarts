@@ -54,6 +54,8 @@ React Hooks & 组件，用于 Apache ECharts — TypeScript、自动 resize、�
 > **仅支持 CSR。** ECharts 需要真实 DOM，不支持 SSR。
 >
 > **1.3.0 起仅提供 ESM。** 包会为主 API（`dist/index.js`）以及 `preset-full`、`themes/registry` 子路径发布 ESM 入口。所有现代打包工具（Vite、Next.js、webpack 5+、Rspack、Parcel、Turbopack）和 Node 22+（`require(ESM)`）均可直接消费。如仍依赖 CJS-only 工具链，请固定在 `1.2.x`。
+>
+> **开发版与生产版构建。** 主入口同时发布生产版（`default` 导出条件，已移除 dev 警告）和开发版（`development` 条件，含 dev 警告）。Vite、webpack、Rspack、Next.js（webpack 与 Turbopack）和 Vitest 在开发时会自动选用开发版；esbuild、Bun 和 Parcel 默认解析到生产版，如需 dev 警告请自行加上 `development` 条件。两份构建都不依赖全局 `process`。在 Node 环境运行的使用方测试（`NODE_ENV=test`）不会输出警告，Vitest 浏览器模式下则会输出。
 
 ## 安装
 

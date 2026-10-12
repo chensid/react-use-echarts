@@ -9,24 +9,49 @@ import { playwright } from "vite-plus/test/browser-playwright";
 const repositoryName = process.env.GITHUB_REPOSITORY?.split("/")[1];
 const base = process.env.GITHUB_ACTIONS === "true" && repositoryName ? `/${repositoryName}/` : "/";
 
-// Preserve `process.env.NODE_ENV` references verbatim in the packed bundle
-// instead of inlining the library's own build-time value. The dev-only console
-// warnings in use-chart-core / instance-cache are guarded by
-// `NODE_ENV !== "production"`; without this identity-define the pack build folds
-// those guards to the build-time value (dev), baking the warnings permanently
-// into the shipped bundle so consumers can neither strip them nor silence them
-// in production. Keeping the token lets each consumer's bundler DCE the dev
-// branches in their own production build (and keep them in dev) — the standard
-// library pattern (see Vite "Building for Production › Library Mode").
+// Two builds of the main entry, neither of which needs a `process` global, so
+// raw ESM loads without a bundler (the Lit / Solid pattern):
 //
-// IMPORTANT: keep this scoped to the pack (library) entries below — do NOT
-// hoist it to a top-level `define`, which would also rewrite the examples app
-// (`vp dev`/`vp build`) and leave `process.env.NODE_ENV` undefined at runtime
-// there. Applied uniformly to every JS-logic entry (index and preset-full) —
-// not only the one that emits warnings today — so a dev warning added to any of
-// them later is automatically consumer-strippable instead of silently baked in.
-// themes/registry is pure preset JSON with no guarded code.
-const preserveProcessEnvNodeEnv = { "process.env.NODE_ENV": "process.env.NODE_ENV" };
+// - Production (`dist/index.js`, the `default` export condition): NODE_ENV is
+//   defined as "production", so Rolldown folds the dev-only guards in
+//   use-chart-core / instance-cache and drops the warnings entirely.
+// - Development (`dist/development/index.js`, the `development` condition that
+//   Vite, webpack, Rspack, Next.js and Vitest pick in dev): NODE_ENV becomes
+//   the guarded expression below. It reads "test" only when a real `process`
+//   says so (consumers' Node-based test runs stay quiet, as before) and is
+//   "development" otherwise; `typeof process` short-circuits before any
+//   `process.env` access, and consumer bundlers still replace the inner
+//   `process.env.NODE_ENV` as usual.
+//
+// IMPORTANT: keep these scoped to the pack (library) entries below — do NOT
+// hoist them to a top-level `define`, which would also rewrite the examples app
+// (`vp dev`/`vp build`). Every default-condition entry gets the production
+// define, not only the one that emits warnings today, so a dev warning added to
+// any of them later is stripped instead of shipping a raw `process` reference;
+// `forbidRawProcess` fails the pack if one slips through anyway.
+const productionNodeEnv = { "process.env.NODE_ENV": JSON.stringify("production") };
+const developmentNodeEnvExpression =
+  '(typeof process !== "undefined" && process.env.NODE_ENV === "test" ? "test" : "development")';
+const developmentNodeEnv = { "process.env.NODE_ENV": developmentNodeEnvExpression };
+
+// Fail the pack if an emitted entry mentions `process` anywhere except inside
+// `allowed` (the development build's guarded expression), so neither build can
+// regress into throwing `ReferenceError: process is not defined` without a
+// bundler.
+function forbidRawProcess(allowed?: string): Plugin {
+  return {
+    name: "forbid-raw-process",
+    generateBundle(_options, bundle) {
+      for (const chunk of Object.values(bundle)) {
+        if (chunk.type !== "chunk" || !chunk.fileName.endsWith(".js")) continue;
+        const code = allowed ? chunk.code.replaceAll(allowed, "") : chunk.code;
+        if (/\bprocess\b/.test(code)) {
+          this.error(`${chunk.fileName} references \`process\` outside the allowed guard`);
+        }
+      }
+    },
+  };
+}
 
 // Ship JS without JSDoc: editors read API docs from the emitted `.d.ts`, so
 // JSDoc in `dist/*.js` only inflated the bundle (about half its gzip size) and
@@ -142,8 +167,8 @@ export default defineConfig({
       attw: { profile: "esm-only" },
       platform: "browser",
       outputOptions: stripDocComments,
-      define: preserveProcessEnvNodeEnv,
-      plugins: [babel({ presets: [reactCompilerPreset()] }), requireUseClient],
+      define: productionNodeEnv,
+      plugins: [babel({ presets: [reactCompilerPreset()] }), requireUseClient, forbidRawProcess()],
     },
     {
       deps: { resolveDepSubpath: false },
@@ -153,7 +178,8 @@ export default defineConfig({
       dts: { generator: "tsgo" },
       platform: "browser",
       outputOptions: stripDocComments,
-      plugins: [requireUseClient],
+      define: productionNodeEnv,
+      plugins: [requireUseClient, forbidRawProcess()],
     },
     {
       deps: { resolveDepSubpath: false },
@@ -164,8 +190,26 @@ export default defineConfig({
       dts: { generator: "tsgo" },
       platform: "browser",
       outputOptions: stripDocComments,
-      define: preserveProcessEnvNodeEnv,
-      plugins: [babel({ presets: [reactCompilerPreset()] }), requireUseClient],
+      define: productionNodeEnv,
+      plugins: [babel({ presets: [reactCompilerPreset()] }), requireUseClient, forbidRawProcess()],
+    },
+    {
+      deps: { resolveDepSubpath: false },
+      // Development build of the main entry, served through the `development`
+      // export condition. Types come from the production entry's `.d.ts`
+      // (`exports["."].types`), so this entry emits none.
+      entry: { "development/index": "src/index.ts" },
+      format: ["esm"],
+      tsconfig: "tsconfig.lib.json",
+      dts: false,
+      platform: "browser",
+      outputOptions: stripDocComments,
+      define: developmentNodeEnv,
+      plugins: [
+        babel({ presets: [reactCompilerPreset()] }),
+        requireUseClient,
+        forbidRawProcess(developmentNodeEnvExpression),
+      ],
     },
   ],
   server: {

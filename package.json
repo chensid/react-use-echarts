@@ -43,6 +43,7 @@
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
+      "development": "./dist/development/index.js",
       "default": "./dist/index.js"
     },
     "./themes/registry": {
@@ -103,8 +104,15 @@
   },
   "size-limit": [
     {
-      "name": "dist/index.js (gzip, unminified, JSDoc stripped — incl. dev-only warnings, DCE'd in consumer prod builds)",
+      "name": "dist/index.js (gzip, unminified, JSDoc stripped — production build, dev-only warnings removed)",
       "path": "dist/index.js",
+      "limit": "7 KB",
+      "gzip": true,
+      "brotli": false
+    },
+    {
+      "name": "dist/development/index.js (gzip, unminified, JSDoc stripped — development build with dev-only warnings)",
+      "path": "dist/development/index.js",
       "limit": "8 KB",
       "gzip": true,
       "brotli": false

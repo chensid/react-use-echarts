@@ -71,8 +71,9 @@ function resolveTheme(theme: string | object | undefined): string | object | nul
 }
 
 function warnZeroSizeContainer(element: HTMLElement): void {
-  // NODE_ENV checks come FIRST so a consumer's production build folds the guard
-  // to `if (true) return;` and dead-code-eliminates the whole dev-only body
+  // NODE_ENV checks come FIRST so the packed production build (NODE_ENV defined
+  // as "production") folds the guard to `if (true) return;` and drops the whole
+  // dev-only body
   // (including the warning string). With the `warnedZeroSizeContainers.has(...)`
   // call leading the `||` chain, minifiers can't prove the early-return is
   // unconditional and leave the string in the bundle. Order is behavior-neutral
@@ -118,8 +119,8 @@ function warnZeroSizeContainer(element: HTMLElement): void {
  * 并引导用户去注册；与真实错误并行输出，不替代它。
  */
 function warnMissingRegistration(error: unknown): void {
-  // NODE_ENV checks FIRST so a consumer's production build folds this to
-  // `if (true) return;` and dead-code-eliminates the whole dev-only body
+  // NODE_ENV checks FIRST so the packed production build folds this to
+  // `if (true) return;` and drops the whole dev-only body
   // (including the hint string), mirroring warnZeroSizeContainer. Keeping
   // `warnedMissingRegistration.has(...)` last leaves the early-return
   // non-constant so minifiers can't strip the guard in dev.
