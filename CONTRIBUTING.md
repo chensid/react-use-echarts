@@ -4,7 +4,7 @@ Thanks for your interest in improving `react-use-echarts`!
 
 ## Prerequisites
 
-- Node.js 22.19+ on 22.x, 24.11+ on 24.x, or 26+ (CI covers the 22.x minimum and latest 24.x); the pre-commit hook's `vp staged` needs 22.22.1+ on 22.x
+- Node.js 22.19+ on 22.x, 24.11+ on 24.x, or 26+ (CI covers the 22.x minimum and latest 24.x); the pre-commit hook's `vp staged` needs 22.22.1+ on 22.x. The range lives in `package.json` → `devEngines.runtime`, which Vite+ uses to select Node.js and pnpm checks on install. It is deliberately not `engines`: package managers apply a dependency's `engines` to consumers' installs, and this browser-only package has no Node.js requirement of its own.
 - Vite+ CLI (`vp`) available in your shell
 - Git 2.32+ (required by `vp staged`)
 
