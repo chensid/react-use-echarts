@@ -24,7 +24,8 @@ const Home: React.FC = () => (
           <h2 className={styles.sectionTitle}>Built for real ECharts use</h2>
           <p className={styles.sectionLead}>
             {featureItems.length} features cover the gaps people fill manually: reactivity, themes,
-            renderer choice, group linkage, events, loading, ref API, and lazy initialization.
+            renderer choice, group linkage, events, loading, ref API, export, lazy initialization,
+            error handling, and selective registration.
           </p>
         </div>
         <Link to="/features" className={styles.headLink}>
@@ -63,8 +64,9 @@ const Home: React.FC = () => (
           <span className={styles.kicker}>Gallery preview</span>
           <h2 className={styles.sectionTitle}>Charts ready to copy</h2>
           <p className={styles.sectionLead}>
-            Each example is a single self-contained component. Hover into any card to see the chart,
-            then jump to the source.
+            Each example is a single component on the public API; only the site's light/dark{" "}
+            <code>useTheme()</code> hook is local. Hover into any card to see the chart, then jump
+            to the source.
           </p>
         </div>
         <Link to="/gallery" className={styles.headLink}>
@@ -92,7 +94,7 @@ const Home: React.FC = () => (
           <h2 className={styles.outroTitle}>Drop a hook in. Ship a chart.</h2>
           <p className={styles.sectionLead}>
             Open the playground to tweak options live, or pull any gallery example into your own
-            project.
+            project once its ECharts modules are registered.
           </p>
         </div>
         <div className={styles.outroCtas}>
