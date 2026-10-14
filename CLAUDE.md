@@ -6,7 +6,7 @@ React hooks library for Apache ECharts. Hook + declarative component, TypeScript
 
 ## Vite+ Toolchain
 
-> Full rules and common pitfalls: `node_modules/vite-plus/AGENTS.md`
+> Vite+'s own agent guide (built-in commands vs scripts, tool versions, review checklist; regenerated with each Vite+ release): `node_modules/vite-plus/AGENTS.md`. Full docs: `node_modules/vite-plus/docs`
 
 Project-specific commands:
 
