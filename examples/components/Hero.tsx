@@ -4,7 +4,7 @@ import { useEcharts, type EChartsOption } from "../../src";
 import { useTheme } from "./theme-context";
 import Icon from "./Icon";
 import { CHART_COUNT } from "../data/gallery";
-import { APP_VERSION, BUNDLE_SIZE, ECHARTS_MAJOR, REACT_MAJOR } from "../data/meta";
+import { APP_VERSION, BUNDLE_SIZE, ECHARTS_MAJOR, REACT_MIN } from "../data/meta";
 import styles from "./Hero.module.css";
 
 const INSTALL_CMD = "npm install react-use-echarts echarts";
@@ -137,7 +137,7 @@ const Hero: React.FC = () => {
       <div className={styles.left}>
         <div className={styles.eyebrow}>
           <span className={styles.eyebrowDot} />v{APP_VERSION} · ECharts {ECHARTS_MAJOR} · React{" "}
-          {REACT_MAJOR}+
+          {REACT_MIN}+
         </div>
         <h1 className={styles.title}>
           The minimal hook
