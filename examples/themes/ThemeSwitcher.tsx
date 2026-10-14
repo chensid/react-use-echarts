@@ -1,6 +1,8 @@
 import React, { useState, useMemo } from "react";
 import { useEcharts, type EChartsOption } from "../../src";
 
+// "light" and "dark" ship with ECharts 6. "macarons" must be registered once at app
+// entry: `registerBuiltinThemes()` from "react-use-echarts/themes/registry".
 const THEMES = ["light", "dark", "macarons", "custom"] as const;
 
 const ThemeSwitcher: React.FC = () => {
