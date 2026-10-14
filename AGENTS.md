@@ -13,7 +13,7 @@ Distribution: ESM-only (since 1.3.0). No Node.js requirement for consumers (brow
 Options: `option` (required), `theme`, `renderer` (`'canvas'`|`'svg'`, default `'canvas'`), `lazyInit` (default `false`), `group`, `setOptionOpts`, `showLoading` (default `false`), `loadingOption`, `onEvents`, `autoResize` (default `true`), `initOpts`, `onError`
 
 - `ref` — `RefCallback<HTMLDivElement>` to attach to the container
-- `instance` — `ECharts | undefined` (reactive — defined after init, undefined before/after dispose)
+- `instance` — `ECharts | undefined` (reactive — defined after init, undefined before/after dispose); for an `onChartReady`-style callback, use `useEffect(() => { if (instance) onReady(instance); }, [instance, onReady])` — an `<EChart>` object ref is imperative-only and does not notify
 - `setOption(option, opts?)` — update chart config
 - `resize(opts?)` — manual resize trigger
 - Imperative methods: `dispatchAction`, `clear`, `appendData`, `getOption`, `getDataURL`, `getConnectedDataURL`, `renderToSVGString`, `getSvgDataURL`, `getWidth`, `getHeight`, `getDom`, `isDisposed`, `convertToPixel`, `convertToLayout`, `convertFromPixel`, `containPixel` (convert methods take an optional coordinate-system `opt`, e.g. matrix `clamp`)
@@ -35,7 +35,7 @@ All `useEcharts` options as props + native `div` attributes (`id`, `role`, `aria
 
 - **Container needs explicit width/height** — chart won't render in a zero-size div
 - **ECharts modules must be registered before first render** — the library is fully modular and does **not** auto-register anything. Call `registerEchartsFull()` (from `'react-use-echarts/preset-full'`) at app entry for an everything-included experience, or call `echarts.use([...])` selectively for tree-shake-friendly builds. Forgetting this shows up as `Renderer 'undefined' is not imported` or a silently blank chart.
-- **Dev-only warnings ship in a `development` export-condition build** — Vite, webpack, Rspack, Next.js and Vitest resolve it in dev; esbuild, Bun and default Parcel get the production build (no warnings) unless the `development` condition is added. Neither build references `process`
+- **Dev-only warnings ship in a `development` export-condition build** — Vite, webpack, Rspack, Next.js and Vitest resolve it in dev; esbuild, Bun and default Parcel get the production build (no warnings) unless the `development` condition is added. Neither build needs a `process` global
 - **Legacy `/core` imports are gone in v3** — use `from 'react-use-echarts'`; the old `react-use-echarts/core` alias was removed.
 - **`option` is reference-reactive** — a new reference auto-triggers `setOption`; in-place mutation is not observed
 - **`setOptionOpts` is `JSON.stringify`-keyed** — value-equal inline objects (including nested `replaceMerge` arrays) don't re-run `setOption`; property order affects the key
@@ -45,5 +45,7 @@ All `useEcharts` options as props + native `div` attributes (`id`, `role`, `aria
 - **Only `"macarons"` needs registration** — `"light"` / `"dark"` are ECharts 6's own themes (`"light"` = ECharts `"default"`); call `registerBuiltinThemes()` from `'react-use-echarts/themes/registry'` once before using `"macarons"`
 - **`onEvents` supports two forms** — shorthand `(params) => void` or full `{ handler, query?, context? }`; inline objects/handlers are fine — proxies call the latest handler; only event-name, `query` (shallow) or `context` changes rebind. ECharts holds the proxy, so `instance.off(name, handler)` cannot remove these listeners — drop the key from `onEvents` instead
 - **Chart linkage** — same `group` string syncs tooltips/highlights across charts
+- **Lazy init is a one-shot latch** — `lazyInit` / `useLazyInit` forward only `root`, `rootMargin` and `threshold` to the `IntersectionObserver` (`scrollMargin` is ignored); once visible, the chart stays initialized, and turning `lazyInit` on after an eager init keeps the chart. Invalid observer settings log via `console.error` (not `onError`) and fall back to eager init
+- **`onError` routing** — receives handled effect-operation and imperative API failures; without it, effect failures log via `console.error` and imperative methods rethrow. `off()` errors during dynamic event rebinding surface directly
 
 For usage examples and full API details, see `README.md` in this package.
