@@ -581,13 +581,14 @@ export type EChartHandle = Omit<UseEchartsReturn, "ref">;
 /**
  * Props for the EChart declarative component. Accepts every chart option plus
  * native `div` attributes such as `id`, `role`, `aria-*`, `data-*`, `tabIndex`
- * and DOM event handlers. `children` is intentionally excluded because ECharts
- * owns the container contents; conflicting native names (notably `onError`)
- * retain their chart-option meaning.
+ * and DOM event handlers. `children` and `dangerouslySetInnerHTML` are
+ * intentionally excluded because ECharts owns the container contents;
+ * conflicting native names (notably `onError`) retain their chart-option meaning.
  *
  * EChart 声明式组件的属性。除全部图表选项外，也接受 `id`、`role`、`aria-*`、
  * `data-*`、`tabIndex` 和 DOM 事件等原生 div 属性。由于 ECharts 自行管理容器内容，
- * `children` 被有意排除；冲突名称（尤其是 `onError`）保持图表选项语义。
+ * `children` 和 `dangerouslySetInnerHTML` 被有意排除；冲突名称（尤其是 `onError`）
+ * 保持图表选项语义。
  */
 export type EChartProps = UseEchartsOptions &
   Omit<
