@@ -36,7 +36,7 @@ After installing Chromium, run `vp check && vp test` before opening a pull reque
 
 For VS Code, install the workspace recommendations: [TypeScript 7](https://marketplace.visualstudio.com/items?itemName=TypeScriptTeam.native-preview) for the native language service, and [Vite Plus Extension Pack](https://marketplace.visualstudio.com/items?itemName=VoidZero.vite-plus-extension-pack) for Oxc and Vitest integration. Open a `.ts` or `.tsx` file and run **TypeScript: Enable TypeScript 7**, then select the workspace TypeScript version. The workspace's `js/ts.tsdk.path` points to the installed compiler; that path alone does not enable the native language service. The older JavaScript and TypeScript Nightly extension is not the TypeScript 7 extension.
 
-The project uses stable TypeScript 7 for command-line checking (`vp exec tsc -b`) and declaration generation (`vp pack`). TypeScript 7's programmatic API remains experimental; a warning about that API during packing does not mean the compiler itself is a prerelease. Keep `tsconfig: "tsconfig.lib.json"` paired with `dts: { generator: "tsgo" }` in each pack entry, and validate declaration changes with `vp pack` as well as type checking.
+The project uses stable TypeScript 7 for command-line checking (`vp exec tsc -b`) and declaration generation (`vp pack`). TypeScript 7's programmatic API remains experimental; a warning about that API during packing does not mean the compiler itself is a prerelease. Keep `tsconfig: "tsconfig.lib.json"` paired with `dts: { generator: "tsgo" }` in each declaration-emitting pack entry (the `development/index` entry sets `dts: false`; its types come from `dist/index.d.ts`), and validate declaration changes with `vp pack` as well as type checking.
 
 ## Toolchain Updates
 
@@ -66,10 +66,10 @@ The React Compiler runs through Babel (`@rolldown/plugin-babel` with `reactCompi
 Releases are driven by [changesets](https://github.com/changesets/changesets):
 
 1. PRs include a `.changeset/*.md` file describing the change.
-2. Pushes to `main` run `ci.yml`; successful push-triggered CI completions start `release.yml` so Changesets can keep an open "Version Packages" PR or publish a merged version bump via npm OIDC.
+2. Pushes to `main` run `ci.yml`; successful push-triggered CI completions start `release.yml` so Changesets can keep an open release PR (titled `chore: release`, from `changeset-release/main`) or publish a merged version bump via npm OIDC.
 3. The release job checks out `main` (Changesets needs the branch) and continues only when its HEAD is the commit the triggering CI run tested. If `main` has moved on, the job skips; the newer push's own CI run triggers the release once it passes, so an untested commit is never versioned or published.
 
-The "Version Packages" PR needs one manual step before it can be merged. Changesets opens it from a workflow using `GITHUB_TOKEN`, and GitHub creates the `pull_request` workflow run for such a PR in the `action_required` state rather than running it. Its `test (22)` / `test (24)` checks therefore never report, and because both are required the merge is refused with `405 2 of 2 required status checks are expected`. Unblock it by approving that parked run (any user with write access), then merge once it passes:
+The release PR needs one manual step before it can be merged. Changesets opens it from a workflow using `GITHUB_TOKEN`, and GitHub creates the `pull_request` workflow run for such a PR in the `action_required` state rather than running it. Its `test (22)` / `test (24)` checks therefore never report, and because both are required the merge is refused with `405 2 of 2 required status checks are expected`. Unblock it by approving that parked run (any user with write access), then merge once it passes:
 
 - in the browser, open the run from the PR's checks tab (or the Actions tab) and choose **Approve and run**, or
 - from the CLI, find the run and approve it:
@@ -83,7 +83,7 @@ Running CI on `changeset-release/main` through `workflow_dispatch` does **not** 
 
 Do not push a throwaway commit to the release branch to start CI. The documented behavior is in [Events that trigger workflows](https://docs.github.com/en/actions/reference/workflows-and-actions/events-that-trigger-workflows#pull_request); the approval settings under Actions cover forks only, so there is no repository toggle that removes this step. Creating the PR with a personal access token or GitHub App token instead of `GITHUB_TOKEN` would avoid it, at the cost of managing that credential.
 
-For hotfixes, follow the same flow — open a PR with a `.changeset/*.md` describing the fix, then merge it and the resulting Version Packages PR. Don't include `changeset version` output (CHANGELOG / version bumps) in feature PRs; that belongs only in the auto-generated Version Packages PR.
+For hotfixes, follow the same flow — open a PR with a `.changeset/*.md` describing the fix, then merge it and the resulting release PR. Don't include `changeset version` output (CHANGELOG / version bumps) in feature PRs; that belongs only in the auto-generated release PR.
 
 ## Reporting Issues
 
