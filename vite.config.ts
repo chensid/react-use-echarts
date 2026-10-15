@@ -81,6 +81,17 @@ const requireUseClient: Plugin = {
   },
 };
 
+// React Compiler via Babel, shared by the dev/build plugins and the pack entries.
+// @rolldown/plugin-babel types its result against the standalone `rolldown`
+// peer, while `plugins` / `pack[].plugins` expect the copy bundled in
+// @voidzero-dev/vite-plus-core. Since Vite+ 1.2.0 both are rolldown 1.2.13, and
+// TypeScript overflows (TS2321, then TS2322 against `TsdownPluginOption`) when
+// it compares the two identical recursive `Plugin` types — the same class as
+// voidzero-dev/vite-plus#2269. Asserting to Vite+'s own `Plugin` keeps every
+// comparison on one copy. Drop the assertion once the plugin types against
+// Vite+'s rolldown or Vite+ dedupes the peer.
+const reactCompiler = () => babel({ presets: [reactCompilerPreset()] }) as Promise<Plugin>;
+
 // https://viteplus.dev/config/
 export default defineConfig({
   base,
@@ -147,7 +158,7 @@ export default defineConfig({
   staged: {
     "*": "vp check --fix",
   },
-  plugins: [react(), babel({ presets: [reactCompilerPreset()] })],
+  plugins: [react(), reactCompiler()],
   pack: [
     {
       // tsdown 0.23's default: keep external subpath imports (`echarts/core`)
@@ -168,7 +179,7 @@ export default defineConfig({
       platform: "browser",
       outputOptions: stripDocComments,
       define: productionNodeEnv,
-      plugins: [babel({ presets: [reactCompilerPreset()] }), requireUseClient, forbidRawProcess()],
+      plugins: [reactCompiler(), requireUseClient, forbidRawProcess()],
     },
     {
       deps: { resolveDepSubpath: false },
@@ -191,7 +202,7 @@ export default defineConfig({
       platform: "browser",
       outputOptions: stripDocComments,
       define: productionNodeEnv,
-      plugins: [babel({ presets: [reactCompilerPreset()] }), requireUseClient, forbidRawProcess()],
+      plugins: [reactCompiler(), requireUseClient, forbidRawProcess()],
     },
     {
       deps: { resolveDepSubpath: false },
@@ -205,11 +216,7 @@ export default defineConfig({
       platform: "browser",
       outputOptions: stripDocComments,
       define: developmentNodeEnv,
-      plugins: [
-        babel({ presets: [reactCompilerPreset()] }),
-        requireUseClient,
-        forbidRawProcess(developmentNodeEnvExpression),
-      ],
+      plugins: [reactCompiler(), requireUseClient, forbidRawProcess(developmentNodeEnvExpression)],
     },
   ],
   server: {
