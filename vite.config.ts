@@ -84,12 +84,12 @@ const requireUseClient: Plugin = {
 // React Compiler via Babel, shared by the dev/build plugins and the pack entries.
 // @rolldown/plugin-babel types its result against the standalone `rolldown`
 // peer, while `plugins` / `pack[].plugins` expect the copy bundled in
-// @voidzero-dev/vite-plus-core. Since Vite+ 1.2.0 both are rolldown 1.2.13, and
-// TypeScript overflows (TS2321, then TS2322 against `TsdownPluginOption`) when
-// it compares the two identical recursive `Plugin` types — the same class as
-// voidzero-dev/vite-plus#2269. Asserting to Vite+'s own `Plugin` keeps every
-// comparison on one copy. Drop the assertion once the plugin types against
-// Vite+'s rolldown or Vite+ dedupes the peer.
+// @voidzero-dev/vite-plus-core. TypeScript overflows (TS2321, then TS2322
+// against `TsdownPluginOption`) when it compares the two copies of the recursive
+// `Plugin` type, whether or not their rolldown versions match — the same class
+// as voidzero-dev/vite-plus#2269. Asserting to Vite+'s own `Plugin` keeps
+// every comparison on one copy. Drop the assertion once the plugin types
+// against Vite+'s rolldown or Vite+ dedupes the peer.
 const reactCompiler = () => babel({ presets: [reactCompilerPreset()] }) as Promise<Plugin>;
 
 // https://viteplus.dev/config/
