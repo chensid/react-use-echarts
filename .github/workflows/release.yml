@@ -52,7 +52,7 @@ jobs:
 
       - name: Setup Vite+
         if: steps.tested.outputs.match == 'true'
-        uses: voidzero-dev/setup-vp@v1.21.2
+        uses: voidzero-dev/setup-vp@v1.22.0
         with:
           node-version: "24"
           cache: true
