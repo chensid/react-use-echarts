@@ -30,7 +30,7 @@ Thanks for your interest in improving `react-use-echarts`!
 - `vp build` – build the examples application with Vite into `site-dist/`.
 - `vp pack` – build the library (ESM) and type declarations into `dist/`. Runs `publint` + `attw` automatically.
 
-After installing Chromium, run `vp check && vp test` before opening a pull request; this covers both the unit and browser projects. CI additionally packs the library, enforces coverage and bundle budgets, repeats the unit project across its Node matrix, and runs the browser project on Node 24.
+After installing Chromium, run `vp check --deny-warnings && vp test` before opening a pull request; this covers both the unit and browser projects. `--deny-warnings` matches CI, which fails on lint warnings as well as errors. CI additionally packs the library, enforces coverage and bundle budgets, repeats the unit project across its Node matrix, and runs the browser project on Node 24.
 
 ## Editor and TypeScript 7
 
@@ -57,7 +57,7 @@ The React Compiler runs through Babel (`@rolldown/plugin-babel` with `reactCompi
 - Keep each PR focused on a single feature or fix.
 - Update documentation in **both** `README.md` **and** `README-zh_CN.md` (and `examples/`, API comments) when behavior or public APIs change.
 - Add or update tests in `src/__tests__` for any logic changes.
-- Ensure `vp check` and `vp test` pass locally.
+- Ensure `vp check --deny-warnings` and `vp test` pass locally.
 - Describe the motivation, solution, and validation steps in the PR body.
 - **Add a changeset** (`pnpm changeset`) for any user-visible change — pick `patch` for fixes, `minor` for additive features, `major` for breaking changes. Internal-only refactors that don't affect the published API may skip this with a note in the PR description.
 
