@@ -25,7 +25,7 @@ vp lint                       # Oxlint
 vp check                      # format + lint + typecheck (typecheck via tsgolint)
 ```
 
-**Pre-PR checklist:** install Chromium once, then run `vp check && vp test` (both projects).
+**Pre-PR checklist:** install Chromium once, then run `vp check --deny-warnings && vp test` (both projects). CI fails on lint warnings, so plain `vp check` passing locally is not enough.
 
 ### Vite+ toolchain
 

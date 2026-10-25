@@ -40,7 +40,7 @@ jobs:
         run: vp install --frozen-lockfile
 
       - name: Static checks
-        run: vp check
+        run: vp check --deny-warnings # Lint warnings fail CI as well as errors.
 
       - name: Build library
         run: vp pack
