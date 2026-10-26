@@ -1,5 +1,11 @@
 # react-use-echarts
 
+## 3.3.2
+
+### Patch Changes
+
+- b3b24bf: Maintenance release built with the current toolchain (Vite+ 1.4.0). The published files differ from 3.3.1 only in bundler-generated source-path comments (`//#region` markers became `// src/...` lines, and the type declarations no longer carry them). No API, type or runtime behavior change.
+
 ## 3.3.1
 
 ### Patch Changes
