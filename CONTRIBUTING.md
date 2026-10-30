@@ -59,7 +59,7 @@ The React Compiler runs through Babel (`@rolldown/plugin-babel` with `reactCompi
 - Add or update tests in `src/__tests__` for any logic changes.
 - Ensure `vp check --deny-warnings` and `vp test` pass locally.
 - Describe the motivation, solution, and validation steps in the PR body.
-- **Add a changeset** (`pnpm changeset`) for any user-visible change — pick `patch` for fixes, `minor` for additive features, `major` for breaking changes. Internal-only refactors that don't affect the published API may skip this with a note in the PR description.
+- **Add a changeset** (`vp run changeset`) for any user-visible change — pick `patch` for fixes, `minor` for additive features, `major` for breaking changes. Internal-only refactors that don't affect the published API may skip this with a note in the PR description.
 
 ## Releasing
 

@@ -33,15 +33,15 @@ React Hooks & 组件，用于 Apache ECharts — TypeScript、自动 resize、�
 
 面向 **React 19 + ECharts 6** 团队的现代化、hook 优先封装。ECharts 仍是唯一事实来源 —— 你直接传 `EChartsOption`，没有需要重新学习的抽象层。
 
-|             | react-use-echarts                               | echarts-for-react      |
-| ----------- | ----------------------------------------------- | ---------------------- |
-| API         | `useEcharts` Hook **和** `<EChart />` 组件      | 仅组件                 |
-| 面向        | React 19 —— callback ref、StrictMode 安全       | React 16–18 时代       |
-| 自动 resize | `ResizeObserver` + RAF，默认开启                | ✓                      |
-| 懒加载      | 内置 `lazyInit`（IntersectionObserver）         | 需手写                 |
-| 图表联动    | 内置 `group` prop                               | 手动 `echarts.connect` |
-| 错误路由    | `onError` 处理已包裹的图表操作和命令式 API 错误 | 手动 try/catch         |
-| 格式与依赖  | ESM-only、可 tree-shake、零运行时依赖           | CJS + ESM，零依赖      |
+|             | react-use-echarts                               | echarts-for-react                                             |
+| ----------- | ----------------------------------------------- | ------------------------------------------------------------- |
+| API         | `useEcharts` Hook **和** `<EChart />` 组件      | 仅组件                                                        |
+| 面向        | React 19 —— callback ref、StrictMode 安全       | React 16–18 时代                                              |
+| 自动 resize | `ResizeObserver` + RAF，默认开启                | ✓                                                             |
+| 懒加载      | 内置 `lazyInit`（IntersectionObserver）         | 需手写                                                        |
+| 图表联动    | 内置 `group` prop                               | 手动 `echarts.connect`                                        |
+| 错误路由    | `onError` 处理已包裹的图表操作和命令式 API 错误 | 手动 try/catch                                                |
+| 格式与依赖  | ESM-only、可 tree-shake、零运行时依赖           | CJS + ESM，2 个运行时依赖（`size-sensor`、`fast-deep-equal`） |
 
 已在用 `echarts-for-react`？大多数 props 一一对应 —— 见 [从 echarts-for-react 迁移](#从-echarts-for-react-迁移)。
 
@@ -455,7 +455,7 @@ return <div ref={mergeRefs(ref, myRef)} style={{ height: 400 }} />;
 | `className`               | `className`                               | 一致                                                                                                                                                              |
 | `lazyUpdate`（顶层）      | `setOptionOpts: { lazyUpdate: true }`     | 见 `notMerge` 行                                                                                                                                                  |
 | `shouldSetOption`         | 在父组件中自行控制 `option`               | 新的 `option` 引用会触发 `setOption`；如需自定义判断（深比较、节流、按应用状态门控），请在父组件中 memoize 或跳过 `option` prop                                   |
-| `autoResize`（4.x）       | `autoResize`                              | 默认值同为 `true`；底层使用 ResizeObserver + RAF                                                                                                                  |
+| `autoResize`（3.0.3+）    | `autoResize`                              | 默认值同为 `true`；底层使用 ResizeObserver + RAF                                                                                                                  |
 | _无_                      | `lazyInit`                                | 新增：容器进入视口时再初始化                                                                                                                                      |
 | _无_                      | `group`                                   | 新增：通过组 ID 实现图表联动                                                                                                                                      |
 | _无_                      | `onError`                                 | 新增：路由受保护的 `init`、`setOption`、事件绑定、loading、resize、group 联动和命令式调用错误；不保证路由动态事件重绑中的 `off` 异常                              |
