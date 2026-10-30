@@ -2,8 +2,8 @@
 
 ## Supported Versions
 
-Only the latest minor release line of `react-use-echarts` receives security
-updates. Older majors are not patched; please upgrade.
+Only the latest release of `react-use-echarts` receives security updates.
+Older versions are not patched; please upgrade.
 
 | Version | Supported |
 | ------- | --------- |

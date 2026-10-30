@@ -33,15 +33,15 @@ React hooks & component for Apache ECharts — TypeScript, auto-resize, themes, 
 
 A modern, hook-first wrapper for teams on **React 19 + ECharts 6**. ECharts stays the single source of truth — you pass `EChartsOption` straight through, with no abstraction layer to re-learn.
 
-|               | react-use-echarts                                         | echarts-for-react        |
-| ------------- | --------------------------------------------------------- | ------------------------ |
-| API           | `useEcharts` hook **and** `<EChart />` component          | Component only           |
-| Built for     | React 19 — callback ref, StrictMode-safe                  | React 16–18 era          |
-| Auto-resize   | `ResizeObserver` + RAF, on by default                     | ✓                        |
-| Lazy init     | Built-in `lazyInit` (IntersectionObserver)                | Manual                   |
-| Chart linkage | Built-in `group` prop                                     | Manual `echarts.connect` |
-| Error routing | `onError` for handled chart operations and imperative API | Manual try/catch         |
-| Format & deps | ESM-only, tree-shakeable, zero runtime deps               | CJS + ESM, zero deps     |
+|               | react-use-echarts                                         | echarts-for-react                                            |
+| ------------- | --------------------------------------------------------- | ------------------------------------------------------------ |
+| API           | `useEcharts` hook **and** `<EChart />` component          | Component only                                               |
+| Built for     | React 19 — callback ref, StrictMode-safe                  | React 16–18 era                                              |
+| Auto-resize   | `ResizeObserver` + RAF, on by default                     | ✓                                                            |
+| Lazy init     | Built-in `lazyInit` (IntersectionObserver)                | Manual                                                       |
+| Chart linkage | Built-in `group` prop                                     | Manual `echarts.connect`                                     |
+| Error routing | `onError` for handled chart operations and imperative API | Manual try/catch                                             |
+| Format & deps | ESM-only, tree-shakeable, zero runtime deps               | CJS + ESM, 2 runtime deps (`size-sensor`, `fast-deep-equal`) |
 
 Already using `echarts-for-react`? Most props map 1:1 — see [Migrating from echarts-for-react](#migrating-from-echarts-for-react).
 
@@ -460,7 +460,7 @@ Most props map 1:1; a few are folded into existing options. Quick reference:
 | `className`               | `className`                               | Same                                                                                                                                                                                                      |
 | `lazyUpdate` (top-level)  | `setOptionOpts: { lazyUpdate: true }`     | See `notMerge` row                                                                                                                                                                                        |
 | `shouldSetOption`         | Gate the `option` prop yourself           | A new `option` reference triggers `setOption`; for custom predicates (deep comparison, throttling, app-state gating), memoize or skip the `option` prop in the parent component                           |
-| `autoResize` (4.x)        | `autoResize`                              | Same default (`true`); resize uses ResizeObserver + RAF                                                                                                                                                   |
+| `autoResize` (3.0.3+)     | `autoResize`                              | Same default (`true`); resize uses ResizeObserver + RAF                                                                                                                                                   |
 | _none_                    | `lazyInit`                                | New: defer init until the container scrolls into viewport                                                                                                                                                 |
 | _none_                    | `group`                                   | New: chart linkage via shared group ID                                                                                                                                                                    |
 | _none_                    | `onError`                                 | New: route handled failures through a callback (`init`, `setOption`, event binding, loading, resize, group linkage, and imperative calls); `off()` errors during dynamic event rebinding surface directly |
