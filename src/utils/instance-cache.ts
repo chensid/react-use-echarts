@@ -23,8 +23,8 @@ const instanceCache = new Map<HTMLElement, CacheEntry>();
  * Get cached instance for element
  * 获取元素的缓存实例
  */
-export function getCachedInstance(element: HTMLElement | null): ECharts | undefined {
-  return element ? instanceCache.get(element)?.instance : undefined;
+export function getCachedInstance(element: HTMLElement): ECharts | undefined {
+  return instanceCache.get(element)?.instance;
 }
 
 /**
@@ -61,8 +61,13 @@ export function setCachedInstance(element: HTMLElement, instance: ECharts): ECha
  * 集中表达"离组 + dispose"协议，避免 groupMembers 残留过期引用。
  */
 function performDispose(instance: ECharts): void {
-  leaveGroup(instance);
-  instance.dispose();
+  try {
+    leaveGroup(instance);
+  } finally {
+    // Dispose even if leaving fails: the caller evicts the entry either way, and
+    // a live instance nothing tracks would leak in ECharts' own registry.
+    instance.dispose();
+  }
 }
 
 /**

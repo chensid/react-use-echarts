@@ -57,10 +57,12 @@ export function useResizeObserver(
     // visibility-coordinator).
     const unsubscribeVisibility = subscribeVisibilityResume(safeResize);
 
+    // Unsubscribe first: it can't throw, so a failing disconnect (polyfills)
+    // can't strand the shared document listener.
     return () => {
       cancelPendingResize();
-      resizeObserver?.disconnect();
       unsubscribeVisibility();
+      resizeObserver?.disconnect();
     };
   }, [element, autoResize]);
 }

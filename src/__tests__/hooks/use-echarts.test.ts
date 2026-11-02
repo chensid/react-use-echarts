@@ -1,11 +1,19 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vite-plus/test";
 import { renderHook, render, act, waitFor } from "@testing-library/react";
-import { createElement, forwardRef, memo, type ReactElement } from "react";
+import {
+  Component,
+  createElement,
+  forwardRef,
+  memo,
+  type ReactElement,
+  type ReactNode,
+} from "react";
 import * as echarts from "echarts/core";
 import { useEcharts } from "../../hooks/use-echarts";
 import {
   clearInstanceCache,
   getCachedInstance,
+  getReferenceCount,
   setCachedInstance,
 } from "../../utils/instance-cache";
 import { clearGroups, getGroupInstances } from "../../utils/connect";
@@ -54,6 +62,17 @@ class NonTriggeringIntersectionObserver {
 globalThis.ResizeObserver = TrackingResizeObserver as unknown as typeof ResizeObserver;
 globalThis.IntersectionObserver =
   MockIntersectionObserver as unknown as typeof IntersectionObserver;
+
+// Error boundary for tests whose effects rethrow; renders nothing once it catches.
+class Boundary extends Component<{ children: ReactNode }, { failed: boolean }> {
+  override state = { failed: false };
+  static getDerivedStateFromError() {
+    return { failed: true };
+  }
+  override render() {
+    return this.state.failed ? null : this.props.children;
+  }
+}
 
 describe("useEcharts", () => {
   beforeEach(() => {
@@ -1582,6 +1601,28 @@ describe("useEcharts", () => {
         });
       });
     });
+
+    it("should dedup against an imperative setOption when no setOptionOpts is set", () => {
+      const element = document.createElement("div");
+      const mockInstance = createMockInstance(element);
+      (echarts.init as ReturnType<typeof vi.fn>).mockReturnValue(mockInstance);
+      const imperativeOption: EChartsOption = { series: [{ type: "bar", data: [9] }] };
+
+      const { result, rerender } = renderHook(({ option }) => useEcharts({ option }), {
+        initialProps: { option: baseOption },
+      });
+      act(() => {
+        result.current.ref(element);
+      });
+      act(() => {
+        result.current.setOption(imperativeOption);
+      });
+      expect(mockInstance.setOption).toHaveBeenCalledTimes(2);
+
+      // The prop moves to what the instance already shows: nothing to re-apply.
+      rerender({ option: imperativeOption });
+      expect(mockInstance.setOption).toHaveBeenCalledTimes(2);
+    });
   });
 
   describe("instance field", () => {
@@ -2733,6 +2774,29 @@ describe("useEcharts", () => {
       expect(resizeObserverInstances).toHaveLength(0);
     });
 
+    it("should drop the visibility subscription even if disconnect throws", () => {
+      // Silence React's report of the cleanup error the boundary caught.
+      vi.spyOn(console, "error").mockImplementation(() => {});
+      const removeSpy = vi.spyOn(document, "removeEventListener");
+      const element = document.createElement("div");
+      (echarts.init as ReturnType<typeof vi.fn>).mockReturnValue(createMockInstance(element));
+
+      const { result, rerender } = renderHook(
+        ({ autoResize }: { autoResize: boolean }) => useEcharts({ option: baseOption, autoResize }),
+        { initialProps: { autoResize: true }, wrapper: Boundary },
+      );
+      act(() => {
+        result.current.ref(element);
+      });
+      resizeObserverInstances[0]!.disconnect.mockImplementation(() => {
+        throw new Error("disconnect failed");
+      });
+
+      rerender({ autoResize: false });
+
+      expect(removeSpy).toHaveBeenCalledWith("visibilitychange", expect.any(Function));
+    });
+
     describe("visibilitychange resume", () => {
       // Mock on the instance — happy-dom defines `hidden` as an own property on
       // `document`, which shadows any Document.prototype getter we'd install.
@@ -3149,6 +3213,24 @@ describe("useEcharts", () => {
       });
     });
 
+    it("should still route an init error that can't be stringified to onError in dev", () => {
+      vi.spyOn(console, "warn").mockImplementation(() => {});
+      // String() throws on a null-prototype object.
+      const initError: unknown = Object.create(null);
+      const onError = vi.fn();
+      withNodeEnv("development", () => {
+        (echarts.init as ReturnType<typeof vi.fn>).mockImplementation(() => {
+          throw initError;
+        });
+
+        const { result } = renderHook(() => useEcharts({ option: baseOption, onError }));
+        act(() => {
+          result.current.ref(document.createElement("div"));
+        });
+      });
+      expect(onError).toHaveBeenCalledWith(initError);
+    });
+
     it("should call onError when initial setOption throws", () => {
       const element = document.createElement("div");
       const mockInstance = createMockInstance(element);
@@ -3281,6 +3363,42 @@ describe("useEcharts", () => {
   });
 
   describe("cache hit on init", () => {
+    it("should leave a shared instance alone until this hook initializes", () => {
+      globalThis.IntersectionObserver =
+        NonTriggeringIntersectionObserver as unknown as typeof IntersectionObserver;
+      try {
+        const element = document.createElement("div");
+        const existingInstance = createMockInstance(element);
+        // Another consumer already owns this element; this hook is still deferred.
+        setCachedInstance(element, existingInstance as never);
+
+        const { result, unmount } = renderHook(() =>
+          useEcharts({
+            option: baseOption,
+            lazyInit: true,
+            onEvents: { click: () => {} },
+            group: "g",
+          }),
+        );
+        act(() => {
+          result.current.ref(element);
+        });
+
+        expect(existingInstance.setOption).not.toHaveBeenCalled();
+        expect(existingInstance.hideLoading).not.toHaveBeenCalled();
+        expect(existingInstance.on).not.toHaveBeenCalled();
+        expect(getGroupInstances("g")).toEqual([]);
+        expect(result.current.getWidth()).toBeUndefined();
+
+        unmount();
+        expect(existingInstance.off).not.toHaveBeenCalled();
+        expect(getReferenceCount(element)).toBe(1);
+      } finally {
+        globalThis.IntersectionObserver =
+          MockIntersectionObserver as unknown as typeof IntersectionObserver;
+      }
+    });
+
     it("should reuse existing cached instance instead of calling echarts.init", () => {
       const element = document.createElement("div");
       const existingInstance = createMockInstance(element);
@@ -3583,6 +3701,46 @@ describe("useEcharts", () => {
           delete (Document.prototype as unknown as { hidden?: boolean }).hidden;
         }
       }
+    });
+  });
+
+  describe("rethrowing onError during init", () => {
+    type MockInstance = ReturnType<typeof createMockInstance>;
+    const stageError = new Error("init stage failed");
+    const fail = () => {
+      throw stageError;
+    };
+
+    it.each<[string, Partial<Parameters<typeof useEcharts>[0]>, (inst: MockInstance) => void]>([
+      ["setOption", {}, (inst) => inst.setOption.mockImplementation(fail)],
+      ["showLoading", { showLoading: true }, (inst) => inst.showLoading.mockImplementation(fail)],
+      ["event bind", { onEvents: { click: () => {} } }, (inst) => inst.on.mockImplementation(fail)],
+      [
+        "group join",
+        { group: "g" },
+        () => (echarts.connect as ReturnType<typeof vi.fn>).mockImplementation(fail),
+      ],
+    ])("releases the instance when %s fails and onError rethrows", (_stage, props, arrange) => {
+      // Silence React's report of the error the boundary caught.
+      vi.spyOn(console, "error").mockImplementation(() => {});
+      const mockInstance = createMockInstance();
+      (echarts.init as ReturnType<typeof vi.fn>).mockReturnValue(mockInstance);
+      arrange(mockInstance);
+      const onError = vi.fn((error: unknown) => {
+        throw error;
+      });
+
+      function Chart() {
+        const { ref } = useEcharts({ option: baseOption, ...props, onError });
+        return createElement("div", { ref });
+      }
+      render(createElement(Boundary, null, createElement(Chart)));
+
+      const element = (echarts.init as ReturnType<typeof vi.fn>).mock.calls[0]![0] as HTMLElement;
+      expect(onError).toHaveBeenCalledWith(stageError);
+      expect(getReferenceCount(element)).toBe(0);
+      expect(mockInstance.dispose).toHaveBeenCalledTimes(1);
+      expect(getGroupInstances("g")).toEqual([]);
     });
   });
 });

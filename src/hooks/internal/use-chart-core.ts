@@ -166,9 +166,14 @@ export function useChartCore(
   // from removeFromGroup-ing a stale id.
   const lastGroupRef = useRef<string | undefined>(undefined);
 
-  // Reactive instance for consumers' `useEffect([instance])`. Imperative
-  // methods read the cache instead, so they work in the gap between the layout
-  // effect and this state update committing.
+  // The instance this hook holds a cache reference to, set by the lifecycle
+  // effect. The sync effects and imperative methods act only through it: on an
+  // element another hook also uses, the cached instance isn't ours until our
+  // own lifecycle effect has acquired it (a deferred lazyInit hook must not
+  // write to, bind on, or group someone else's chart). A ref, so the methods
+  // work in the gap before `liveInstance` commits.
+  const ownedRef = useRef<ECharts | undefined>(undefined);
+  // Reactive instance for consumers' `useEffect([instance])`.
   const [liveInstance, setLiveInstance] = useState<ECharts | undefined>(undefined);
 
   // Memoized by hand: React Compiler skips this hook (it bails on the
@@ -219,60 +224,21 @@ export function useChartCore(
         return;
       }
     }
-    setCachedInstance(element, instance);
+    const owned = setCachedInstance(element, instance);
+    ownedRef.current = owned;
 
-    try {
-      instance.setOption(option, setOptionOpts);
-    } catch (error) {
-      reportEffectError(error, latestRef.current.onError, "ECharts setOption failed:");
-    } finally {
-      lastAppliedRef.current = { option, optsKey: setOptionOptsKey };
-    }
-
-    // showLoading can throw via user-registered custom loading types.
-    try {
-      if (showLoading) {
-        instance.showLoading(loadingOption);
-      }
-    } catch (error) {
-      reportEffectError(error, latestRef.current.onError, "ECharts loading toggle failed:");
-    } finally {
-      lastLoadingRef.current = { showLoading, loadingOption };
-    }
-
-    const bound: BoundEvents = new Map();
-    lastBoundRef.current = bound;
-    try {
-      bindEvents(instance, onEvents, latestRef, bound);
-    } catch (error) {
-      reportEffectError(error, latestRef.current.onError, "ECharts event bind failed:");
-    }
-
-    try {
-      updateGroup(instance, undefined, group);
-    } catch (error) {
-      reportEffectError(error, latestRef.current.onError, "ECharts group assignment failed:");
-    } finally {
-      // Record even `undefined`: Group Switch dedups against it.
-      lastGroupRef.current = group;
-    }
-
-    setLiveInstance(instance);
-
-    return () => {
+    const cleanup = () => {
+      ownedRef.current = undefined;
       lastAppliedRef.current = null;
       lastLoadingRef.current = null;
       setLiveInstance(undefined);
-
-      const inst = getCachedInstance(element);
-      if (!inst) return;
 
       // Release must run on unmount or the instance leaks. Neither off() nor
       // dispose throws on real ECharts; the guards keep a misbehaving one from
       // skipping release or disrupting React's commit.
       try {
         try {
-          unbindEvents(inst, lastBoundRef.current);
+          unbindEvents(owned, lastBoundRef.current);
         } catch (error) {
           reportEffectError(error, latestRef.current.onError, "ECharts event unbind failed:");
         }
@@ -285,6 +251,53 @@ export function useChartCore(
         }
       }
     };
+
+    // Each stage reports its own failure, but an onError that rethrows still
+    // exits the effect, and React keeps no cleanup for an effect that threw:
+    // release here before passing the error on, or the instance leaks.
+    try {
+      try {
+        owned.setOption(option, setOptionOpts);
+      } catch (error) {
+        reportEffectError(error, latestRef.current.onError, "ECharts setOption failed:");
+      } finally {
+        lastAppliedRef.current = { option, optsKey: setOptionOptsKey };
+      }
+
+      // showLoading can throw via user-registered custom loading types.
+      try {
+        if (showLoading) {
+          owned.showLoading(loadingOption);
+        }
+      } catch (error) {
+        reportEffectError(error, latestRef.current.onError, "ECharts loading toggle failed:");
+      } finally {
+        lastLoadingRef.current = { showLoading, loadingOption };
+      }
+
+      const bound: BoundEvents = new Map();
+      lastBoundRef.current = bound;
+      try {
+        bindEvents(owned, onEvents, latestRef, bound);
+      } catch (error) {
+        reportEffectError(error, latestRef.current.onError, "ECharts event bind failed:");
+      }
+
+      try {
+        updateGroup(owned, undefined, group);
+      } catch (error) {
+        reportEffectError(error, latestRef.current.onError, "ECharts group assignment failed:");
+      } finally {
+        // Record even `undefined`: Group Switch dedups against it.
+        lastGroupRef.current = group;
+      }
+    } catch (error) {
+      cleanup();
+      throw error;
+    }
+
+    setLiveInstance(owned);
+    return cleanup;
     // eslint-disable-next-line react-hooks/exhaustive-deps -- non-structural config is captured at init; the sync effects below apply its changes
   }, [shouldInit, element, themeKey, renderer, initOptsKey]);
 
@@ -298,7 +311,7 @@ export function useChartCore(
   // real prop change wins. lastAppliedRef skips the run right after init.
   // =====================================================================
   useEffect(() => {
-    const instance = getCachedInstance(element);
+    const instance = ownedRef.current;
     if (!instance) return;
 
     const last = lastAppliedRef.current;
@@ -323,7 +336,7 @@ export function useChartCore(
   // `context` — unbinds the old proxies and binds new ones.
   // =====================================================================
   useEffect(() => {
-    const instance = getCachedInstance(element);
+    const instance = ownedRef.current;
     if (!instance) return;
 
     if (bindingsMatch(lastBoundRef.current, onEvents)) return;
@@ -349,7 +362,7 @@ export function useChartCore(
   // state); shallowEqual dedups inline loadingOption objects.
   // =====================================================================
   useEffect(() => {
-    const instance = getCachedInstance(element);
+    const instance = ownedRef.current;
     if (!instance) return;
 
     const last = lastLoadingRef.current;
@@ -373,7 +386,7 @@ export function useChartCore(
   // GROUP SWITCH — dynamic group changes (init assigns the initial group).
   // =====================================================================
   useEffect(() => {
-    const instance = getCachedInstance(element);
+    const instance = ownedRef.current;
     if (!instance) return;
 
     const currentGroup = lastGroupRef.current;
@@ -396,13 +409,13 @@ export function useChartCore(
   // onError, rethrow. clear() / appendData() drop lastAppliedRef so the next
   // real prop change re-applies the option.
   //
-  // useMemo([element]) keeps method identities stable, so consumer effects
-  // with `[chart.setOption]` deps don't thrash (React Compiler doesn't memoize
-  // this hook). Refs are read live, so `element` is the only dep.
+  // useMemo keeps method identities stable, so consumer effects with
+  // `[chart.setOption]` deps don't thrash (React Compiler doesn't memoize this
+  // hook). Every method reads refs at call time, so there are no deps.
   // =====================================================================
   const api = useMemo(() => {
     const withInstance = <T>(fn: (instance: ECharts) => T, fallback: T): T => {
-      const instance = getCachedInstance(element);
+      const instance = ownedRef.current;
       if (!instance) return fallback;
       try {
         return fn(instance);
@@ -415,11 +428,17 @@ export function useChartCore(
     return {
       setOption: (newOption: EChartsOption, opts?: SetOptionOpts) =>
         withInstance((instance) => {
-          const finalOpts = { ...latestRef.current.setOptionOpts, ...opts };
+          const declaredOpts = latestRef.current.setOptionOpts;
+          const finalOpts = { ...declaredOpts, ...opts };
           instance.setOption(newOption, finalOpts);
           // Track what's on the instance, so the next real prop change
-          // re-applies the declarative option.
-          lastAppliedRef.current = { option: newOption, optsKey: computeStableKey(finalOpts) };
+          // re-applies the declarative option. Without per-call opts, key the
+          // declared opts exactly as Option Sync does (unset → null, not "{}"),
+          // or its dedup could never match.
+          lastAppliedRef.current = {
+            option: newOption,
+            optsKey: computeStableKey(opts ? finalOpts : declaredOpts),
+          };
         }, undefined),
 
       dispatchAction: (payload, opt) =>
@@ -477,9 +496,9 @@ export function useChartCore(
           lastAppliedRef.current = null;
         }, undefined),
     } satisfies Omit<ChartCoreReturn, "instance">;
-  }, [element]);
+  }, []);
 
-  // Re-created only on init, dispose or element swap, so consumers spreading
-  // the result keep stable method identities across unrelated renders.
+  // Re-created only on init or dispose, so consumers spreading the result keep
+  // stable method identities across unrelated renders.
   return useMemo<ChartCoreReturn>(() => ({ instance: liveInstance, ...api }), [liveInstance, api]);
 }

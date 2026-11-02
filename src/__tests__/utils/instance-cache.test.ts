@@ -81,6 +81,22 @@ describe("instance-cache utilities", () => {
   });
 
   describe("releaseCachedInstance", () => {
+    it("should still dispose when leaving the group throws", () => {
+      const element = document.createElement("div");
+      const instance = createMockInstance();
+      const groupError = new Error("group read failed");
+      Object.defineProperty(instance, "group", {
+        get() {
+          throw groupError;
+        },
+      });
+      setCachedInstance(element, instance);
+
+      expect(() => releaseCachedInstance(element)).toThrow(groupError);
+      expect(instance.dispose).toHaveBeenCalledTimes(1);
+      expect(getCachedInstance(element)).toBeUndefined();
+    });
+
     it("should decrement ref count", () => {
       const element = document.createElement("div");
       const instance = createMockInstance();

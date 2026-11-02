@@ -55,9 +55,16 @@ export function warnMissingRegistration(error: unknown): void {
     return;
   }
 
-  // String(err) yields e.g. "TypeError: ka[a] is not a constructor" and
-  // stringifies non-Error throws safely too.
-  if (!String(error).includes("is not a constructor")) return;
+  // String(err) yields e.g. "TypeError: ka[a] is not a constructor". A value
+  // that can't be stringified (a null-prototype object) skips the hint rather
+  // than replacing the real error before it reaches onError.
+  let text: string;
+  try {
+    text = String(error);
+  } catch {
+    return;
+  }
+  if (!text.includes("is not a constructor")) return;
 
   warnedMissingRegistration = true;
   console.warn(

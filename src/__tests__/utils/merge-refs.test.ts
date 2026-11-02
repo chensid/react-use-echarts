@@ -118,6 +118,22 @@ describe("mergeRefs", () => {
     }
   });
 
+  it("isolates a RefObject whose assignment throws", () => {
+    const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+    const frozen = Object.freeze({ current: null }) as MutableRefObject<HTMLDivElement | null>;
+    const calmCb = vi.fn();
+    const node = document.createElement("div");
+
+    const cleanup = mergeRefs(frozen, calmCb as RefCallback<HTMLDivElement>)(node);
+    expect(calmCb).toHaveBeenCalledExactlyOnceWith(node);
+    expect(errorSpy).toHaveBeenCalledOnce();
+
+    // The ref that never attached has nothing to clear.
+    cleanup?.();
+    expect(calmCb).toHaveBeenLastCalledWith(null);
+    expect(errorSpy).toHaveBeenCalledOnce();
+  });
+
   it("isolates a throwing cleanup so later cleanups still run", () => {
     const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
     try {
