@@ -1,9 +1,8 @@
 import { defineConfig, type Plugin } from "vite-plus";
 import babel from "@rolldown/plugin-babel";
 import react, { reactCompilerPreset } from "@vitejs/plugin-react";
-// Playwright browser provider — installed via the
-// @vitest/browser-playwright peer, pinned to the bundled Vitest version so the
-// browser runner and Vitest core stay aligned.
+// Playwright browser provider (the @vitest/browser-playwright peer), pinned to
+// the Vite+-bundled Vitest so the browser runner and Vitest core stay aligned.
 import { playwright } from "vite-plus/test/browser-playwright";
 
 const repositoryName = process.env.GITHUB_REPOSITORY?.split("/")[1];
@@ -14,7 +13,7 @@ const base = process.env.GITHUB_ACTIONS === "true" && repositoryName ? `/${repos
 //
 // - Production (`dist/index.js`, the `default` export condition): NODE_ENV is
 //   defined as "production", so Rolldown folds the dev-only guards in
-//   use-chart-core / instance-cache and drops the warnings entirely.
+//   dev-warnings / use-chart-core / instance-cache and drops the warnings entirely.
 // - Development (`dist/development/index.js`, the `development` condition that
 //   Vite, webpack, Rspack, Next.js and Vitest pick in dev): NODE_ENV becomes
 //   the guarded expression below. It reads "test" only when a real `process`
@@ -81,15 +80,12 @@ const requireUseClient: Plugin = {
   },
 };
 
-// React Compiler via Babel, shared by the dev/build plugins and the pack entries.
-// @rolldown/plugin-babel types its result against the standalone `rolldown`
-// peer, while `plugins` / `pack[].plugins` expect the copy bundled in
-// @voidzero-dev/vite-plus-core. TypeScript overflows (TS2321, then TS2322
-// against `TsdownPluginOption`) when it compares the two copies of the recursive
-// `Plugin` type, whether or not their rolldown versions match — the same class
-// as voidzero-dev/vite-plus#2269. Asserting to Vite+'s own `Plugin` keeps
-// every comparison on one copy. Drop the assertion once the plugin types
-// against Vite+'s rolldown or Vite+ dedupes the peer.
+// React Compiler via Babel, shared by the dev/build plugins and the pack entries
+// that contain React code. Asserted to Vite+'s own `Plugin`: @rolldown/plugin-babel
+// types its result against the standalone `rolldown` peer, and comparing that
+// recursive `Plugin` type with Vite+'s bundled copy overflows TypeScript (TS2321,
+// then TS2322 against `TsdownPluginOption`; cf. voidzero-dev/vite-plus#2269).
+// Drop the assertion once both resolve to one rolldown copy.
 const reactCompiler = () => babel({ presets: [reactCompilerPreset()] }) as Promise<Plugin>;
 
 // https://viteplus.dev/config/
@@ -112,10 +108,8 @@ export default defineConfig({
           "@typescript-eslint/triple-slash-reference": "off",
           "react-hooks/exhaustive-deps": "warn",
           "react/only-export-components": ["error", { allowConstantExport: true }],
-          // Zero-noise regression guards (0 findings at adoption): catch genuinely
-          // wrong promise usage and ESM import cycles / self-imports. These do NOT
-          // flag `import "echarts"` (no no-unresolved/no-extraneous), so the
-          // modular-index.ts design decision is unaffected.
+          // Regression guards (0 findings at adoption): promise misuse and ESM
+          // import cycles / self-imports. None flags `import "echarts"`.
           "promise/valid-params": "error",
           "promise/no-new-statics": "error",
           "promise/no-return-in-finally": "error",
@@ -202,7 +196,7 @@ export default defineConfig({
       platform: "browser",
       outputOptions: stripDocComments,
       define: productionNodeEnv,
-      plugins: [reactCompiler(), requireUseClient, forbidRawProcess()],
+      plugins: [requireUseClient, forbidRawProcess()],
     },
     {
       deps: { resolveDepSubpath: false },
@@ -227,9 +221,8 @@ export default defineConfig({
     // what differs (environment, include/exclude, browser settings).
     coverage: {
       provider: "v8",
-      // Gate against silent coverage erosion. Source is currently 100% on all
-      // metrics; thresholds sit a few points below so real regressions fail CI
-      // (vitest exits 1 when unmet) without flapping on minor churn.
+      // Gate against coverage erosion: a few points under today's 100%, so real
+      // regressions fail CI without flapping on minor churn.
       thresholds: {
         statements: 95,
         branches: 90,

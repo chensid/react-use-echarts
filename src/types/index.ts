@@ -15,7 +15,8 @@ import type {
 import type { EChartsOption } from "echarts";
 import type { ComponentPropsWithoutRef, RefCallback } from "react";
 
-type EChartsFinder = Parameters<ECharts["containPixel"]>[0];
+/** ECharts' own finder typing (internal; `ChartFinder` widens it). */
+export type EChartsFinder = Parameters<ECharts["containPixel"]>[0];
 type EChartsFinderObject = Exclude<EChartsFinder, string>;
 
 /**
@@ -319,7 +320,7 @@ export interface UseEchartsOptions {
    * Default setOption options. Compared by value (keyed by its `JSON.stringify`
    * output, so property order matters): an inline object with the same value
    * does not re-run `setOption`; a changed value re-applies the current `option`.
-   * setOption 默认选项（替代原 notMerge / lazyUpdate）。按值比较（以 `JSON.stringify`
+   * setOption 默认选项。按值比较（以 `JSON.stringify`
    * 输出为 key，属性顺序会影响结果）：值相同的内联对象不会重新调用 `setOption`，
    * 值变化时会重新应用当前 `option`。
    */
@@ -521,7 +522,7 @@ export interface UseEchartsReturn {
 
   /**
    * Convert a coordinate on the calendar or matrix coordinate system to layout
-   * info (cell rect etc.). Available since ECharts 6.0.
+   * info (cell rect etc.).
    * 将 calendar / matrix 坐标系上的坐标转换为布局信息（单元格矩形等）。
    * @see https://echarts.apache.org/en/api.html#echartsInstance.convertToLayout
    */

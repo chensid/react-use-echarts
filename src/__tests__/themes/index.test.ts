@@ -6,7 +6,7 @@ import {
   isKnownTheme,
   markBuiltinThemeRegistered,
   registerCustomTheme,
-  __clearThemeCacheForTesting__,
+  __resetThemeStateForTesting__,
 } from "../../themes";
 
 // Mock ECharts
@@ -16,7 +16,7 @@ vi.mock("echarts/core", () => ({
 
 describe("themes utilities", () => {
   beforeEach(() => {
-    __clearThemeCacheForTesting__();
+    __resetThemeStateForTesting__();
     vi.clearAllMocks();
   });
 
@@ -59,7 +59,7 @@ describe("themes utilities", () => {
 
     it("should clear registered builtin theme state", () => {
       markBuiltinThemeRegistered("macarons");
-      __clearThemeCacheForTesting__();
+      __resetThemeStateForTesting__();
 
       expect(isBuiltinThemeRegistered("macarons")).toBe(false);
     });
@@ -101,10 +101,10 @@ describe("themes utilities", () => {
     });
   });
 
-  describe("__clearThemeCacheForTesting__", () => {
+  describe("__resetThemeStateForTesting__", () => {
     it("should forget names registered through the library", () => {
       registerCustomTheme("to-forget", {});
-      __clearThemeCacheForTesting__();
+      __resetThemeStateForTesting__();
       expect(isKnownTheme("to-forget")).toBe(false);
     });
   });

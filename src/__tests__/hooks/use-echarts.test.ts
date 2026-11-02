@@ -11,7 +11,7 @@ import {
 import { clearGroups, getGroupInstances } from "../../utils/connect";
 import type { EChartsOption } from "echarts";
 import type { BuiltinTheme } from "../../types";
-import { __clearThemeCacheForTesting__ } from "../../themes";
+import { __resetThemeStateForTesting__ } from "../../themes";
 import { registerBuiltinThemes } from "../../themes/registry";
 import { __resetVisibilityCoordinatorForTesting__ } from "../../utils/visibility-coordinator";
 import {
@@ -19,8 +19,8 @@ import {
   createMockInstance,
   MockResizeObserver,
   MockIntersectionObserver,
+  withNodeEnv,
 } from "../helpers";
-import { resetDevWarnings } from "../../utils/dev-warnings";
 
 // Mock ECharts
 vi.mock("echarts/core", () => ({
@@ -44,6 +44,13 @@ class TrackingResizeObserver extends MockResizeObserver {
     resizeObserverInstances.push(this);
   }
 }
+// Lazy-mode observer that never reports an intersection, so the chart stays deferred.
+class NonTriggeringIntersectionObserver {
+  observe = vi.fn();
+  disconnect = vi.fn();
+  unobserve = vi.fn();
+}
+
 globalThis.ResizeObserver = TrackingResizeObserver as unknown as typeof ResizeObserver;
 globalThis.IntersectionObserver =
   MockIntersectionObserver as unknown as typeof IntersectionObserver;
@@ -52,7 +59,7 @@ describe("useEcharts", () => {
   beforeEach(() => {
     clearInstanceCache();
     clearGroups();
-    __clearThemeCacheForTesting__();
+    __resetThemeStateForTesting__();
     __resetVisibilityCoordinatorForTesting__();
     resizeObserverInstances = [];
     vi.clearAllMocks();
@@ -78,11 +85,8 @@ describe("useEcharts", () => {
     });
 
     it("should warn in development when container size is zero", () => {
-      const previousNodeEnv = process.env.NODE_ENV;
-      process.env.NODE_ENV = "development";
-
       const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
-      try {
+      withNodeEnv("development", () => {
         const element = document.createElement("div");
         const mockInstance = createMockInstance(element);
         (echarts.init as ReturnType<typeof vi.fn>).mockReturnValue(mockInstance);
@@ -95,18 +99,12 @@ describe("useEcharts", () => {
         expect(warnSpy).toHaveBeenCalledWith(
           expect.stringContaining("chart container has zero width or height during initialization"),
         );
-      } finally {
-        warnSpy.mockRestore();
-        process.env.NODE_ENV = previousNodeEnv;
-      }
+      });
     });
 
     it("should not warn in development when container size is non-zero", () => {
-      const previousNodeEnv = process.env.NODE_ENV;
-      process.env.NODE_ENV = "development";
-
       const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
-      try {
+      withNodeEnv("development", () => {
         const element = document.createElement("div");
         Object.defineProperty(element, "getBoundingClientRect", {
           value: vi.fn(() => ({
@@ -130,18 +128,12 @@ describe("useEcharts", () => {
         });
 
         expect(warnSpy).not.toHaveBeenCalled();
-      } finally {
-        warnSpy.mockRestore();
-        process.env.NODE_ENV = previousNodeEnv;
-      }
+      });
     });
 
     it("should skip the zero-size warning if getBoundingClientRect throws", () => {
-      const previousNodeEnv = process.env.NODE_ENV;
-      process.env.NODE_ENV = "development";
-
       const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
-      try {
+      withNodeEnv("development", () => {
         const element = document.createElement("div");
         Object.defineProperty(element, "getBoundingClientRect", {
           value: vi.fn(() => {
@@ -160,10 +152,7 @@ describe("useEcharts", () => {
         expect(warnSpy).not.toHaveBeenCalledWith(
           expect.stringContaining("chart container has zero width or height during initialization"),
         );
-      } finally {
-        warnSpy.mockRestore();
-        process.env.NODE_ENV = previousNodeEnv;
-      }
+      });
     });
 
     it("should use svg renderer when specified", () => {
@@ -239,13 +228,6 @@ describe("useEcharts", () => {
     });
 
     it("should not initialize when lazyInit is true and not visible", () => {
-      // Override IntersectionObserver to not trigger immediately
-      class NonTriggeringIntersectionObserver {
-        observe = vi.fn();
-        disconnect = vi.fn();
-        unobserve = vi.fn();
-        constructor() {}
-      }
       globalThis.IntersectionObserver =
         NonTriggeringIntersectionObserver as unknown as typeof IntersectionObserver;
 
@@ -264,12 +246,6 @@ describe("useEcharts", () => {
     });
 
     it("should keep an eagerly initialized chart when lazyInit is enabled later", () => {
-      class NonTriggeringIntersectionObserver {
-        observe = vi.fn();
-        disconnect = vi.fn();
-        unobserve = vi.fn();
-        constructor() {}
-      }
       globalThis.IntersectionObserver =
         NonTriggeringIntersectionObserver as unknown as typeof IntersectionObserver;
 
@@ -388,11 +364,8 @@ describe("useEcharts", () => {
       expect(echarts.init).toHaveBeenCalledWith(element, "light", expect.any(Object));
     });
     it("should not warn in development for light/dark, which ECharts 6 provides natively", () => {
-      const previousNodeEnv = process.env.NODE_ENV;
-      process.env.NODE_ENV = "development";
       const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
-
-      try {
+      withNodeEnv("development", () => {
         for (const theme of ["light", "dark", "default"] as const) {
           const element = document.createElement("div");
           (echarts.init as ReturnType<typeof vi.fn>).mockReturnValue(createMockInstance(element));
@@ -403,18 +376,12 @@ describe("useEcharts", () => {
         }
 
         expect(warnSpy).not.toHaveBeenCalledWith(expect.stringContaining("theme"));
-      } finally {
-        warnSpy.mockRestore();
-        process.env.NODE_ENV = previousNodeEnv;
-      }
+      });
     });
 
     it("should warn in development when macarons is used before registration", () => {
-      const previousNodeEnv = process.env.NODE_ENV;
-      process.env.NODE_ENV = "development";
       const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
-
-      try {
+      withNodeEnv("development", () => {
         const element = document.createElement("div");
         const mockInstance = createMockInstance(element);
         (echarts.init as ReturnType<typeof vi.fn>).mockReturnValue(mockInstance);
@@ -427,18 +394,12 @@ describe("useEcharts", () => {
         expect(warnSpy).toHaveBeenCalledWith(
           expect.stringContaining('built-in theme "macarons" was not registered'),
         );
-      } finally {
-        warnSpy.mockRestore();
-        process.env.NODE_ENV = previousNodeEnv;
-      }
+      });
     });
 
     it("should warn in development when a string theme is neither built-in nor registered", () => {
-      const previousNodeEnv = process.env.NODE_ENV;
-      process.env.NODE_ENV = "development";
       const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
-
-      try {
+      withNodeEnv("development", () => {
         const element = document.createElement("div");
         const mockInstance = createMockInstance(element);
         (echarts.init as ReturnType<typeof vi.fn>).mockReturnValue(mockInstance);
@@ -461,18 +422,12 @@ describe("useEcharts", () => {
           "externally-registered-theme",
           expect.any(Object),
         );
-      } finally {
-        warnSpy.mockRestore();
-        process.env.NODE_ENV = previousNodeEnv;
-      }
+      });
     });
 
     it("should not warn for a builtin theme after registry registration", () => {
-      const previousNodeEnv = process.env.NODE_ENV;
-      process.env.NODE_ENV = "development";
       const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
-
-      try {
+      withNodeEnv("development", () => {
         const element = document.createElement("div");
         const mockInstance = createMockInstance(element);
         (echarts.init as ReturnType<typeof vi.fn>).mockReturnValue(mockInstance);
@@ -486,10 +441,7 @@ describe("useEcharts", () => {
         expect(warnSpy).not.toHaveBeenCalledWith(
           expect.stringContaining('built-in theme "macarons" was not registered'),
         );
-      } finally {
-        warnSpy.mockRestore();
-        process.env.NODE_ENV = previousNodeEnv;
-      }
+      });
     });
 
     it("should pass a custom theme object straight to echarts.init without registering it", () => {
@@ -534,8 +486,8 @@ describe("useEcharts", () => {
     });
     it("should treat runtime theme=null as default theme without throwing", () => {
       // Public TS type forbids null, but JS callers (or escape hatches) can still
-      // pass it. typeof null === "object", so without the nullish guard
-      // resolveThemeName would route into the custom-theme path and crash.
+      // pass it; resolveTheme's nullish guard maps it to the default theme
+      // (typeof null === "object").
       const element = document.createElement("div");
       const mockInstance = createMockInstance(element);
       (echarts.init as ReturnType<typeof vi.fn>).mockReturnValue(mockInstance);
@@ -2826,6 +2778,55 @@ describe("useEcharts", () => {
         expect(mockInstance.resize).toHaveBeenCalledTimes(1);
       });
 
+      it("should supersede a pending resize frame instead of resizing twice", () => {
+        const element = document.createElement("div");
+        const mockInstance = createMockInstance(element);
+        (echarts.init as ReturnType<typeof vi.fn>).mockReturnValue(mockInstance);
+
+        const frames = new Map<number, FrameRequestCallback>();
+        let nextId = 1;
+        vi.spyOn(globalThis, "requestAnimationFrame").mockImplementation((cb) => {
+          frames.set(nextId, cb);
+          return nextId++;
+        });
+        vi.spyOn(globalThis, "cancelAnimationFrame").mockImplementation((id) => {
+          frames.delete(id);
+        });
+        const flushFrames = () => {
+          const pending = [...frames.values()];
+          frames.clear();
+          for (const cb of pending) cb(0);
+        };
+
+        const { result } = renderHook(() => useEcharts({ option: baseOption }));
+        act(() => {
+          result.current.ref(element);
+        });
+        flushFrames();
+        mockInstance.resize.mockClear();
+
+        // A resize queued while the tab is in the background…
+        const observer = resizeObserverInstances[0] as unknown as MockResizeObserver;
+        act(() => {
+          observer.callback(
+            [] as unknown as ResizeObserverEntry[],
+            observer as unknown as ResizeObserver,
+          );
+        });
+        expect(frames.size).toBe(1);
+
+        // …is replaced by the immediate resync on resume, not run after it.
+        hiddenValue = true;
+        document.dispatchEvent(new Event("visibilitychange"));
+        hiddenValue = false;
+        document.dispatchEvent(new Event("visibilitychange"));
+        expect(mockInstance.resize).toHaveBeenCalledTimes(1);
+        expect(frames.size).toBe(0);
+
+        flushFrames();
+        expect(mockInstance.resize).toHaveBeenCalledTimes(1);
+      });
+
       it("should remove visibilitychange listener on unmount", () => {
         const element = document.createElement("div");
         const mockInstance = createMockInstance(element);
@@ -2884,6 +2885,27 @@ describe("useEcharts", () => {
         removeSpy.mockRestore();
       });
     });
+  });
+
+  it("should read options through getters and the prototype chain", () => {
+    const element = document.createElement("div");
+    const mockInstance = createMockInstance(element);
+    (echarts.init as ReturnType<typeof vi.fn>).mockReturnValue(mockInstance);
+
+    // Not a plain literal: `renderer` is inherited and `option` a getter, so a
+    // rest/spread copy (own enumerable keys only) would drop both.
+    const options = Object.create(
+      { renderer: "svg" },
+      { option: { get: () => baseOption, enumerable: false } },
+    ) as Parameters<typeof useEcharts>[0];
+
+    const { result } = renderHook(() => useEcharts(options));
+    act(() => {
+      result.current.ref(element);
+    });
+
+    expect(echarts.init).toHaveBeenCalledWith(element, null, { renderer: "svg" });
+    expect(mockInstance.setOption).toHaveBeenCalledWith(baseOption, undefined);
   });
 
   describe("initOpts", () => {
@@ -2948,7 +2970,7 @@ describe("useEcharts", () => {
         result.current.ref(element);
       });
 
-      // resolveThemeName should pass any string theme through
+      // resolveTheme should pass any string theme through
       expect(echarts.init).toHaveBeenCalledWith(element, "custom-theme-string", expect.any(Object));
     });
 
@@ -3065,13 +3087,10 @@ describe("useEcharts", () => {
     });
 
     it("should hint about missing registration when init fails with 'not a constructor' in dev", () => {
-      const previousNodeEnv = process.env.NODE_ENV;
-      process.env.NODE_ENV = "development";
-      resetDevWarnings();
       const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
-      const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
-
-      try {
+      // Silence the init failure the hook logs via console.error.
+      vi.spyOn(console, "error").mockImplementation(() => {});
+      withNodeEnv("development", () => {
         const element = document.createElement("div");
         (echarts.init as ReturnType<typeof vi.fn>).mockImplementation(() => {
           throw new TypeError("ka[a] is not a constructor");
@@ -3083,22 +3102,14 @@ describe("useEcharts", () => {
         });
 
         expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining("registerEchartsFull()"));
-      } finally {
-        warnSpy.mockRestore();
-        errorSpy.mockRestore();
-        process.env.NODE_ENV = previousNodeEnv;
-        resetDevWarnings();
-      }
+      });
     });
 
     it("should not hint about registration for unrelated init errors in dev", () => {
-      const previousNodeEnv = process.env.NODE_ENV;
-      process.env.NODE_ENV = "development";
-      resetDevWarnings();
       const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
-      const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
-
-      try {
+      // Silence the init failure the hook logs via console.error.
+      vi.spyOn(console, "error").mockImplementation(() => {});
+      withNodeEnv("development", () => {
         const element = document.createElement("div");
         (echarts.init as ReturnType<typeof vi.fn>).mockImplementation(() => {
           throw new Error("some unrelated boom");
@@ -3110,22 +3121,14 @@ describe("useEcharts", () => {
         });
 
         expect(warnSpy).not.toHaveBeenCalledWith(expect.stringContaining("registerEchartsFull()"));
-      } finally {
-        warnSpy.mockRestore();
-        errorSpy.mockRestore();
-        process.env.NODE_ENV = previousNodeEnv;
-        resetDevWarnings();
-      }
+      });
     });
 
     it("should hint about missing registration only once in dev", () => {
-      const previousNodeEnv = process.env.NODE_ENV;
-      process.env.NODE_ENV = "development";
-      resetDevWarnings();
       const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
-      const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
-
-      try {
+      // Silence the init failure the hook logs via console.error.
+      vi.spyOn(console, "error").mockImplementation(() => {});
+      withNodeEnv("development", () => {
         (echarts.init as ReturnType<typeof vi.fn>).mockImplementation(() => {
           throw new TypeError("Ctor is not a constructor");
         });
@@ -3143,12 +3146,7 @@ describe("useEcharts", () => {
           ([msg]) => typeof msg === "string" && msg.includes("registerEchartsFull()"),
         );
         expect(hintCalls).toHaveLength(1);
-      } finally {
-        warnSpy.mockRestore();
-        errorSpy.mockRestore();
-        process.env.NODE_ENV = previousNodeEnv;
-        resetDevWarnings();
-      }
+      });
     });
 
     it("should call onError when initial setOption throws", () => {
@@ -3302,11 +3300,8 @@ describe("useEcharts", () => {
     });
 
     it("should warn in development when reusing cached instance from another consumer", () => {
-      const previousNodeEnv = process.env.NODE_ENV;
-      process.env.NODE_ENV = "development";
-
       const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
-      try {
+      withNodeEnv("development", () => {
         const element = document.createElement("div");
         const existingInstance = createMockInstance(element);
 
@@ -3320,18 +3315,12 @@ describe("useEcharts", () => {
         expect(warnSpy).toHaveBeenCalledWith(
           expect.stringContaining("multiple hooks share the same DOM element"),
         );
-      } finally {
-        warnSpy.mockRestore();
-        process.env.NODE_ENV = previousNodeEnv;
-      }
+      });
     });
 
     it("should not warn in production when reusing cached instance from another consumer", () => {
-      const previousNodeEnv = process.env.NODE_ENV;
-      process.env.NODE_ENV = "production";
-
       const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
-      try {
+      withNodeEnv("production", () => {
         const element = document.createElement("div");
         const existingInstance = createMockInstance(element);
 
@@ -3345,10 +3334,7 @@ describe("useEcharts", () => {
         expect(warnSpy).not.toHaveBeenCalledWith(
           expect.stringContaining("multiple hooks share the same DOM element"),
         );
-      } finally {
-        warnSpy.mockRestore();
-        process.env.NODE_ENV = previousNodeEnv;
-      }
+      });
     });
   });
 
@@ -3371,10 +3357,9 @@ describe("useEcharts", () => {
     });
   });
 
-  // After migrating effect-context error routing to `useEffectEvent` (and
-  // keeping `latestRef.current.onError` for the imperative API), these tests
-  // ensure that swapping `onError` between renders routes the next failure to
-  // the latest callback — not the mount-time one.
+  // Every error path reads `onError` from `latestRef` (not `useEffectEvent`;
+  // see utils/error.ts), so swapping it between renders must route the next
+  // failure to the latest callback — not the mount-time one.
   describe("onError freshness", () => {
     it("routes effect-context errors to the latest onError after rerender", async () => {
       const element = document.createElement("div");

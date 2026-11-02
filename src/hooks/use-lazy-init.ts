@@ -50,19 +50,15 @@ export function useLazyInitForElement(
   element: Element | null,
   options: boolean | IntersectionObserverInit = false,
 ): boolean {
-  // Public type forbids null, but JS callers can still pass it; treat null like
-  // false (lazy disabled / instant visible), matching the `= false` default and
-  // resolveThemeName's identical typeof-null guard (use-chart-core.ts). Without
-  // the `!== null` check on isObject below, `typeof null === "object"` would make
-  // the option reads deref null and throw during render on every pass.
+  // Public type forbids null, but JS callers can still pass it: treat it like
+  // false (lazy disabled), matching the `= false` default. The `!== null` check
+  // on isObject below keeps the option reads from dereferencing null.
   const isLazyMode = options != null && options !== false;
-  // `latched` records that whatever this hook gates has initialized: the
-  // observer fired with isIntersecting, or an element was attached while lazy
-  // mode was off. It deliberately NEVER resets (the effect below early-returns
-  // on it): re-observing after a node swap or a lazyInit false→true toggle
-  // would re-defer — i.e. tear down — an already-initialized chart. Platform
-  // precedent agrees: `<img loading>` switching eager→lazy after load is a
-  // no-op, and react-intersection-observer keeps `inView` when `skip` toggles.
+  // `latched`: whatever this hook gates has initialized — the observer saw an
+  // intersection, or an element attached while lazy mode was off. It never
+  // resets (see the latching note on useLazyInit): re-observing would re-defer,
+  // i.e. tear down, an initialized chart. react-intersection-observer likewise
+  // keeps `inView` when `skip` toggles.
   //
   // Not seeded via useState(!isLazyMode): that would also latch an eager hook
   // with no element yet, so lazy mode enabled before the container attaches
@@ -75,8 +71,6 @@ export function useLazyInitForElement(
     setLatched(true);
   }
 
-  // Extract config values for stable dependency comparison
-  // 提取配置值用于稳定的依赖比较
   const isObject = typeof options === "object" && options !== null;
   const optRoot = isObject ? options.root : null;
   const optRootMargin = isObject ? options.rootMargin : undefined;
@@ -87,8 +81,6 @@ export function useLazyInitForElement(
   const thresholdDep = computeStableKey(optThreshold);
 
   useEffect(() => {
-    // Skip if lazy mode is disabled or already in view
-    // 如果禁用了懒加载模式或已经可见，则跳过
     if (!isLazyMode || latched || !element) return;
 
     let observer: IntersectionObserver;
@@ -101,8 +93,6 @@ export function useLazyInitForElement(
           // view never fires again. Any intersecting record latches.
           if (entries.some((entry) => entry.isIntersecting)) {
             setLatched(true);
-            // Once visible, stop observing
-            // 一旦可见，就停止观察
             observer.disconnect();
           }
         },
@@ -114,15 +104,11 @@ export function useLazyInitForElement(
       );
       observer.observe(element);
     } catch (error) {
-      // A malformed IntersectionObserverInit makes the constructor throw
-      // synchronously — out-of-range/NaN threshold (RangeError), unit-less
-      // rootMargin (SyntaxError), or non-Element root (TypeError). These are all
-      // type-valid per `IntersectionObserverInit`, so even TS callers can hit it.
-      // Mirror useResizeObserver's construction try/catch: never let it escape
-      // the effect and tear down the React tree. Degrade to eager init (treat as
-      // visible) so the chart still renders — matching this file's null-guard
-      // "don't throw, fall back to visible" philosophy. onError is intentionally
-      // not plumbed into this hook, so we log rather than route.
+      // Type-valid but malformed options make the constructor throw: an
+      // out-of-range/NaN threshold (RangeError), unit-less rootMargin
+      // (SyntaxError) or non-Element root (TypeError). Never let that escape the
+      // effect and tear down the React tree: degrade to eager init so the chart
+      // still renders, and log (onError isn't plumbed into this hook).
       console.error(
         "useLazyInit: invalid IntersectionObserver options; falling back to eager init.",
         error,
@@ -137,8 +123,6 @@ export function useLazyInitForElement(
     // eslint-disable-next-line react-hooks/exhaustive-deps -- latched excluded (observer self-disconnects); thresholdDep stabilizes inline number[] in place of optThreshold
   }, [element, isLazyMode, optRoot, optRootMargin, thresholdDep]);
 
-  // Visible when lazy mode is off (instant init) OR the hook has latched.
-  // lazy→eager resumes a pending deferral; eager→lazy after an element was
-  // attached stays visible via the latch.
+  // Visible when lazy mode is off (instant init) or the hook has latched.
   return !isLazyMode || latched;
 }

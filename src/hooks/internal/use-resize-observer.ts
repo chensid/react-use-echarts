@@ -13,17 +13,14 @@ export function useResizeObserver(
   onError?: (error: unknown) => void,
 ): void {
   // Latest `onError`, read when a resize fails, so changing it never recreates
-  // the observer. A ref rather than `useEffectEvent`: React 19.2.x leaves that
-  // callback stale inside memo() / forwardRef components (see utils/error.ts).
+  // the observer (a ref, not `useEffectEvent`: see utils/error.ts).
   const onErrorRef = useRef(onError);
   useLayoutEffect(() => {
     onErrorRef.current = onError;
   });
 
   useEffect(() => {
-    if (!autoResize) return;
-
-    if (!element) return;
+    if (!autoResize || !element) return;
 
     let resizeObserver: ResizeObserver | undefined;
     let rafId: number | undefined;
@@ -34,7 +31,9 @@ export function useResizeObserver(
       rafId = undefined;
     };
 
+    // An immediate resize supersedes any still-pending frame.
     const safeResize = (): void => {
+      cancelPendingResize();
       try {
         getCachedInstance(element)?.resize();
       } catch (error) {
@@ -45,10 +44,7 @@ export function useResizeObserver(
     try {
       resizeObserver = new ResizeObserver(() => {
         cancelPendingResize();
-        rafId = requestAnimationFrame(() => {
-          rafId = undefined;
-          safeResize();
-        });
+        rafId = requestAnimationFrame(safeResize);
       });
       resizeObserver.observe(element);
     } catch (error) {
@@ -56,9 +52,9 @@ export function useResizeObserver(
     }
 
     // Browsers throttle requestAnimationFrame in hidden tabs, so a resize that
-    // fires while the tab is in background may never reach the chart. Resync
-    // when the tab becomes visible again. Subscription goes through a module
-    // coordinator so a single document listener serves all chart instances.
+    // fired in the background may never reach the chart: resync when the tab is
+    // visible again. One shared document listener serves all charts (see
+    // visibility-coordinator).
     const unsubscribeVisibility = subscribeVisibilityResume(safeResize);
 
     return () => {

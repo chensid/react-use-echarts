@@ -137,7 +137,7 @@ describe("mergeRefs", () => {
       cleanup?.();
 
       // Even after angryCleanup throws, the chart-style cleanups behind it
-      // must still run — otherwise the ECharts instance and the WeakMap
+      // must still run — otherwise the ECharts instance and the cache
       // entry leak.
       expect(angryCleanup).toHaveBeenCalledOnce();
       expect(objRef.current).toBeNull();

@@ -51,16 +51,16 @@ export function mergeRefs<T>(...refs: ReadonlyArray<Ref<T> | undefined | null>):
           });
         }
       } else {
-        (ref as { current: T | null }).current = node;
+        ref.current = node;
         cleanups.push(() => {
-          (ref as { current: T | null }).current = null;
+          ref.current = null;
         });
       }
     }
     return () => {
       // Isolate each cleanup: a thrown cleanup must not skip subsequent ones
       // (including the chart's setElement(null), which is what disposes the
-      // ECharts instance — skipping it leaks the WeakMap entry).
+      // ECharts instance — skipping it leaks the cache entry).
       for (const cleanup of cleanups) {
         try {
           cleanup();

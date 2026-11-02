@@ -6,8 +6,8 @@ import type { EChartHandle, EChartProps } from "../types";
  * Declarative EChart component — thin wrapper around useEcharts
  * 声明式 EChart 组件 — useEcharts 的薄封装
  *
- * Default container style: `{ width: '100%', height: '100%' }`.
- * The parent must have an explicit height; override either via the `style` prop.
+ * Default container style: `{ width: '100%', height: '100%' }`, overridable via
+ * `style`; the parent needs an explicit height.
  *
  * @example
  * ```tsx
@@ -29,13 +29,12 @@ export function EChart({
   initOpts,
   onError,
   style,
-  className,
+  // Runtime JS callers can bypass the TypeScript exclusions; discard both
+  // content-owning props so React never competes with ECharts for this div.
   children: _children,
   dangerouslySetInnerHTML: _dangerouslySetInnerHTML,
   ...containerProps
 }: EChartProps & { ref?: Ref<EChartHandle> }) {
-  // Runtime JS callers can bypass the TypeScript exclusions; discard both
-  // content-owning props so React never competes with ECharts for this div.
   const chart = useEcharts({
     option,
     theme,
@@ -50,9 +49,8 @@ export function EChart({
     initOpts,
     onError,
   });
-  // Strip the container `ref` field from the imperative handle so external
-  // callers can't reassign the chart's DOM element via `handle.ref(otherNode)`.
-  // The handle only exposes the reactive `instance` + imperative methods.
+  // Strip `ref` so external callers can't reassign the container via
+  // `handle.ref(otherNode)` (see EChartHandle).
   useImperativeHandle(ref, () => {
     const { ref: _containerRef, ...api } = chart;
     return api;
@@ -63,7 +61,6 @@ export function EChart({
       {...containerProps}
       ref={containerRef}
       style={{ width: "100%", height: "100%", ...style }}
-      className={className}
     />
   );
 }

@@ -42,7 +42,7 @@ Vite+ manages Vite, Rolldown, Vitest, Oxfmt, Oxlint, oxlint-tsgolint, and tsdown
 
 Hook decomposition (`useChartCore` / `useResizeObserver` effects) and the key design patterns live in `src/CLAUDE.md`, which loads when working under `src/`.
 
-- React Compiler uses `@vitejs/plugin-react` + `@rolldown/plugin-babel` (`reactCompilerPreset()`) in the top-level `plugins` (dev/build) and three `pack[]` entries (index, development/index and preset-full). Stay on Babel: the native Oxc compiler (`react({ compiler: true })`) works here but waits on upstream blockers. The adoption criteria, the `.d.ts` exclude each `pack[]` entry would need, and the last measurement live in `CONTRIBUTING.md` → React Compiler.
+- React Compiler uses `@vitejs/plugin-react` + `@rolldown/plugin-babel` (`reactCompilerPreset()`) in the top-level `plugins` (dev/build) and the two `pack[]` entries with React code (index and development/index). Stay on Babel: the native Oxc compiler (`react({ compiler: true })`) works here but waits on upstream blockers. The adoption criteria, the `.d.ts` exclude each `pack[]` entry would need, and the last measurement live in `CONTRIBUTING.md` → React Compiler.
 
 ## Testing
 

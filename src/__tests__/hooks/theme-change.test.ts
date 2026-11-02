@@ -5,7 +5,7 @@ import { useEcharts } from "../../hooks/use-echarts";
 import { getCachedInstance, clearInstanceCache } from "../../utils/instance-cache";
 import { clearGroups } from "../../utils/connect";
 import type { BuiltinTheme } from "../../types";
-import { __clearThemeCacheForTesting__ } from "../../themes";
+import { __resetThemeStateForTesting__ } from "../../themes";
 import { createMockInstance, MockResizeObserver, MockIntersectionObserver } from "../helpers";
 
 // Mock ECharts
@@ -24,7 +24,7 @@ describe("Theme change behavior", () => {
   beforeEach(() => {
     clearInstanceCache();
     clearGroups();
-    __clearThemeCacheForTesting__();
+    __resetThemeStateForTesting__();
     vi.clearAllMocks();
   });
 

@@ -98,7 +98,7 @@ describe("connect utilities", () => {
 
     it("should disconnect and drop bookkeeping when the last member leaves", () => {
       // Long-lived apps with dynamic group ids would otherwise leak entries
-      // in groupMembers + connectedGroupIds + echarts.connectedGroups[id].
+      // in groupMembers + echarts.connectedGroups[id].
       const instance = createMockInstance();
 
       addToGroup(instance, "group1");
