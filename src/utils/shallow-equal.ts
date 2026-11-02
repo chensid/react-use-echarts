@@ -1,10 +1,7 @@
 /**
- * Shallow equality check for two values.
+ * Shallow equality: `Object.is` for primitives; for objects, the same own
+ * enumerable keys with `Object.is`-equal values.
  * 两个值的浅比较。
- *
- * - Handles null/undefined via Object.is
- * - For objects: compares own enumerable keys + values with Object.is
- * - For non-objects (primitives): uses Object.is
  */
 export function shallowEqual(a: unknown, b: unknown): boolean {
   if (Object.is(a, b)) return true;

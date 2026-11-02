@@ -3,9 +3,6 @@
 import * as echarts from "echarts/core";
 import type { BuiltinTheme } from "../types";
 import { isBuiltinThemeRegistered, markBuiltinThemeRegistered } from "./index";
-
-// ECharts 6 ships "dark" natively and "light" maps to its "default" theme, so
-// only macarons needs preset JSON.
 import macaronsTheme from "./presets/macarons.json";
 
 const builtinThemes: ReadonlyArray<readonly [BuiltinTheme, object]> = [["macarons", macaronsTheme]];

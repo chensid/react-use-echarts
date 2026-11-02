@@ -18,20 +18,9 @@ import { useResizeObserver } from "./internal/use-resize-observer";
  * ```
  */
 export function useEcharts(options: UseEchartsOptions): UseEchartsReturn {
-  const {
-    option,
-    theme,
-    renderer = "canvas",
-    lazyInit = false,
-    group,
-    setOptionOpts,
-    showLoading = false,
-    loadingOption,
-    onEvents,
-    autoResize = true,
-    initOpts,
-    onError,
-  } = options;
+  // Named reads, not `...rest`: a rest copy keeps only own enumerable keys, so
+  // getter-backed or inherited options would never reach the core.
+  const { lazyInit, autoResize = true, onError } = options;
 
   // React 19 callback ref with cleanup: receives the node on mount, the
   // returned cleanup runs on unmount (or before the next ref-callback
@@ -45,30 +34,15 @@ export function useEcharts(options: UseEchartsOptions): UseEchartsReturn {
 
   const shouldInit = useLazyInitForElement(element, lazyInit);
 
-  // Core owns all instance IO — including the imperative resize/clear methods
-  // — so error routing through onError lives in one module.
-  const chart = useChartCore(element, shouldInit, {
-    option,
-    theme,
-    renderer,
-    initOpts,
-    setOptionOpts,
-    showLoading,
-    loadingOption,
-    onEvents,
-    group,
-    onError,
-  });
-
+  const chart = useChartCore(element, shouldInit, options);
   useResizeObserver(element, autoResize, onError);
 
-  // `useChartCore` already hands back a memoized object, and `ref` is a stable
-  // `useCallback`. Spreading them into a bare literal would throw that away and
-  // hand callers a new identity every render — enough to re-run a consumer's
-  // `useImperativeHandle`/effect deps on every render. React Compiler cannot
-  // compile this hook at all: the destructuring defaults above (`renderer =
-  // "canvas"`, …) hit a `BuildHIR::lowerAssignment` bail in
-  // babel-plugin-react-compiler 1.0.0. Keep this `useMemo` even if a future
-  // compiler starts emitting a cache here — the stability test depends on it.
+  // `useChartCore` already returns a memoized object and `ref` is a stable
+  // `useCallback`; spreading them into a bare literal would hand callers a new
+  // identity every render and re-run a consumer's `useImperativeHandle` / effect
+  // deps. React Compiler can't compile this hook (the destructuring default
+  // above hits a `BuildHIR::lowerAssignment` bail in babel-plugin-react-compiler
+  // 1.0.0); keep this `useMemo` even if a future compiler starts emitting a
+  // cache here — the stability test depends on it.
   return useMemo(() => ({ ref, ...chart }), [ref, chart]);
 }

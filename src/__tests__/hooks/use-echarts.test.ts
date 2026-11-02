@@ -1,17 +1,25 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vite-plus/test";
 import { renderHook, render, act, waitFor } from "@testing-library/react";
-import { createElement, forwardRef, memo, type ReactElement } from "react";
+import {
+  Component,
+  createElement,
+  forwardRef,
+  memo,
+  type ReactElement,
+  type ReactNode,
+} from "react";
 import * as echarts from "echarts/core";
 import { useEcharts } from "../../hooks/use-echarts";
 import {
   clearInstanceCache,
   getCachedInstance,
+  getReferenceCount,
   setCachedInstance,
 } from "../../utils/instance-cache";
 import { clearGroups, getGroupInstances } from "../../utils/connect";
 import type { EChartsOption } from "echarts";
 import type { BuiltinTheme } from "../../types";
-import { __clearThemeCacheForTesting__ } from "../../themes";
+import { __resetThemeStateForTesting__ } from "../../themes";
 import { registerBuiltinThemes } from "../../themes/registry";
 import { __resetVisibilityCoordinatorForTesting__ } from "../../utils/visibility-coordinator";
 import {
@@ -19,8 +27,8 @@ import {
   createMockInstance,
   MockResizeObserver,
   MockIntersectionObserver,
+  withNodeEnv,
 } from "../helpers";
-import { resetDevWarnings } from "../../utils/dev-warnings";
 
 // Mock ECharts
 vi.mock("echarts/core", () => ({
@@ -44,15 +52,33 @@ class TrackingResizeObserver extends MockResizeObserver {
     resizeObserverInstances.push(this);
   }
 }
+// Lazy-mode observer that never reports an intersection, so the chart stays deferred.
+class NonTriggeringIntersectionObserver {
+  observe = vi.fn();
+  disconnect = vi.fn();
+  unobserve = vi.fn();
+}
+
 globalThis.ResizeObserver = TrackingResizeObserver as unknown as typeof ResizeObserver;
 globalThis.IntersectionObserver =
   MockIntersectionObserver as unknown as typeof IntersectionObserver;
+
+// Error boundary for tests whose effects rethrow; renders nothing once it catches.
+class Boundary extends Component<{ children: ReactNode }, { failed: boolean }> {
+  override state = { failed: false };
+  static getDerivedStateFromError() {
+    return { failed: true };
+  }
+  override render() {
+    return this.state.failed ? null : this.props.children;
+  }
+}
 
 describe("useEcharts", () => {
   beforeEach(() => {
     clearInstanceCache();
     clearGroups();
-    __clearThemeCacheForTesting__();
+    __resetThemeStateForTesting__();
     __resetVisibilityCoordinatorForTesting__();
     resizeObserverInstances = [];
     vi.clearAllMocks();
@@ -78,11 +104,8 @@ describe("useEcharts", () => {
     });
 
     it("should warn in development when container size is zero", () => {
-      const previousNodeEnv = process.env.NODE_ENV;
-      process.env.NODE_ENV = "development";
-
       const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
-      try {
+      withNodeEnv("development", () => {
         const element = document.createElement("div");
         const mockInstance = createMockInstance(element);
         (echarts.init as ReturnType<typeof vi.fn>).mockReturnValue(mockInstance);
@@ -95,18 +118,12 @@ describe("useEcharts", () => {
         expect(warnSpy).toHaveBeenCalledWith(
           expect.stringContaining("chart container has zero width or height during initialization"),
         );
-      } finally {
-        warnSpy.mockRestore();
-        process.env.NODE_ENV = previousNodeEnv;
-      }
+      });
     });
 
     it("should not warn in development when container size is non-zero", () => {
-      const previousNodeEnv = process.env.NODE_ENV;
-      process.env.NODE_ENV = "development";
-
       const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
-      try {
+      withNodeEnv("development", () => {
         const element = document.createElement("div");
         Object.defineProperty(element, "getBoundingClientRect", {
           value: vi.fn(() => ({
@@ -130,18 +147,12 @@ describe("useEcharts", () => {
         });
 
         expect(warnSpy).not.toHaveBeenCalled();
-      } finally {
-        warnSpy.mockRestore();
-        process.env.NODE_ENV = previousNodeEnv;
-      }
+      });
     });
 
     it("should skip the zero-size warning if getBoundingClientRect throws", () => {
-      const previousNodeEnv = process.env.NODE_ENV;
-      process.env.NODE_ENV = "development";
-
       const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
-      try {
+      withNodeEnv("development", () => {
         const element = document.createElement("div");
         Object.defineProperty(element, "getBoundingClientRect", {
           value: vi.fn(() => {
@@ -160,10 +171,7 @@ describe("useEcharts", () => {
         expect(warnSpy).not.toHaveBeenCalledWith(
           expect.stringContaining("chart container has zero width or height during initialization"),
         );
-      } finally {
-        warnSpy.mockRestore();
-        process.env.NODE_ENV = previousNodeEnv;
-      }
+      });
     });
 
     it("should use svg renderer when specified", () => {
@@ -239,13 +247,6 @@ describe("useEcharts", () => {
     });
 
     it("should not initialize when lazyInit is true and not visible", () => {
-      // Override IntersectionObserver to not trigger immediately
-      class NonTriggeringIntersectionObserver {
-        observe = vi.fn();
-        disconnect = vi.fn();
-        unobserve = vi.fn();
-        constructor() {}
-      }
       globalThis.IntersectionObserver =
         NonTriggeringIntersectionObserver as unknown as typeof IntersectionObserver;
 
@@ -264,12 +265,6 @@ describe("useEcharts", () => {
     });
 
     it("should keep an eagerly initialized chart when lazyInit is enabled later", () => {
-      class NonTriggeringIntersectionObserver {
-        observe = vi.fn();
-        disconnect = vi.fn();
-        unobserve = vi.fn();
-        constructor() {}
-      }
       globalThis.IntersectionObserver =
         NonTriggeringIntersectionObserver as unknown as typeof IntersectionObserver;
 
@@ -388,11 +383,8 @@ describe("useEcharts", () => {
       expect(echarts.init).toHaveBeenCalledWith(element, "light", expect.any(Object));
     });
     it("should not warn in development for light/dark, which ECharts 6 provides natively", () => {
-      const previousNodeEnv = process.env.NODE_ENV;
-      process.env.NODE_ENV = "development";
       const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
-
-      try {
+      withNodeEnv("development", () => {
         for (const theme of ["light", "dark", "default"] as const) {
           const element = document.createElement("div");
           (echarts.init as ReturnType<typeof vi.fn>).mockReturnValue(createMockInstance(element));
@@ -403,18 +395,12 @@ describe("useEcharts", () => {
         }
 
         expect(warnSpy).not.toHaveBeenCalledWith(expect.stringContaining("theme"));
-      } finally {
-        warnSpy.mockRestore();
-        process.env.NODE_ENV = previousNodeEnv;
-      }
+      });
     });
 
     it("should warn in development when macarons is used before registration", () => {
-      const previousNodeEnv = process.env.NODE_ENV;
-      process.env.NODE_ENV = "development";
       const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
-
-      try {
+      withNodeEnv("development", () => {
         const element = document.createElement("div");
         const mockInstance = createMockInstance(element);
         (echarts.init as ReturnType<typeof vi.fn>).mockReturnValue(mockInstance);
@@ -427,18 +413,12 @@ describe("useEcharts", () => {
         expect(warnSpy).toHaveBeenCalledWith(
           expect.stringContaining('built-in theme "macarons" was not registered'),
         );
-      } finally {
-        warnSpy.mockRestore();
-        process.env.NODE_ENV = previousNodeEnv;
-      }
+      });
     });
 
     it("should warn in development when a string theme is neither built-in nor registered", () => {
-      const previousNodeEnv = process.env.NODE_ENV;
-      process.env.NODE_ENV = "development";
       const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
-
-      try {
+      withNodeEnv("development", () => {
         const element = document.createElement("div");
         const mockInstance = createMockInstance(element);
         (echarts.init as ReturnType<typeof vi.fn>).mockReturnValue(mockInstance);
@@ -461,18 +441,12 @@ describe("useEcharts", () => {
           "externally-registered-theme",
           expect.any(Object),
         );
-      } finally {
-        warnSpy.mockRestore();
-        process.env.NODE_ENV = previousNodeEnv;
-      }
+      });
     });
 
     it("should not warn for a builtin theme after registry registration", () => {
-      const previousNodeEnv = process.env.NODE_ENV;
-      process.env.NODE_ENV = "development";
       const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
-
-      try {
+      withNodeEnv("development", () => {
         const element = document.createElement("div");
         const mockInstance = createMockInstance(element);
         (echarts.init as ReturnType<typeof vi.fn>).mockReturnValue(mockInstance);
@@ -486,10 +460,7 @@ describe("useEcharts", () => {
         expect(warnSpy).not.toHaveBeenCalledWith(
           expect.stringContaining('built-in theme "macarons" was not registered'),
         );
-      } finally {
-        warnSpy.mockRestore();
-        process.env.NODE_ENV = previousNodeEnv;
-      }
+      });
     });
 
     it("should pass a custom theme object straight to echarts.init without registering it", () => {
@@ -534,8 +505,8 @@ describe("useEcharts", () => {
     });
     it("should treat runtime theme=null as default theme without throwing", () => {
       // Public TS type forbids null, but JS callers (or escape hatches) can still
-      // pass it. typeof null === "object", so without the nullish guard
-      // resolveThemeName would route into the custom-theme path and crash.
+      // pass it; resolveTheme's nullish guard maps it to the default theme
+      // (typeof null === "object").
       const element = document.createElement("div");
       const mockInstance = createMockInstance(element);
       (echarts.init as ReturnType<typeof vi.fn>).mockReturnValue(mockInstance);
@@ -1629,6 +1600,28 @@ describe("useEcharts", () => {
           notMerge: true,
         });
       });
+    });
+
+    it("should dedup against an imperative setOption when no setOptionOpts is set", () => {
+      const element = document.createElement("div");
+      const mockInstance = createMockInstance(element);
+      (echarts.init as ReturnType<typeof vi.fn>).mockReturnValue(mockInstance);
+      const imperativeOption: EChartsOption = { series: [{ type: "bar", data: [9] }] };
+
+      const { result, rerender } = renderHook(({ option }) => useEcharts({ option }), {
+        initialProps: { option: baseOption },
+      });
+      act(() => {
+        result.current.ref(element);
+      });
+      act(() => {
+        result.current.setOption(imperativeOption);
+      });
+      expect(mockInstance.setOption).toHaveBeenCalledTimes(2);
+
+      // The prop moves to what the instance already shows: nothing to re-apply.
+      rerender({ option: imperativeOption });
+      expect(mockInstance.setOption).toHaveBeenCalledTimes(2);
     });
   });
 
@@ -2781,6 +2774,29 @@ describe("useEcharts", () => {
       expect(resizeObserverInstances).toHaveLength(0);
     });
 
+    it("should drop the visibility subscription even if disconnect throws", () => {
+      // Silence React's report of the cleanup error the boundary caught.
+      vi.spyOn(console, "error").mockImplementation(() => {});
+      const removeSpy = vi.spyOn(document, "removeEventListener");
+      const element = document.createElement("div");
+      (echarts.init as ReturnType<typeof vi.fn>).mockReturnValue(createMockInstance(element));
+
+      const { result, rerender } = renderHook(
+        ({ autoResize }: { autoResize: boolean }) => useEcharts({ option: baseOption, autoResize }),
+        { initialProps: { autoResize: true }, wrapper: Boundary },
+      );
+      act(() => {
+        result.current.ref(element);
+      });
+      resizeObserverInstances[0]!.disconnect.mockImplementation(() => {
+        throw new Error("disconnect failed");
+      });
+
+      rerender({ autoResize: false });
+
+      expect(removeSpy).toHaveBeenCalledWith("visibilitychange", expect.any(Function));
+    });
+
     describe("visibilitychange resume", () => {
       // Mock on the instance — happy-dom defines `hidden` as an own property on
       // `document`, which shadows any Document.prototype getter we'd install.
@@ -2823,6 +2839,55 @@ describe("useEcharts", () => {
 
         hiddenValue = false;
         document.dispatchEvent(new Event("visibilitychange"));
+        expect(mockInstance.resize).toHaveBeenCalledTimes(1);
+      });
+
+      it("should supersede a pending resize frame instead of resizing twice", () => {
+        const element = document.createElement("div");
+        const mockInstance = createMockInstance(element);
+        (echarts.init as ReturnType<typeof vi.fn>).mockReturnValue(mockInstance);
+
+        const frames = new Map<number, FrameRequestCallback>();
+        let nextId = 1;
+        vi.spyOn(globalThis, "requestAnimationFrame").mockImplementation((cb) => {
+          frames.set(nextId, cb);
+          return nextId++;
+        });
+        vi.spyOn(globalThis, "cancelAnimationFrame").mockImplementation((id) => {
+          frames.delete(id);
+        });
+        const flushFrames = () => {
+          const pending = [...frames.values()];
+          frames.clear();
+          for (const cb of pending) cb(0);
+        };
+
+        const { result } = renderHook(() => useEcharts({ option: baseOption }));
+        act(() => {
+          result.current.ref(element);
+        });
+        flushFrames();
+        mockInstance.resize.mockClear();
+
+        // A resize queued while the tab is in the background…
+        const observer = resizeObserverInstances[0] as unknown as MockResizeObserver;
+        act(() => {
+          observer.callback(
+            [] as unknown as ResizeObserverEntry[],
+            observer as unknown as ResizeObserver,
+          );
+        });
+        expect(frames.size).toBe(1);
+
+        // …is replaced by the immediate resync on resume, not run after it.
+        hiddenValue = true;
+        document.dispatchEvent(new Event("visibilitychange"));
+        hiddenValue = false;
+        document.dispatchEvent(new Event("visibilitychange"));
+        expect(mockInstance.resize).toHaveBeenCalledTimes(1);
+        expect(frames.size).toBe(0);
+
+        flushFrames();
         expect(mockInstance.resize).toHaveBeenCalledTimes(1);
       });
 
@@ -2884,6 +2949,27 @@ describe("useEcharts", () => {
         removeSpy.mockRestore();
       });
     });
+  });
+
+  it("should read options through getters and the prototype chain", () => {
+    const element = document.createElement("div");
+    const mockInstance = createMockInstance(element);
+    (echarts.init as ReturnType<typeof vi.fn>).mockReturnValue(mockInstance);
+
+    // Not a plain literal: `renderer` is inherited and `option` a getter, so a
+    // rest/spread copy (own enumerable keys only) would drop both.
+    const options = Object.create(
+      { renderer: "svg" },
+      { option: { get: () => baseOption, enumerable: false } },
+    ) as Parameters<typeof useEcharts>[0];
+
+    const { result } = renderHook(() => useEcharts(options));
+    act(() => {
+      result.current.ref(element);
+    });
+
+    expect(echarts.init).toHaveBeenCalledWith(element, null, { renderer: "svg" });
+    expect(mockInstance.setOption).toHaveBeenCalledWith(baseOption, undefined);
   });
 
   describe("initOpts", () => {
@@ -2948,7 +3034,7 @@ describe("useEcharts", () => {
         result.current.ref(element);
       });
 
-      // resolveThemeName should pass any string theme through
+      // resolveTheme should pass any string theme through
       expect(echarts.init).toHaveBeenCalledWith(element, "custom-theme-string", expect.any(Object));
     });
 
@@ -3065,13 +3151,10 @@ describe("useEcharts", () => {
     });
 
     it("should hint about missing registration when init fails with 'not a constructor' in dev", () => {
-      const previousNodeEnv = process.env.NODE_ENV;
-      process.env.NODE_ENV = "development";
-      resetDevWarnings();
       const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
-      const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
-
-      try {
+      // Silence the init failure the hook logs via console.error.
+      vi.spyOn(console, "error").mockImplementation(() => {});
+      withNodeEnv("development", () => {
         const element = document.createElement("div");
         (echarts.init as ReturnType<typeof vi.fn>).mockImplementation(() => {
           throw new TypeError("ka[a] is not a constructor");
@@ -3083,22 +3166,14 @@ describe("useEcharts", () => {
         });
 
         expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining("registerEchartsFull()"));
-      } finally {
-        warnSpy.mockRestore();
-        errorSpy.mockRestore();
-        process.env.NODE_ENV = previousNodeEnv;
-        resetDevWarnings();
-      }
+      });
     });
 
     it("should not hint about registration for unrelated init errors in dev", () => {
-      const previousNodeEnv = process.env.NODE_ENV;
-      process.env.NODE_ENV = "development";
-      resetDevWarnings();
       const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
-      const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
-
-      try {
+      // Silence the init failure the hook logs via console.error.
+      vi.spyOn(console, "error").mockImplementation(() => {});
+      withNodeEnv("development", () => {
         const element = document.createElement("div");
         (echarts.init as ReturnType<typeof vi.fn>).mockImplementation(() => {
           throw new Error("some unrelated boom");
@@ -3110,22 +3185,14 @@ describe("useEcharts", () => {
         });
 
         expect(warnSpy).not.toHaveBeenCalledWith(expect.stringContaining("registerEchartsFull()"));
-      } finally {
-        warnSpy.mockRestore();
-        errorSpy.mockRestore();
-        process.env.NODE_ENV = previousNodeEnv;
-        resetDevWarnings();
-      }
+      });
     });
 
     it("should hint about missing registration only once in dev", () => {
-      const previousNodeEnv = process.env.NODE_ENV;
-      process.env.NODE_ENV = "development";
-      resetDevWarnings();
       const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
-      const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
-
-      try {
+      // Silence the init failure the hook logs via console.error.
+      vi.spyOn(console, "error").mockImplementation(() => {});
+      withNodeEnv("development", () => {
         (echarts.init as ReturnType<typeof vi.fn>).mockImplementation(() => {
           throw new TypeError("Ctor is not a constructor");
         });
@@ -3143,12 +3210,25 @@ describe("useEcharts", () => {
           ([msg]) => typeof msg === "string" && msg.includes("registerEchartsFull()"),
         );
         expect(hintCalls).toHaveLength(1);
-      } finally {
-        warnSpy.mockRestore();
-        errorSpy.mockRestore();
-        process.env.NODE_ENV = previousNodeEnv;
-        resetDevWarnings();
-      }
+      });
+    });
+
+    it("should still route an init error that can't be stringified to onError in dev", () => {
+      vi.spyOn(console, "warn").mockImplementation(() => {});
+      // String() throws on a null-prototype object.
+      const initError: unknown = Object.create(null);
+      const onError = vi.fn();
+      withNodeEnv("development", () => {
+        (echarts.init as ReturnType<typeof vi.fn>).mockImplementation(() => {
+          throw initError;
+        });
+
+        const { result } = renderHook(() => useEcharts({ option: baseOption, onError }));
+        act(() => {
+          result.current.ref(document.createElement("div"));
+        });
+      });
+      expect(onError).toHaveBeenCalledWith(initError);
     });
 
     it("should call onError when initial setOption throws", () => {
@@ -3283,6 +3363,42 @@ describe("useEcharts", () => {
   });
 
   describe("cache hit on init", () => {
+    it("should leave a shared instance alone until this hook initializes", () => {
+      globalThis.IntersectionObserver =
+        NonTriggeringIntersectionObserver as unknown as typeof IntersectionObserver;
+      try {
+        const element = document.createElement("div");
+        const existingInstance = createMockInstance(element);
+        // Another consumer already owns this element; this hook is still deferred.
+        setCachedInstance(element, existingInstance as never);
+
+        const { result, unmount } = renderHook(() =>
+          useEcharts({
+            option: baseOption,
+            lazyInit: true,
+            onEvents: { click: () => {} },
+            group: "g",
+          }),
+        );
+        act(() => {
+          result.current.ref(element);
+        });
+
+        expect(existingInstance.setOption).not.toHaveBeenCalled();
+        expect(existingInstance.hideLoading).not.toHaveBeenCalled();
+        expect(existingInstance.on).not.toHaveBeenCalled();
+        expect(getGroupInstances("g")).toEqual([]);
+        expect(result.current.getWidth()).toBeUndefined();
+
+        unmount();
+        expect(existingInstance.off).not.toHaveBeenCalled();
+        expect(getReferenceCount(element)).toBe(1);
+      } finally {
+        globalThis.IntersectionObserver =
+          MockIntersectionObserver as unknown as typeof IntersectionObserver;
+      }
+    });
+
     it("should reuse existing cached instance instead of calling echarts.init", () => {
       const element = document.createElement("div");
       const existingInstance = createMockInstance(element);
@@ -3302,11 +3418,8 @@ describe("useEcharts", () => {
     });
 
     it("should warn in development when reusing cached instance from another consumer", () => {
-      const previousNodeEnv = process.env.NODE_ENV;
-      process.env.NODE_ENV = "development";
-
       const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
-      try {
+      withNodeEnv("development", () => {
         const element = document.createElement("div");
         const existingInstance = createMockInstance(element);
 
@@ -3320,18 +3433,12 @@ describe("useEcharts", () => {
         expect(warnSpy).toHaveBeenCalledWith(
           expect.stringContaining("multiple hooks share the same DOM element"),
         );
-      } finally {
-        warnSpy.mockRestore();
-        process.env.NODE_ENV = previousNodeEnv;
-      }
+      });
     });
 
     it("should not warn in production when reusing cached instance from another consumer", () => {
-      const previousNodeEnv = process.env.NODE_ENV;
-      process.env.NODE_ENV = "production";
-
       const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
-      try {
+      withNodeEnv("production", () => {
         const element = document.createElement("div");
         const existingInstance = createMockInstance(element);
 
@@ -3345,10 +3452,7 @@ describe("useEcharts", () => {
         expect(warnSpy).not.toHaveBeenCalledWith(
           expect.stringContaining("multiple hooks share the same DOM element"),
         );
-      } finally {
-        warnSpy.mockRestore();
-        process.env.NODE_ENV = previousNodeEnv;
-      }
+      });
     });
   });
 
@@ -3371,10 +3475,9 @@ describe("useEcharts", () => {
     });
   });
 
-  // After migrating effect-context error routing to `useEffectEvent` (and
-  // keeping `latestRef.current.onError` for the imperative API), these tests
-  // ensure that swapping `onError` between renders routes the next failure to
-  // the latest callback — not the mount-time one.
+  // Every error path reads `onError` from `latestRef` (not `useEffectEvent`;
+  // see utils/error.ts), so swapping it between renders must route the next
+  // failure to the latest callback — not the mount-time one.
   describe("onError freshness", () => {
     it("routes effect-context errors to the latest onError after rerender", async () => {
       const element = document.createElement("div");
@@ -3598,6 +3701,46 @@ describe("useEcharts", () => {
           delete (Document.prototype as unknown as { hidden?: boolean }).hidden;
         }
       }
+    });
+  });
+
+  describe("rethrowing onError during init", () => {
+    type MockInstance = ReturnType<typeof createMockInstance>;
+    const stageError = new Error("init stage failed");
+    const fail = () => {
+      throw stageError;
+    };
+
+    it.each<[string, Partial<Parameters<typeof useEcharts>[0]>, (inst: MockInstance) => void]>([
+      ["setOption", {}, (inst) => inst.setOption.mockImplementation(fail)],
+      ["showLoading", { showLoading: true }, (inst) => inst.showLoading.mockImplementation(fail)],
+      ["event bind", { onEvents: { click: () => {} } }, (inst) => inst.on.mockImplementation(fail)],
+      [
+        "group join",
+        { group: "g" },
+        () => (echarts.connect as ReturnType<typeof vi.fn>).mockImplementation(fail),
+      ],
+    ])("releases the instance when %s fails and onError rethrows", (_stage, props, arrange) => {
+      // Silence React's report of the error the boundary caught.
+      vi.spyOn(console, "error").mockImplementation(() => {});
+      const mockInstance = createMockInstance();
+      (echarts.init as ReturnType<typeof vi.fn>).mockReturnValue(mockInstance);
+      arrange(mockInstance);
+      const onError = vi.fn((error: unknown) => {
+        throw error;
+      });
+
+      function Chart() {
+        const { ref } = useEcharts({ option: baseOption, ...props, onError });
+        return createElement("div", { ref });
+      }
+      render(createElement(Boundary, null, createElement(Chart)));
+
+      const element = (echarts.init as ReturnType<typeof vi.fn>).mock.calls[0]![0] as HTMLElement;
+      expect(onError).toHaveBeenCalledWith(stageError);
+      expect(getReferenceCount(element)).toBe(0);
+      expect(mockInstance.dispose).toHaveBeenCalledTimes(1);
+      expect(getGroupInstances("g")).toEqual([]);
     });
   });
 });

@@ -1,20 +1,17 @@
 /**
  * Module-level coordinator for `document.visibilitychange` resume callbacks.
- * One DOM listener regardless of subscriber count; attaches lazily on first
- * subscriber, detaches on last unsubscribe.
+ * One DOM listener regardless of subscriber count, attached exactly while
+ * there are subscribers.
  *
  * 模块级 visibilitychange 协调器：单 listener + 多订阅者，按需挂载/卸载。
  */
 
 const subscribers = new Set<() => void>();
-let attached = false;
 
 function onVisibilityChange(): void {
   if (document.hidden) return;
-  // Isolate each subscriber: a throwing callback (e.g. a chart whose consumer
-  // `onError` rethrows from the resize path) must not abort the loop and starve
-  // every other chart's foreground resize resync — they share this one
-  // document listener. Mirrors merge-refs' per-callback try/catch isolation.
+  // Isolate subscribers: one throwing callback (e.g. a consumer `onError` that
+  // rethrows from the resize path) must not skip the other charts' resync.
   for (const cb of subscribers) {
     try {
       cb();
@@ -29,16 +26,13 @@ function onVisibilityChange(): void {
  * Returns an unsubscribe function.
  */
 export function subscribeVisibilityResume(cb: () => void): () => void {
-  subscribers.add(cb);
-  if (!attached) {
+  if (subscribers.size === 0) {
     document.addEventListener("visibilitychange", onVisibilityChange);
-    attached = true;
   }
+  subscribers.add(cb);
   return () => {
-    subscribers.delete(cb);
-    if (subscribers.size === 0 && attached) {
+    if (subscribers.delete(cb) && subscribers.size === 0) {
       document.removeEventListener("visibilitychange", onVisibilityChange);
-      attached = false;
     }
   };
 }
@@ -48,9 +42,8 @@ export function subscribeVisibilityResume(cb: () => void): () => void {
  * document listener so each test starts from a clean slate.
  */
 export function __resetVisibilityCoordinatorForTesting__(): void {
-  if (attached) {
+  if (subscribers.size > 0) {
     document.removeEventListener("visibilitychange", onVisibilityChange);
-    attached = false;
   }
   subscribers.clear();
 }

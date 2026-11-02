@@ -81,7 +81,7 @@ export function isBuiltinTheme(themeName: string): themeName is BuiltinTheme {
  */
 export function isKnownTheme(themeName: string): boolean {
   return (
-    BUILTIN_THEME_NAMES.has(themeName) ||
+    isBuiltinTheme(themeName) ||
     ECHARTS_NATIVE_THEME_NAMES.has(themeName) ||
     state.knownThemeNames.has(themeName)
   );
@@ -122,7 +122,7 @@ export function registerCustomTheme(themeName: string, themeConfig: object): voi
  *
  * @internal Test hook; not part of the public API.
  */
-export function __clearThemeCacheForTesting__(): void {
+export function __resetThemeStateForTesting__(): void {
   state.knownThemeNames.clear();
   state.registeredBuiltinThemeNames.clear();
   resetDevWarnings();

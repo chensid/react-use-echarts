@@ -5,7 +5,7 @@ import type { EChartsOption } from "echarts";
 import type {
   ChartFinder,
   EChartsEvents,
-  EChartsInitOpts,
+  EChartsFinder,
   UseEchartsOptions,
   UseEchartsReturn,
   LoadingOption,
@@ -21,8 +21,8 @@ import { shallowEqual } from "../../utils/shallow-equal";
 import { computeStableKey } from "../../utils/stable-key";
 import {
   warnedThemeNames,
-  warnedZeroSizeContainers,
-  warnedMissingRegistration,
+  warnMissingRegistration,
+  warnZeroSizeContainer,
 } from "../../utils/dev-warnings";
 import { reportEffectError, routeImperativeError } from "../../utils/error";
 import { bindEvents, bindingsMatch, unbindEvents, type BoundEvents } from "./event-utils";
@@ -42,109 +42,29 @@ function resolveTheme(theme: string | object | undefined): string | object | nul
     if (
       process.env.NODE_ENV !== "production" &&
       process.env.NODE_ENV !== "test" &&
-      isBuiltinTheme(theme) &&
-      !isBuiltinThemeRegistered(theme) &&
       !warnedThemeNames.has(theme)
     ) {
-      warnedThemeNames.add(theme);
-      console.warn(
-        `react-use-echarts: built-in theme "${theme}" was not registered. ` +
-          `Import registerBuiltinThemes() from "react-use-echarts/themes/registry" and call it once before using it ` +
-          `("light" and "dark" need no registration). Unregistered themes are ignored by ECharts.`,
-      );
-    } else if (
-      process.env.NODE_ENV !== "production" &&
-      process.env.NODE_ENV !== "test" &&
-      !isKnownTheme(theme) &&
-      !warnedThemeNames.has(theme)
-    ) {
-      warnedThemeNames.add(theme);
-      console.warn(
-        `react-use-echarts: theme "${theme}" is not built-in and this library has not seen it registered. ` +
-          `If you registered it with echarts.registerTheme(), it works as-is; registerCustomTheme() does the same and silences this warning. ` +
-          `Otherwise check the name for typos: ECharts ignores unregistered themes.`,
-      );
+      if (isBuiltinTheme(theme)) {
+        if (!isBuiltinThemeRegistered(theme)) {
+          warnedThemeNames.add(theme);
+          console.warn(
+            `react-use-echarts: built-in theme "${theme}" was not registered. ` +
+              `Import registerBuiltinThemes() from "react-use-echarts/themes/registry" and call it once before using it ` +
+              `("light" and "dark" need no registration). Unregistered themes are ignored by ECharts.`,
+          );
+        }
+      } else if (!isKnownTheme(theme)) {
+        warnedThemeNames.add(theme);
+        console.warn(
+          `react-use-echarts: theme "${theme}" is not built-in and this library has not seen it registered. ` +
+            `If you registered it with echarts.registerTheme(), it works as-is; registerCustomTheme() does the same and silences this warning. ` +
+            `Otherwise check the name for typos: ECharts ignores unregistered themes.`,
+        );
+      }
     }
     return theme;
   }
   return typeof theme === "object" ? theme : null;
-}
-
-function warnZeroSizeContainer(element: HTMLElement): void {
-  // NODE_ENV checks come FIRST so the packed production build (NODE_ENV defined
-  // as "production") folds the guard to `if (true) return;` and drops the whole
-  // dev-only body
-  // (including the warning string). With the `warnedZeroSizeContainers.has(...)`
-  // call leading the `||` chain, minifiers can't prove the early-return is
-  // unconditional and leave the string in the bundle. Order is behavior-neutral
-  // in dev (Set.has is side-effect-free; `||` result is identical).
-  if (
-    process.env.NODE_ENV === "production" ||
-    process.env.NODE_ENV === "test" ||
-    warnedZeroSizeContainers.has(element)
-  ) {
-    return;
-  }
-
-  let width = 0;
-  let height = 0;
-  try {
-    const rect = element.getBoundingClientRect();
-    width = rect.width;
-    height = rect.height;
-  } catch {
-    // getBoundingClientRect is highly reliable on mounted elements but can throw in
-    // exotic environments (detached SVG, cross-realm nodes); skip warning in those cases.
-    return;
-  }
-  if (width > 0 && height > 0) return;
-
-  warnedZeroSizeContainers.add(element);
-  console.warn(
-    "react-use-echarts: chart container has zero width or height during initialization. " +
-      "Give the container an explicit size; <EChart /> defaults to height: 100%, " +
-      "so its parent also needs an explicit height.",
-  );
-}
-
-/**
- * Dev-only hint for the single most common modular-entry pitfall: calling
- * `useEcharts()` before any chart/renderer/component is registered. echarts
- * (via zrender) then throws a minifier-mangled "<X> is not a constructor"
- * TypeError that gives the consumer no clue. Detect that signature and point
- * them at registration. Routed alongside (not instead of) the real error, so
- * onError / console.error still see the original.
- * dev 专用引导：未注册任何图表/渲染器/组件就调用 `useEcharts()` 是 modular 入口最
- * 常见的坑，echarts 会抛出混淆后的 "... is not a constructor"，毫无指引。识别该特征
- * 并引导用户去注册；与真实错误并行输出，不替代它。
- */
-function warnMissingRegistration(error: unknown): void {
-  // NODE_ENV checks FIRST so the packed production build folds this to
-  // `if (true) return;` and drops the whole dev-only body
-  // (including the hint string), mirroring warnZeroSizeContainer. Keeping
-  // `warnedMissingRegistration.has(...)` last leaves the early-return
-  // non-constant so minifiers can't strip the guard in dev.
-  if (
-    process.env.NODE_ENV === "production" ||
-    process.env.NODE_ENV === "test" ||
-    warnedMissingRegistration.has("init")
-  ) {
-    return;
-  }
-
-  // String(err) yields e.g. "TypeError: ka[a] is not a constructor" — the
-  // signature substring survives, and non-Error throws stringify safely too.
-  const message = String(error);
-  if (!message.includes("is not a constructor")) return;
-
-  warnedMissingRegistration.add("init");
-  console.warn(
-    'react-use-echarts: ECharts init failed with a "... is not a constructor" error. ' +
-      "This usually means no charts/renderers/components are registered yet. " +
-      'Call registerEchartsFull() from "react-use-echarts/preset-full" at your app entry, ' +
-      "or echarts.use([...]) selectively — both must run before the first useEcharts() render. " +
-      'See the README "Register ECharts modules" section.',
-  );
 }
 
 // --- Types ---
@@ -160,25 +80,13 @@ interface LastLoading {
   loadingOption: LoadingOption | undefined;
 }
 
-interface ChartCoreConfig {
-  option: EChartsOption;
-  theme?: UseEchartsOptions["theme"];
-  renderer?: "canvas" | "svg";
-  initOpts?: EChartsInitOpts;
-  setOptionOpts?: SetOptionOpts;
-  showLoading?: boolean;
-  loadingOption?: LoadingOption;
-  onEvents?: EChartsEvents;
-  group?: string;
-  onError?: (e: unknown) => void;
-}
+type ChartCoreConfig = Omit<UseEchartsOptions, "lazyInit" | "autoResize">;
 
 /**
- * Latest values read at call time rather than captured by an effect, synced by
- * a layout effect every render:
+ * Values read at call time rather than captured by an effect, synced by a
+ * layout effect every render (a ref, not `useEffectEvent`: see utils/error.ts):
  *   - `onError`: routes every failure — effects via `reportEffectError`,
- *     imperative calls via `routeImperativeError`. Not `useEffectEvent`: React
- *     19.2.x leaves that callback stale inside memo() / forwardRef components.
+ *     imperative calls via `routeImperativeError`
  *   - `setOptionOpts`: merged with caller-supplied opts in imperative setOption
  *   - `onEvents`: read by the event proxies when ECharts fires (an event can
  *     fire from a consumer's render, where calling `useEffectEvent` throws)
@@ -189,10 +97,9 @@ interface ImperativeLatest {
   onEvents: EChartsEvents | undefined;
 }
 
-// ECharts' finder typing omits documented keys such as `calendarIndex`
-// (ChartFinder widens it), and its convertToPixel / convertFromPixel typings
-// omit the third `opt` that the runtime and API docs accept.
-type EChartsFinder = Parameters<ECharts["containPixel"]>[0];
+// ECharts types convertToPixel / convertFromPixel without the third `opt` that
+// the runtime and API docs accept. (`ChartFinder` likewise widens its finder
+// typing with documented keys such as `calendarIndex`.)
 type ConvertWithOpt = (
   this: ECharts,
   finder: ChartFinder,
@@ -231,18 +138,13 @@ export function useChartCore(
     onError,
   } = config;
 
-  // --- Latest ref for the 3 fields read at call time (see ImperativeLatest).
-  // All other config fields are either reactive deps in their owning effect or
-  // captured via closure inside the lifecycle effect.
   const latestRef = useRef<ImperativeLatest>(null!);
   if (latestRef.current === null) {
     latestRef.current = { setOptionOpts, onError, onEvents };
   }
 
-  // Sync every render via a layout effect, so readers (effect error routing,
-  // imperative calls, event proxies) see committed values. Declared before the
-  // lifecycle effect so the first init / bind already reads this commit's
-  // values. Mutated in place: the ref is never read during render.
+  // Declared before the lifecycle effect so the first init / bind already
+  // reads this commit's values. Mutated in place: never read during render.
   useLayoutEffect(() => {
     latestRef.current.setOptionOpts = setOptionOpts;
     latestRef.current.onError = onError;
@@ -250,72 +152,59 @@ export function useChartCore(
   });
 
   // --- Internal shared state ---
-  // Proxies currently bound to the instance (undefined when none bound).
-  // Used by Event Rebinding effect to dedup and unbind on prop changes.
+  // Proxies currently bound (undefined when none): Event Rebinding dedups
+  // against them, and cleanup unbinds them.
   const lastBoundRef = useRef<BoundEvents | undefined>(undefined);
+  // Last *attempted* inputs. Each is recorded in a `finally`, even when the
+  // call throws, so a sync effect dedups a known-bad call instead of replaying
+  // it and firing onError twice; a new prop value still retries.
   const lastAppliedRef = useRef<LastApplied | null>(null);
   const lastLoadingRef = useRef<LastLoading | null>(null);
-  // The group this hook last assigned the instance to — the single source of
-  // truth for *our* group intent. Read by the Group Switch effect to dedup
-  // instead of the externally-writable `instance.group`, so a consumer mutating
-  // that property can't desync groupMembers bookkeeping.
+  // The group this hook last assigned. Group Switch dedups against it, not the
+  // runtime-writable `instance.group` (a consumer mutating that would desync
+  // groupMembers), and recording it after a partial move keeps the next switch
+  // from removeFromGroup-ing a stale id.
   const lastGroupRef = useRef<string | undefined>(undefined);
 
-  // Reactive view of the current instance. Set inside the lifecycle effect
-  // after init/share succeeds and cleared on cleanup, so downstream consumers
-  // can subscribe via `useEffect([instance])`. Imperative methods do NOT
-  // depend on this state — they read from `getCachedInstance(element)` so
-  // they remain callable in the layout-effect → render-commit gap before
-  // React reconciles this state update.
+  // The instance this hook holds a cache reference to, set by the lifecycle
+  // effect. The sync effects and imperative methods act only through it: on an
+  // element another hook also uses, the cached instance isn't ours until our
+  // own lifecycle effect has acquired it (a deferred lazyInit hook must not
+  // write to, bind on, or group someone else's chart). A ref, so the methods
+  // work in the gap before `liveInstance` commits.
+  const ownedRef = useRef<ECharts | undefined>(undefined);
+  // Reactive instance for consumers' `useEffect([instance])`.
   const [liveInstance, setLiveInstance] = useState<ECharts | undefined>(undefined);
 
-  // --- Stable dependency keys, memoized on the raw input reference. React
-  // Compiler skips this whole hook because it disables a react-hooks ESLint
-  // rule (the trimmed lifecycle-effect deps below) — the compiler bails on any
-  // function that opts out of its rules. So it won't auto-memoize these calls;
-  // without an explicit useMemo, computeStableKey would re-run JSON.stringify
-  // every render for object theme / initOpts (the stable-ref usage CLAUDE.md
-  // recommends). No regression for inline objects — the dep changes either way.
+  // Memoized by hand: React Compiler skips this hook (it bails on the
+  // eslint-disabled effect deps below), so object theme / initOpts would
+  // otherwise be re-stringified every render.
   const themeKey = useMemo(() => computeStableKey(theme), [theme]);
   const initOptsKey = useMemo(() => computeStableKey(initOpts), [initOpts]);
-  // Value-keyed rather than shallow-compared: `replaceMerge` (array) and
-  // `transition` (object / array of finders) nest, so an inline wrapper would
-  // never compare equal and Option Sync would re-run setOption every render.
+  // By value, not shallow: `replaceMerge` / `transition` nest, so an inline
+  // wrapper would never compare equal and setOption would re-run every render.
   const setOptionOptsKey = useMemo(() => computeStableKey(setOptionOpts), [setOptionOpts]);
-
-  // --- Public API ---
-
-  const lookupInstance = (): ECharts | undefined => {
-    if (!element) return undefined;
-    return getCachedInstance(element);
-  };
 
   // =====================================================================
   // INSTANCE LIFECYCLE (init / recreate / cleanup)
   //
-  // When theme, renderer, or initOpts changes, cleanup disposes the old
-  // instance and the effect re-runs to create a new one.
-  // All instance state (option, events, loading, group) is re-applied.
+  // A theme / renderer / initOpts change disposes the instance and creates a
+  // new one, re-applying all state (option, events, loading, group).
   //
-  // Theme changes deliberately recreate instead of calling ECharts 6
-  // `instance.setTheme()`. Its API docs carry a CAVEAT: after several
-  // merge-mode `setOption` calls, `setTheme` discards earlier options (6.1
-  // rebuilds from the option backup taken at the first call), and the only
-  // documented fix is `notMerge` on every `setOption`. This library merges by
-  // default, so a chart whose option changed since would snap back to stale data.
+  // Theme changes recreate rather than call ECharts 6 `setTheme()`: its docs
+  // warn that after several merge-mode `setOption` calls it rebuilds from the
+  // first option backup unless every call used `notMerge`. This library merges
+  // by default, so the chart would snap back to stale data.
   // =====================================================================
   useLayoutEffect(() => {
-    if (!shouldInit) return;
-
-    if (!element) return;
+    if (!shouldInit || !element) return;
 
     warnZeroSizeContainer(element);
 
     const resolvedTheme = resolveTheme(theme);
 
-    const existing = getCachedInstance(element);
-    let instance: ECharts;
-    if (existing) {
+    let instance = getCachedInstance(element);
+    if (instance) {
       if (process.env.NODE_ENV !== "production" && process.env.NODE_ENV !== "test") {
         console.warn(
           "react-use-echarts: multiple hooks share the same DOM element. " +
@@ -323,8 +212,6 @@ export function useChartCore(
             "and option/events/loading/group writes from later hooks overwrite earlier ones.",
         );
       }
-      instance = existing;
-      setCachedInstance(element, existing);
     } else {
       try {
         instance = echarts.init(element, resolvedTheme, {
@@ -336,83 +223,22 @@ export function useChartCore(
         reportEffectError(error, latestRef.current.onError, "ECharts init failed:");
         return;
       }
-      setCachedInstance(element, instance);
     }
+    const owned = setCachedInstance(element, instance);
+    ownedRef.current = owned;
 
-    try {
-      instance.setOption(option, setOptionOpts);
-    } catch (error) {
-      reportEffectError(error, latestRef.current.onError, "ECharts setOption failed:");
-    } finally {
-      // Record the attempt regardless of success: a throw here means the
-      // option is malformed. Option-Sync's useEffect runs immediately after
-      // this layout effect on the SAME mount, and without a recorded "last
-      // attempt" it would re-invoke setOption with the same args and fire
-      // onError a second time. The user can still recover by passing a new
-      // option reference (Option-Sync sees the changed ref and retries).
-      lastAppliedRef.current = { option, optsKey: setOptionOptsKey };
-    }
-
-    // showLoading can throw via user-registered custom loading types.
-    try {
-      if (showLoading) {
-        instance.showLoading(loadingOption);
-      }
-    } catch (error) {
-      reportEffectError(error, latestRef.current.onError, "ECharts loading toggle failed:");
-    } finally {
-      // Mirror the setOption pattern above: record the attempt unconditionally
-      // so Loading-Toggle's useEffect (also fires on the same mount) dedups
-      // against this attempt instead of re-invoking showLoading and
-      // double-reporting the failure.
-      lastLoadingRef.current = { showLoading, loadingOption };
-    }
-
-    // Track for cleanup regardless of partial bind failure so off() can still
-    // be attempted on any handlers that did get bound.
-    const bound: BoundEvents = new Map();
-    lastBoundRef.current = bound;
-    try {
-      bindEvents(instance, onEvents, latestRef, bound);
-    } catch (error) {
-      reportEffectError(error, latestRef.current.onError, "ECharts event bind failed:");
-    }
-
-    if (group) {
-      // Routed like every other instance call in this effect. echarts.connect
-      // is near-certain not to throw, but a bare call here would be the lone
-      // un-instrumented instance op — an escaped throw could disrupt React
-      // commit, so keep it consistent with setOption/bindEvents above.
-      try {
-        updateGroup(instance, undefined, group);
-      } catch (error) {
-        reportEffectError(error, latestRef.current.onError, "ECharts group assignment failed:");
-      }
-    }
-    // Record what this fresh instance was assigned to (including `undefined`),
-    // so the Group Switch effect dedups against our own intent. A structural
-    // recreation captures the latest `group` here; a plain group-prop change
-    // (no recreation) is handled by the Group Switch effect updating this ref.
-    lastGroupRef.current = group;
-
-    setLiveInstance(instance);
-
-    return () => {
+    const cleanup = () => {
+      ownedRef.current = undefined;
       lastAppliedRef.current = null;
       lastLoadingRef.current = null;
       setLiveInstance(undefined);
 
-      const inst = getCachedInstance(element);
-      if (!inst) return;
-
-      // Cleanup correctness is critical: release MUST run on unmount or the
-      // instance leaks. unbind itself doesn't throw on real ECharts (zrender
-      // Eventful.off is a filter loop), and the same is true for dispose, but
-      // try/catch + try/finally guards against either misbehaving and ensures
-      // an effect-cleanup throw never disrupts React commit.
+      // Release must run on unmount or the instance leaks. Neither off() nor
+      // dispose throws on real ECharts; the guards keep a misbehaving one from
+      // skipping release or disrupting React's commit.
       try {
         try {
-          unbindEvents(inst, lastBoundRef.current);
+          unbindEvents(owned, lastBoundRef.current);
         } catch (error) {
           reportEffectError(error, latestRef.current.onError, "ECharts event unbind failed:");
         }
@@ -425,26 +251,67 @@ export function useChartCore(
         }
       }
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- non-structural deps (option/setOptionOpts/showLoading/loadingOption/onEvents/group) captured at init; updates handled by dedicated sync effects below
+
+    // Each stage reports its own failure, but an onError that rethrows still
+    // exits the effect, and React keeps no cleanup for an effect that threw:
+    // release here before passing the error on, or the instance leaks.
+    try {
+      try {
+        owned.setOption(option, setOptionOpts);
+      } catch (error) {
+        reportEffectError(error, latestRef.current.onError, "ECharts setOption failed:");
+      } finally {
+        lastAppliedRef.current = { option, optsKey: setOptionOptsKey };
+      }
+
+      // showLoading can throw via user-registered custom loading types.
+      try {
+        if (showLoading) {
+          owned.showLoading(loadingOption);
+        }
+      } catch (error) {
+        reportEffectError(error, latestRef.current.onError, "ECharts loading toggle failed:");
+      } finally {
+        lastLoadingRef.current = { showLoading, loadingOption };
+      }
+
+      const bound: BoundEvents = new Map();
+      lastBoundRef.current = bound;
+      try {
+        bindEvents(owned, onEvents, latestRef, bound);
+      } catch (error) {
+        reportEffectError(error, latestRef.current.onError, "ECharts event bind failed:");
+      }
+
+      try {
+        updateGroup(owned, undefined, group);
+      } catch (error) {
+        reportEffectError(error, latestRef.current.onError, "ECharts group assignment failed:");
+      } finally {
+        // Record even `undefined`: Group Switch dedups against it.
+        lastGroupRef.current = group;
+      }
+    } catch (error) {
+      cleanup();
+      throw error;
+    }
+
+    setLiveInstance(owned);
+    return cleanup;
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- non-structural config is captured at init; the sync effects below apply its changes
   }, [shouldInit, element, themeKey, renderer, initOptsKey]);
 
   // =====================================================================
   // OPTION SYNC
   //
-  // Re-syncs only on a real prop change: a new `option` reference, or a
-  // `setOptionOpts` whose serialized value changed. A new option reference
-  // always triggers setOption, even when its top-level keys are
-  // shallow-equal: the caller may have mutated shared nested ECharts data
-  // before cloning the wrapper, and shallow comparison cannot observe that
-  // change safely. Keying the opts by value means an unrelated render with an
-  // inline opts literal neither re-applies the option nor overwrites what an
-  // imperative setOption / clear / appendData left on the instance; the next
-  // real prop change wins. lastAppliedRef skips the first run after the
-  // lifecycle effect (which already applied the same option).
+  // Re-applies only on a real prop change: a new `option` reference (always —
+  // shallow comparison can't see nested data the caller mutated before cloning
+  // the wrapper) or a changed `setOptionOpts` value. An unrelated render thus
+  // never overwrites an imperative setOption / clear / appendData; the next
+  // real prop change wins. lastAppliedRef skips the run right after init.
   // =====================================================================
   useEffect(() => {
-    if (!element) return;
-    const instance = getCachedInstance(element);
+    const instance = ownedRef.current;
     if (!instance) return;
 
     const last = lastAppliedRef.current;
@@ -455,12 +322,9 @@ export function useChartCore(
     } catch (error) {
       reportEffectError(error, latestRef.current.onError, "ECharts setOption failed:");
     } finally {
-      // Record the attempt even on failure so a rerun with the same option
-      // ref and opts value dedups via the fast path above instead of
-      // re-throwing identically.
       lastAppliedRef.current = { option, optsKey: setOptionOptsKey };
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- setOptionOptsKey stands in for setOptionOpts so value-equal inline opts don't re-run the effect; setOptionOpts is read from the same render
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- setOptionOptsKey stands in for setOptionOpts (compared by value)
   }, [element, option, setOptionOptsKey]);
 
   // =====================================================================
@@ -472,8 +336,7 @@ export function useChartCore(
   // `context` — unbinds the old proxies and binds new ones.
   // =====================================================================
   useEffect(() => {
-    if (!element) return;
-    const instance = getCachedInstance(element);
+    const instance = ownedRef.current;
     if (!instance) return;
 
     if (bindingsMatch(lastBoundRef.current, onEvents)) return;
@@ -495,14 +358,11 @@ export function useChartCore(
   // =====================================================================
   // LOADING TOGGLE
   //
-  // Toggles showLoading / hideLoading on dynamic changes.
-  // Lifecycle effect handles initial application on instance creation;
-  // lastLoadingRef + shallowEqual skips redundant calls for inline
-  // loadingOption objects with identical content.
+  // showLoading / hideLoading on dynamic changes (init applies the initial
+  // state); shallowEqual dedups inline loadingOption objects.
   // =====================================================================
   useEffect(() => {
-    if (!element) return;
-    const instance = getCachedInstance(element);
+    const instance = ownedRef.current;
     if (!instance) return;
 
     const last = lastLoadingRef.current;
@@ -518,27 +378,17 @@ export function useChartCore(
     } catch (error) {
       reportEffectError(error, latestRef.current.onError, "ECharts loading toggle failed:");
     } finally {
-      // Record the attempt even on failure so a rerender with the same
-      // (showLoading, loadingOption) pair dedups instead of re-firing.
       lastLoadingRef.current = { showLoading, loadingOption };
     }
   }, [element, showLoading, loadingOption]);
 
   // =====================================================================
-  // GROUP SWITCH
-  //
-  // Switches chart group membership on dynamic changes.
-  // Lifecycle effect handles initial group assignment on instance creation.
+  // GROUP SWITCH — dynamic group changes (init assigns the initial group).
   // =====================================================================
   useEffect(() => {
-    if (!element) return;
-    const instance = getCachedInstance(element);
+    const instance = ownedRef.current;
     if (!instance) return;
 
-    // Dedup against the group WE last assigned (lastGroupRef), not the live
-    // instance.group: that property is writable at runtime, so a consumer
-    // mutating it would otherwise make updateGroup removeFromGroup the wrong id
-    // and desync groupMembers. lastGroupRef is our single source of truth.
     const currentGroup = lastGroupRef.current;
     if (currentGroup === group) return;
 
@@ -547,33 +397,25 @@ export function useChartCore(
     } catch (error) {
       reportEffectError(error, latestRef.current.onError, "ECharts group switch failed:");
     } finally {
-      // Record the attempt even on failure: updateGroup may have partially
-      // moved the instance before throwing, so lastGroupRef must reflect the
-      // new intent to avoid removeFromGroup-ing a stale id next time (mirrors
-      // the Option-Sync / Loading-Toggle try/finally dedup pattern).
       lastGroupRef.current = group;
     }
   }, [element, group]);
 
   // =====================================================================
-  // Imperative API surface
+  // IMPERATIVE API
   //
-  // All methods follow the "no instance → fallback (undefined / true / false)"
-  // contract. When the instance throws: with onError, route the error and
-  // return the fallback; without onError, rethrow (readers do NOT silently
-  // log-and-default — same policy as setOption / dispatchAction). clear()
-  // and appendData() additionally drop lastAppliedRef so the next real prop
-  // change re-applies setOption (the instance state has drifted from props).
+  // No instance → fallback (undefined / true / false). When the instance
+  // throws: with onError, route the error and return the fallback; without
+  // onError, rethrow. clear() / appendData() drop lastAppliedRef so the next
+  // real prop change re-applies the option.
   //
-  // Wrapped in `useMemo([element])` so method identities stay stable across
-  // renders for a given container. Mutables (lastAppliedRef, latestRef) are
-  // read live; only `element` changes invalidate the closures. Without this
-  // memo, consumer effects with `[chart.setOption]` deps would thrash on
-  // every render (React Compiler does not memoize this hook's return).
+  // useMemo keeps method identities stable, so consumer effects with
+  // `[chart.setOption]` deps don't thrash (React Compiler doesn't memoize this
+  // hook). Every method reads refs at call time, so there are no deps.
   // =====================================================================
   const api = useMemo(() => {
     const withInstance = <T>(fn: (instance: ECharts) => T, fallback: T): T => {
-      const instance = lookupInstance();
+      const instance = ownedRef.current;
       if (!instance) return fallback;
       try {
         return fn(instance);
@@ -586,11 +428,17 @@ export function useChartCore(
     return {
       setOption: (newOption: EChartsOption, opts?: SetOptionOpts) =>
         withInstance((instance) => {
-          const finalOpts = { ...latestRef.current.setOptionOpts, ...opts };
+          const declaredOpts = latestRef.current.setOptionOpts;
+          const finalOpts = { ...declaredOpts, ...opts };
           instance.setOption(newOption, finalOpts);
-          // Keep lastAppliedRef in sync with what's actually on the instance, so
-          // the next real prop change re-applies the declarative option.
-          lastAppliedRef.current = { option: newOption, optsKey: computeStableKey(finalOpts) };
+          // Track what's on the instance, so the next real prop change
+          // re-applies the declarative option. Without per-call opts, key the
+          // declared opts exactly as Option Sync does (unset → null, not "{}"),
+          // or its dedup could never match.
+          lastAppliedRef.current = {
+            option: newOption,
+            optsKey: computeStableKey(opts ? finalOpts : declaredOpts),
+          };
         }, undefined),
 
       dispatchAction: (payload, opt) =>
@@ -599,10 +447,9 @@ export function useChartCore(
       clear: () =>
         withInstance((instance) => {
           instance.clear();
-          // Drop dedup memory: instance is now blank, so the next real prop
-          // change must re-apply the option instead of being skipped by the
-          // Option-Sync Effect's fast path (e.g. when the prop moves to the
-          // object an earlier imperative setOption recorded).
+          // The instance is blank now, so Option Sync must not skip the next
+          // real prop change (e.g. a prop moving to the object an earlier
+          // imperative setOption recorded).
           lastAppliedRef.current = null;
         }, undefined),
 
@@ -645,18 +492,13 @@ export function useChartCore(
       appendData: (params) =>
         withInstance((instance) => {
           instance.appendData(params);
-          // appendData drifts the instance from declarative `option`, same as
-          // clear(): drop dedup memory so the next real prop change re-applies
-          // setOption.
+          // Drifted from `option`, like clear().
           lastAppliedRef.current = null;
         }, undefined),
     } satisfies Omit<ChartCoreReturn, "instance">;
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- lastAppliedRef / latestRef are refs; closures read them live. lookupInstance closes over `element`, so [element] is the full dep set.
-  }, [element]);
+  }, []);
 
-  // Merge reactive `instance` into the stable api block. The wrapping object
-  // identity is re-cached only when liveInstance or api changes (i.e. on init,
-  // dispose, or element swap), so consumers spreading the hook result keep
+  // Re-created only on init or dispose, so consumers spreading the result keep
   // stable method identities across unrelated renders.
   return useMemo<ChartCoreReturn>(() => ({ instance: liveInstance, ...api }), [liveInstance, api]);
 }

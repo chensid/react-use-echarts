@@ -7,7 +7,7 @@ import { shallowEqual } from "../../utils/shallow-equal";
  * ECharts plus the `query` / `context` it was registered with.
  * 已绑定的单个事件：注册到 ECharts 的稳定代理函数及其 query / context。
  */
-export interface BoundEvent {
+interface BoundEvent {
   readonly proxy: (this: unknown, params: unknown) => void;
   readonly query: string | object | undefined;
   readonly context: object | undefined;
@@ -17,7 +17,7 @@ export interface BoundEvent {
 export type BoundEvents = Map<string, BoundEvent>;
 
 /** Where proxies read the latest `onEvents` at call time. 代理在调用时读取最新 onEvents 的来源。 */
-export interface LatestEventsSource {
+interface LatestEventsSource {
   readonly current: { readonly onEvents: EChartsEvents | undefined };
 }
 

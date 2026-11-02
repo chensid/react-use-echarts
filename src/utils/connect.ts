@@ -2,34 +2,22 @@ import * as echarts from "echarts/core";
 import type { ECharts } from "echarts/core";
 
 /**
- * ECharts documents `instance.group = 'xxx'` as the standard pattern for
- * group assignment (see echarts.apache.org/en/api.html#bindGroup).
- * The TypeScript declaration has a @readonly JSDoc tag, but the property is
- * intentionally writable at runtime. This cast is the official usage pattern.
+ * ECharts declares `group: string` (JSDoc-tagged `@readonly`), yet assigning it
+ * is the documented way to join a group (see echarts.apache.org/en/api.html#bindGroup).
+ * Widened to optional so removeFromGroup can unset it.
  */
 type EChartsWithGroup = Omit<ECharts, "group"> & { group?: string };
 
 /**
- * Per-group membership for `pruneDisposed` and `getGroupInstances`.
- * 每个组的成员集合，仅用于过滤已 dispose 的实例与 getGroupInstances 查询。
+ * Members per group. An entry is created — and `echarts.connect` called — on
+ * the group's first join, and dropped with `echarts.disconnect` once it empties.
+ * 每个组的成员集合：首个成员加入时创建并调用 echarts.connect，组变空时删除并 disconnect。
  */
 const groupMembers = new Map<string, Set<ECharts>>();
 
-/**
- * Group IDs we've already called `echarts.connect` for, so we don't redundantly
- * re-connect on every add. Pruned when the last member leaves the group
- * (see removeFromGroup) and on `clearGroups`.
- * 已经调用过 echarts.connect 的 group ID 集合，避免重复 connect；
- * 最后一个成员离开后由 removeFromGroup 清理。
- */
-const connectedGroupIds = new Set<string>();
-
 function pruneDisposed(group: Set<ECharts>): void {
-  // Deleting the current element mid-iteration is spec-safe for a Set (the slot
-  // is tombstoned and the iterator skips it — no missed or revisited entries),
-  // so prune in a single pass. Avoids allocating a scratch array on every call,
-  // and this runs on each group join/leave/query. Same safety relied on by
-  // sweepDisposedGroups' mid-iteration Map delete.
+  // Deleting the current entry mid-iteration is spec-safe for a Set, so no
+  // scratch copy is needed on this per-join/leave/query path.
   for (const inst of group) {
     if (inst.isDisposed()) {
       group.delete(inst);
@@ -39,11 +27,11 @@ function pruneDisposed(group: Set<ECharts>): void {
 
 /**
  * Best-effort sweep: drop disposed instances from every group and tear down any
- * left empty (disconnect + bookkeeping). The normal unmount path already cleans
- * up via leaveGroup, but a consumer that disposes an instance directly
- * (bypassing the cache) strands it in `groupMembers`; running this on every join
- * bounds that leak. It can't reclaim a group after ALL group activity stops —
- * that needs WeakRef/FinalizationRegistry, overkill for a misuse edge case.
+ * left empty. The normal unmount path already cleans up via leaveGroup, but a
+ * consumer that disposes an instance directly (bypassing the cache) strands it
+ * in `groupMembers`; running this on every join bounds that leak. It can't
+ * reclaim a group after ALL group activity stops — that needs
+ * WeakRef/FinalizationRegistry, overkill for a misuse edge case.
  * 尽力清扫：剔除各组已 dispose 的实例并拆除空组。正常卸载路径已能清理；消费者绕过缓存直接
  * dispose 会留下孤儿，此清扫把泄漏限定在「应用彻底停止组活动」之前。
  */
@@ -51,10 +39,8 @@ function sweepDisposedGroups(): void {
   for (const [groupId, members] of groupMembers) {
     pruneDisposed(members);
     if (members.size > 0) continue;
-    // Deleting the current key mid-iteration is safe for a Map; disconnect is
-    // bare like removeFromGroup / clearGroups.
+    // Deleting the current key mid-iteration is safe for a Map.
     groupMembers.delete(groupId);
-    connectedGroupIds.delete(groupId);
     echarts.disconnect(groupId);
   }
 }
@@ -62,36 +48,31 @@ function sweepDisposedGroups(): void {
 /**
  * Add chart instance to group
  * 将图表实例添加到组
- * @param instance ECharts instance
- * @param groupId Group ID
  */
 export function addToGroup(instance: ECharts, groupId: string): void {
-  // Reclaim groups orphaned by a cache-bypassing instance.dispose() before we
-  // add (see sweepDisposedGroups). May drop+recreate this groupId, correctly
-  // forcing a fresh echarts.connect below.
+  // Reclaim groups orphaned by a cache-bypassing instance.dispose() first; this
+  // also prunes the target group, and may drop it so it's recreated (and
+  // re-connected) below.
   sweepDisposedGroups();
 
   let members = groupMembers.get(groupId);
+  const isNewGroup = !members;
   if (!members) {
     members = new Set();
     groupMembers.set(groupId, members);
   }
-  pruneDisposed(members);
 
   (instance as EChartsWithGroup).group = groupId;
   members.add(instance);
 
-  if (!connectedGroupIds.has(groupId)) {
+  if (isNewGroup) {
     echarts.connect(groupId);
-    connectedGroupIds.add(groupId);
   }
 }
 
 /**
  * Remove chart instance from group
  * 从组中移除图表实例
- * @param instance ECharts instance
- * @param groupId Group ID
  */
 export function removeFromGroup(instance: ECharts, groupId: string): void {
   const members = groupMembers.get(groupId);
@@ -104,20 +85,16 @@ export function removeFromGroup(instance: ECharts, groupId: string): void {
     (instance as EChartsWithGroup).group = undefined;
   }
 
-  // When the last member leaves, drop all bookkeeping for this groupId so
-  // long-lived apps with dynamic group values don't leak module state or
-  // a stale `echarts.connectedGroups[id] = true` flag.
+  // Drop the group with its last member, so long-lived apps with dynamic group
+  // ids don't leak module state or a stale `echarts.connectedGroups[id]` flag.
   if (members.size === 0) {
     groupMembers.delete(groupId);
-    connectedGroupIds.delete(groupId);
     echarts.disconnect(groupId);
   }
 }
 
 /**
  * Remove an instance from whatever group it currently belongs to (if any).
- * Centralizes the "look up own group → leave it" pattern so dispose paths
- * don't have to inline `getInstanceGroup` + `removeFromGroup`.
  * 让实例脱离当前所在的组（若存在），集中表达 dispose 前的所有权清理。
  */
 export function leaveGroup(instance: ECharts): void {
@@ -128,11 +105,8 @@ export function leaveGroup(instance: ECharts): void {
 }
 
 /**
- * Update group for chart instance
- * 更新图表实例的组
- * @param instance ECharts instance
- * @param oldGroupId Previous group ID (if any)
- * @param newGroupId New group ID (if any)
+ * Move an instance from `oldGroupId` to `newGroupId` (either may be absent)
+ * 将实例从旧组移到新组（两者均可为空）
  */
 export function updateGroup(instance: ECharts, oldGroupId?: string, newGroupId?: string): void {
   if (oldGroupId) {
@@ -146,8 +120,6 @@ export function updateGroup(instance: ECharts, oldGroupId?: string, newGroupId?:
 /**
  * Get all instances in a group
  * 获取组中的所有实例
- * @param groupId Group ID
- * @returns Array of chart instances
  */
 export function getGroupInstances(groupId: string): ECharts[] {
   const members = groupMembers.get(groupId);
@@ -159,8 +131,6 @@ export function getGroupInstances(groupId: string): ECharts[] {
 /**
  * Get group ID for an instance
  * 获取实例所属的组 ID
- * @param instance ECharts instance
- * @returns Group ID or undefined
  */
 export function getInstanceGroup(instance: ECharts): string | undefined {
   return (instance as EChartsWithGroup).group;
@@ -171,9 +141,8 @@ export function getInstanceGroup(instance: ECharts): string | undefined {
  * 清除所有组（用于测试/清理）
  */
 export function clearGroups(): void {
-  for (const groupId of connectedGroupIds) {
+  for (const groupId of groupMembers.keys()) {
     echarts.disconnect(groupId);
   }
-  connectedGroupIds.clear();
   groupMembers.clear();
 }

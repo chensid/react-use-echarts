@@ -74,3 +74,18 @@ export function boundProxy(
   if (!call) throw new Error(`no on("${eventName}", …) call recorded`);
   return call[call.length - 2] as (this: unknown, params: unknown) => void;
 }
+
+/**
+ * Run `fn` with `process.env.NODE_ENV` set to `env` (e.g. to exercise dev-only
+ * warnings), restoring the previous value even if `fn` throws. Sync only: an
+ * async `fn` would see the old value again after its first `await`.
+ */
+export function withNodeEnv(env: string, fn: () => void): void {
+  const previous = process.env.NODE_ENV;
+  process.env.NODE_ENV = env;
+  try {
+    fn();
+  } finally {
+    process.env.NODE_ENV = previous;
+  }
+}

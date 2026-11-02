@@ -31,36 +31,28 @@ export function mergeRefs<T>(...refs: ReadonlyArray<Ref<T> | undefined | null>):
     const cleanups: Array<() => void> = [];
     for (const ref of refs) {
       if (ref == null) continue;
-      if (typeof ref === "function") {
-        // Isolate each ref invocation: a misbehaving 3rd-party logger ref must
-        // not prevent the chart's own ref from receiving the node, otherwise
-        // the chart silently never initializes.
-        let result: unknown;
-        try {
-          result = ref(node);
-        } catch (error) {
-          console.error("react-use-echarts: merged ref callback threw on attach", error);
-          continue;
-        }
-        if (typeof result === "function") {
-          cleanups.push(result as () => void);
-        } else {
+      // Isolate each ref: a misbehaving 3rd-party ref (a throwing callback, a
+      // frozen RefObject) must not prevent the chart's own ref from receiving
+      // the node, otherwise the chart silently never initializes.
+      try {
+        if (typeof ref === "function") {
+          const result: unknown = ref(node);
           // Legacy callback ref — emulate cleanup by re-invoking with null.
+          cleanups.push(typeof result === "function" ? (result as () => void) : () => ref(null));
+        } else {
+          ref.current = node;
           cleanups.push(() => {
-            ref(null);
+            ref.current = null;
           });
         }
-      } else {
-        (ref as { current: T | null }).current = node;
-        cleanups.push(() => {
-          (ref as { current: T | null }).current = null;
-        });
+      } catch (error) {
+        console.error("react-use-echarts: merged ref threw on attach", error);
       }
     }
     return () => {
       // Isolate each cleanup: a thrown cleanup must not skip subsequent ones
       // (including the chart's setElement(null), which is what disposes the
-      // ECharts instance — skipping it leaks the WeakMap entry).
+      // ECharts instance — skipping it leaks the cache entry).
       for (const cleanup of cleanups) {
         try {
           cleanup();

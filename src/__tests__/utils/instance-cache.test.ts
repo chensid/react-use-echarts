@@ -8,7 +8,7 @@ import {
 } from "../../utils/instance-cache";
 import { addToGroup, clearGroups, getGroupInstances } from "../../utils/connect";
 import type { ECharts } from "echarts/core";
-import { createMockInstance as createBaseMockInstance } from "../helpers";
+import { createMockInstance as createBaseMockInstance, withNodeEnv } from "../helpers";
 
 function createMockInstance() {
   return createBaseMockInstance() as unknown as ECharts;
@@ -62,11 +62,8 @@ describe("instance-cache utilities", () => {
     });
 
     it("should warn and keep the cached instance when called with a different one", () => {
-      const previousNodeEnv = process.env.NODE_ENV;
-      process.env.NODE_ENV = "development";
-
       const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
-      try {
+      withNodeEnv("development", () => {
         const element = document.createElement("div");
         const instance1 = createMockInstance();
         const instance2 = createMockInstance();
@@ -79,14 +76,27 @@ describe("instance-cache utilities", () => {
         expect(warnSpy).toHaveBeenCalledWith(
           expect.stringContaining("called with a different instance"),
         );
-      } finally {
-        warnSpy.mockRestore();
-        process.env.NODE_ENV = previousNodeEnv;
-      }
+      });
     });
   });
 
   describe("releaseCachedInstance", () => {
+    it("should still dispose when leaving the group throws", () => {
+      const element = document.createElement("div");
+      const instance = createMockInstance();
+      const groupError = new Error("group read failed");
+      Object.defineProperty(instance, "group", {
+        get() {
+          throw groupError;
+        },
+      });
+      setCachedInstance(element, instance);
+
+      expect(() => releaseCachedInstance(element)).toThrow(groupError);
+      expect(instance.dispose).toHaveBeenCalledTimes(1);
+      expect(getCachedInstance(element)).toBeUndefined();
+    });
+
     it("should decrement ref count", () => {
       const element = document.createElement("div");
       const instance = createMockInstance();
