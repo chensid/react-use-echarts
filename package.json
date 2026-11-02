@@ -62,7 +62,7 @@
   "scripts": {
     "size": "size-limit",
     "changeset": "changeset",
-    "version": "changeset version",
+    "version": "changeset version && vp fmt CHANGELOG.md",
     "release": "changeset publish",
     "prepublishOnly": "vp pack",
     "prepare": "vp config"

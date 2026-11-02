@@ -67,7 +67,10 @@ jobs:
         uses: changesets/action@v2
         with:
           # `vp run <script>` dispatches to package.json scripts:
-          # version → `changeset version` (bumps + writes CHANGELOG)
+          # version → `changeset version` (bumps + writes CHANGELOG), then
+          #   `vp fmt CHANGELOG.md`: the changelog generator indents every line
+          #   of a multi-paragraph changeset, blank lines included, and the
+          #   whitespace-only lines it writes fail CI's format check
           # release → `changeset publish`; prepublishOnly packs once before npm publish
           version-script: vp run version
           publish-script: vp run release
