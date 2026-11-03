@@ -1,5 +1,5 @@
 import React from "react";
-import PageHeader from "./PageHeader";
+import PageHeader from "../components/PageHeader";
 import FeatureCard from "../components/FeatureCard";
 import { featureItems } from "../data/features";
 import styles from "./FeaturesIndex.module.css";

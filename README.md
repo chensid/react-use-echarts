@@ -263,7 +263,7 @@ import { CanvasRenderer } from "echarts/renderers";
 echarts.use([LineChart, GridComponent, TooltipComponent, CanvasRenderer]);
 ```
 
-See [`examples/selective-registration/SelectiveRegistrationChart.tsx`](./examples/selective-registration/SelectiveRegistrationChart.tsx) for a runnable demo.
+See [`examples/features/SelectiveRegistrationChart.tsx`](./examples/features/SelectiveRegistrationChart.tsx) for a runnable demo.
 
 **Tier 3 — Existing full-entry registration.** If your app already imports the full `"echarts"` entry, ECharts performs its built-in registrations and you do not need to call `registerEchartsFull()` as well. Tier 1 makes the full-registration choice explicit; Tier 2 remains the smaller production path.
 

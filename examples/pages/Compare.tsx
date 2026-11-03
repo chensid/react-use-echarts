@@ -1,5 +1,5 @@
 import React from "react";
-import PageHeader from "./PageHeader";
+import PageHeader from "../components/PageHeader";
 import CompareTable from "../components/CompareTable";
 import styles from "./Compare.module.css";
 
