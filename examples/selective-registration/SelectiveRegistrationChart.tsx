@@ -9,9 +9,10 @@
  * `echarts.use([...])` with just the modules they need — bundlers then
  * tree-shake the rest of ECharts away.
  *
- * This showcase uses a centralized selective list in `examples/main.tsx` that
- * covers every demo route. The list below is the smaller per-chart equivalent
- * a standalone app can use when it renders only this line chart.
+ * Every demo on this site registers its own series and components this way,
+ * while `examples/main.tsx` registers the renderer once at app entry. The list
+ * below also includes `CanvasRenderer`, so it is the complete set a standalone
+ * app needs when it renders only this line chart.
  */
 import React from "react";
 import * as echarts from "echarts/core";

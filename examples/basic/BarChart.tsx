@@ -1,8 +1,13 @@
 import React from "react";
+import * as echarts from "echarts/core";
+import { BarChart } from "echarts/charts";
+import { GridComponent, TitleComponent, TooltipComponent } from "echarts/components";
 import { useEcharts, type EChartsOption } from "react-use-echarts";
 import { useTheme } from "../components/theme-context";
 
-const BarChart: React.FC = () => {
+echarts.use([BarChart, GridComponent, TitleComponent, TooltipComponent]);
+
+const BarChartDemo: React.FC = () => {
   const { mode } = useTheme();
 
   const options: EChartsOption = {
@@ -19,4 +24,4 @@ const BarChart: React.FC = () => {
   return <div ref={ref} className="chart-container" />;
 };
 
-export default BarChart;
+export default BarChartDemo;

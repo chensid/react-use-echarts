@@ -1,8 +1,13 @@
 import React from "react";
+import * as echarts from "echarts/core";
+import { LineChart } from "echarts/charts";
+import { GridComponent, TitleComponent } from "echarts/components";
 import { useEcharts, type EChartsOption } from "react-use-echarts";
 import { useTheme } from "../components/theme-context";
 
-const LineChart: React.FC = () => {
+echarts.use([LineChart, GridComponent, TitleComponent]);
+
+const LineChartDemo: React.FC = () => {
   const { mode } = useTheme();
 
   const options: EChartsOption = {
@@ -27,4 +32,4 @@ const LineChart: React.FC = () => {
   return <div ref={ref} className="chart-container" />;
 };
 
-export default LineChart;
+export default LineChartDemo;

@@ -1,8 +1,13 @@
 import React from "react";
+import * as echarts from "echarts/core";
+import { TreemapChart } from "echarts/charts";
+import { TitleComponent, TooltipComponent } from "echarts/components";
 import { useEcharts, type EChartsOption } from "react-use-echarts";
 import { useTheme } from "../components/theme-context";
 
-const TreemapChart: React.FC = () => {
+echarts.use([TreemapChart, TitleComponent, TooltipComponent]);
+
+const TreemapChartDemo: React.FC = () => {
   const { mode } = useTheme();
 
   const option: EChartsOption = {
@@ -53,4 +58,4 @@ const TreemapChart: React.FC = () => {
   return <div ref={ref} className="chart-container-sm" />;
 };
 
-export default TreemapChart;
+export default TreemapChartDemo;

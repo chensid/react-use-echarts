@@ -1,58 +1,18 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
 import * as echarts from "echarts/core";
-import {
-  BarChart,
-  CandlestickChart,
-  FunnelChart,
-  GaugeChart,
-  HeatmapChart,
-  LineChart,
-  PieChart,
-  RadarChart,
-  ScatterChart,
-  TreemapChart,
-} from "echarts/charts";
-import {
-  GridComponent,
-  LegendComponent,
-  RadarComponent,
-  TitleComponent,
-  TooltipComponent,
-  VisualMapComponent,
-} from "echarts/components";
 import { LabelLayout, UniversalTransition } from "echarts/features";
-import { CanvasRenderer, SVGRenderer } from "echarts/renderers";
+import { CanvasRenderer } from "echarts/renderers";
 import { registerBuiltinThemes } from "react-use-echarts/themes/registry";
 import App from "./App";
 import { ThemeProvider } from "./components/ThemeProvider";
 import "./global.css";
 
-// Keep the showcase honest: register exactly the chart/component surface its
-// routes render instead of pulling every ECharts module into the initial chunk.
-// Consumer apps can trim this list further to match their own screens.
-echarts.use([
-  BarChart,
-  CandlestickChart,
-  FunnelChart,
-  GaugeChart,
-  HeatmapChart,
-  LineChart,
-  PieChart,
-  RadarChart,
-  ScatterChart,
-  TreemapChart,
-  GridComponent,
-  LegendComponent,
-  RadarComponent,
-  TitleComponent,
-  TooltipComponent,
-  VisualMapComponent,
-  LabelLayout,
-  UniversalTransition,
-  CanvasRenderer,
-  SVGRenderer,
-]);
+// App-wide ECharts setup only: the default renderer and shared features. Every
+// demo (and the hero, thumbnails and playground) registers the series and
+// components it renders next to its own code, so its source lists each module it
+// needs; `echarts.use()` is idempotent. RendererToggle registers SVGRenderer.
+echarts.use([CanvasRenderer, LabelLayout, UniversalTransition]);
 
 registerBuiltinThemes();
 

@@ -1,4 +1,7 @@
 import React, { useState } from "react";
+import * as echarts from "echarts/core";
+import { BarChart, LineChart, PieChart } from "echarts/charts";
+import { GridComponent, LegendComponent, TooltipComponent } from "echarts/components";
 import { Link } from "react-router";
 import { useEcharts, type EChartsOption } from "react-use-echarts";
 import { useTheme } from "./theme-context";
@@ -6,6 +9,9 @@ import Icon from "./Icon";
 import { CHART_COUNT } from "../data/gallery";
 import { APP_VERSION, BUNDLE_SIZE, ECHARTS_MAJOR, REACT_MIN } from "../data/meta";
 import styles from "./Hero.module.css";
+
+// The hero preview's own ECharts modules (bar / line / pie tabs).
+echarts.use([BarChart, LineChart, PieChart, GridComponent, LegendComponent, TooltipComponent]);
 
 const INSTALL_CMD = "npm install react-use-echarts echarts";
 

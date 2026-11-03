@@ -94,7 +94,8 @@ const Home: React.FC = () => (
           <h2 className={styles.outroTitle}>Drop a hook in. Ship a chart.</h2>
           <p className={styles.sectionLead}>
             Open the playground to tweak options live, or pull any gallery example into your own
-            project once its ECharts modules are registered.
+            project — each one registers the ECharts modules it renders; add a renderer at your app
+            entry.
           </p>
         </div>
         <div className={styles.outroCtas}>

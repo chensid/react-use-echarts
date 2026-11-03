@@ -1,8 +1,13 @@
 import React from "react";
+import * as echarts from "echarts/core";
+import { GaugeChart } from "echarts/charts";
+import { TitleComponent } from "echarts/components";
 import { useEcharts, type EChartsOption } from "react-use-echarts";
 import { useTheme } from "../components/theme-context";
 
-const GaugeChart: React.FC = () => {
+echarts.use([GaugeChart, TitleComponent]);
+
+const GaugeChartDemo: React.FC = () => {
   const { mode } = useTheme();
 
   const option: EChartsOption = {
@@ -37,4 +42,4 @@ const GaugeChart: React.FC = () => {
   return <div ref={ref} className="chart-container-sm" />;
 };
 
-export default GaugeChart;
+export default GaugeChartDemo;

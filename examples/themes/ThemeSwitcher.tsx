@@ -1,5 +1,10 @@
 import React, { useState, useMemo } from "react";
+import * as echarts from "echarts/core";
+import { BarChart, LineChart } from "echarts/charts";
+import { GridComponent, TitleComponent, TooltipComponent } from "echarts/components";
 import { useEcharts, type EChartsOption } from "react-use-echarts";
+
+echarts.use([BarChart, LineChart, GridComponent, TitleComponent, TooltipComponent]);
 
 // "light" and "dark" ship with ECharts 6. "macarons" must be registered once at app
 // entry: `registerBuiltinThemes()` from "react-use-echarts/themes/registry".

@@ -1,8 +1,13 @@
 import React from "react";
+import * as echarts from "echarts/core";
+import { FunnelChart } from "echarts/charts";
+import { TitleComponent, TooltipComponent } from "echarts/components";
 import { useEcharts, type EChartsOption } from "react-use-echarts";
 import { useTheme } from "../components/theme-context";
 
-const FunnelChart: React.FC = () => {
+echarts.use([FunnelChart, TitleComponent, TooltipComponent]);
+
+const FunnelChartDemo: React.FC = () => {
   const { mode } = useTheme();
 
   const option: EChartsOption = {
@@ -36,4 +41,4 @@ const FunnelChart: React.FC = () => {
   return <div ref={ref} className="chart-container-sm" />;
 };
 
-export default FunnelChart;
+export default FunnelChartDemo;
