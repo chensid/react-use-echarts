@@ -5,6 +5,7 @@ import { GridComponent, LegendComponent, TooltipComponent } from "echarts/compon
 import { Link } from "react-router";
 import { useEcharts, type EChartsOption } from "react-use-echarts";
 import { useTheme } from "./theme-context";
+import { useCopy } from "./use-copy";
 import Icon from "./Icon";
 import { CHART_COUNT } from "../data/gallery";
 import { APP_VERSION, BUNDLE_SIZE, ECHARTS_MAJOR, REACT_MIN } from "../data/meta";
@@ -121,22 +122,12 @@ export const Pie = () => {
 };
 
 const Hero: React.FC = () => {
-  const [copied, setCopied] = useState(false);
+  const { copied, copy } = useCopy(1500);
   const [tab, setTab] = useState<DemoTab>("bar");
   const { mode } = useTheme();
 
   const option = heroOptions[tab];
   const { ref } = useEcharts({ option, theme: mode });
-
-  const handleCopy = async () => {
-    try {
-      await navigator.clipboard.writeText(INSTALL_CMD);
-      setCopied(true);
-      window.setTimeout(() => setCopied(false), 1500);
-    } catch {
-      /* noop */
-    }
-  };
 
   return (
     <section className={styles.hero}>
@@ -161,7 +152,7 @@ const Hero: React.FC = () => {
           <button
             type="button"
             className={styles.copyBtn}
-            onClick={handleCopy}
+            onClick={() => void copy(INSTALL_CMD)}
             aria-label="Copy install command"
           >
             <Icon name={copied ? "check" : "copy"} size={13} />
