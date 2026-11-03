@@ -60,6 +60,10 @@ jobs:
         if: matrix.node == '24'
         run: vp test run --project browser
 
+      - name: Smoke-test the examples app (examples project)
+        if: matrix.node == '24'
+        run: vp test run --project examples
+
       - name: Bundle size budget
         if: matrix.node == '24'
         run: vp run size

@@ -16,16 +16,17 @@ vp dev                        # Dev server (localhost:3000, serves examples/)
 vp build                      # Build examples app → site-dist/
 vp pack                       # Library build → dist/
 vp exec playwright install chromium # Install Chromium once (`--with-deps` on Linux/CI)
-vp test                       # Single run of both configured projects
+vp test                       # Single run of all three configured projects
 vp test --project unit        # Unit/happy-dom project only
 vp test --project browser     # Real-Chromium browser project only
+vp test --project examples    # Examples app smoke (vp dev on :3190 + Chromium)
 vp test watch                 # Watch mode
 vp test --coverage --project unit # Coverage report (v8), matching CI
 vp lint                       # Oxlint
 vp check                      # format + lint + typecheck (typecheck via tsgolint)
 ```
 
-**Pre-PR checklist:** install Chromium once, then run `vp check --deny-warnings && vp test` (both projects). CI fails on lint warnings, so plain `vp check` passing locally is not enough.
+**Pre-PR checklist:** install Chromium once, then run `vp check --deny-warnings && vp test` (all projects). CI fails on lint warnings, so plain `vp check` passing locally is not enough.
 
 ### Vite+ toolchain
 
@@ -46,7 +47,7 @@ Hook decomposition (`useChartCore` / `useResizeObserver` effects) and the key de
 
 ## Testing
 
-- Two Vitest projects (`test.projects` in `vite.config.ts`, whose comments describe each project's scope): **`unit`** — happy-dom + ECharts API fully mocked; **`browser`** — real chromium via `@vitest/browser-playwright` (`src/__tests__/browser/**`) for what happy-dom can't simulate. Smoke level: assert effects are observable, not exact frame counts.
+- Three Vitest projects (`test.projects` in `vite.config.ts`, whose comments describe each project's scope): **`unit`** — happy-dom + ECharts API fully mocked; **`browser`** — real chromium via `@vitest/browser-playwright` (`src/__tests__/browser/**`) for what happy-dom can't simulate. Smoke level: assert effects are observable, not exact frame counts; **`examples`** — `examples/__tests__/`: globalSetup serves the examples app with `vp dev` and every route opens in a fresh Chromium page, failing on `console.error`/uncaught errors. It stays on the dev server because ECharts' "used but not imported" checks are dev-only, and on fresh pages because `echarts.use()` registrations are page-global.
 - Coverage thresholds are enforced (v8: 95% statements/functions/lines, 90% branches); `vp test --coverage --project unit` exits non-zero when unmet, matching CI. Source sits at 100% today, so the gap is deliberate headroom for churn — not a licence to land uncovered code
 - Shared mocks and unit-test gotchas live in `src/__tests__/CLAUDE.md`, which loads when working under `src/__tests__/`
 

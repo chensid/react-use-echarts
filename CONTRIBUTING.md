@@ -22,15 +22,16 @@ Thanks for your interest in improving `react-use-echarts`!
 - `vp dev` – run the Vite dev server with the examples under `examples/`.
 - `vp lint` – run Oxlint to check for issues.
 - `vp check` – run format + lint + typecheck (via tsgolint) in one command.
-- `vp test` – execute both configured Vitest projects once (single run by default).
+- `vp test` – execute all three configured Vitest projects once (single run by default).
 - `vp test --project unit` – execute only the unit/happy-dom project.
 - `vp test --project browser` – execute only the real-Chromium browser project.
+- `vp test --project examples` – smoke-test every route of the examples app (served by `vp dev` on port 3190) in Chromium.
 - `vp test watch` – run the suite in watch mode while developing.
 - `vp test --coverage --project unit` – generate the v8 coverage reports, matching CI.
 - `vp build` – build the examples application with Vite into `site-dist/`.
 - `vp pack` – build the library (ESM) and type declarations into `dist/`. Runs `publint` + `attw` automatically.
 
-After installing Chromium, run `vp check --deny-warnings && vp test` before opening a pull request; this covers both the unit and browser projects. `--deny-warnings` matches CI, which fails on lint warnings as well as errors. CI additionally packs the library, enforces coverage and bundle budgets, repeats the unit project across its Node matrix, and runs the browser project on Node 24.
+After installing Chromium, run `vp check --deny-warnings && vp test` before opening a pull request; this covers the unit, browser and examples projects. `--deny-warnings` matches CI, which fails on lint warnings as well as errors. CI additionally packs the library, enforces coverage and bundle budgets, repeats the unit project across its Node matrix, and runs the browser and examples projects on Node 24.
 
 ## Editor and TypeScript 7
 
