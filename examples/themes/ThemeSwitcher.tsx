@@ -24,7 +24,9 @@ const ThemeSwitcher: React.FC = () => {
   const theme = currentTheme === "custom" ? customTheme : currentTheme;
 
   const option: EChartsOption = {
-    backgroundColor: "transparent",
+    // Preview each theme on its own background, not this page's: "dark" ships one,
+    // while the light themes are transparent and designed for a white page.
+    backgroundColor: currentTheme === "dark" ? undefined : "#ffffff",
     title: { text: `Theme: ${currentTheme}` },
     tooltip: { trigger: "axis" },
     xAxis: { type: "category", data: ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"] },
