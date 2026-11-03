@@ -1,6 +1,6 @@
 import React from "react";
 import { featureItems } from "../data/features";
-import { CHART_COUNT } from "../data/gallery";
+import { CHART_COUNT, galleryItems } from "../data/gallery";
 import { BUNDLE_SIZE } from "../data/meta";
 import styles from "./StatsStrip.module.css";
 
@@ -10,17 +10,22 @@ interface Stat {
   readonly note: string;
 }
 
+// The notes list item titles from the data, so they follow the gallery and the
+// feature list as demos are added or removed.
+const titles = (items: readonly { readonly title: string }[]) =>
+  items.map((i) => i.title.toLowerCase()).join(", ");
+
 const STATS: readonly Stat[] = [
   { label: "Bundle size", value: BUNDLE_SIZE, note: "min + gzip · zero runtime deps" },
   {
     label: "Chart types",
     value: String(CHART_COUNT),
-    note: "bar, line, radar, gauge, ohlc, heat, funnel, treemap",
+    note: titles(galleryItems),
   },
   {
     label: "Features",
     value: String(featureItems.length),
-    note: "themes, renderer, linkage, lazy, events, ref, errors…",
+    note: `${titles(featureItems.slice(0, 5))}…`,
   },
   { label: "TypeScript", value: "100%", note: "strict mode · full ECharts option types" },
 ];
