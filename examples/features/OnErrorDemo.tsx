@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from "react";
+import React, { useState } from "react";
 import * as echarts from "echarts/core";
 import { LineChart } from "echarts/charts";
 import { GridComponent, TitleComponent, TooltipComponent } from "echarts/components";
@@ -36,14 +36,12 @@ const OnErrorDemo: React.FC = () => {
   const { mode } = useTheme();
   const [lastError, setLastError] = useState<string | null>(null);
 
-  const onError = useCallback((error: unknown) => {
-    setLastError(error instanceof Error ? error.message : String(error));
-  }, []);
-
   const { ref, dispatchAction } = useEcharts({
     option: validOption,
     theme: mode,
-    onError,
+    // Inline is fine: the hook always calls the latest onError, so it needs no
+    // memoization and never re-creates the chart.
+    onError: (error) => setLastError(error instanceof Error ? error.message : String(error)),
   });
 
   const triggerError = (): void => {

@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import * as echarts from "echarts/core";
 import { BarChart, LineChart, PieChart, ScatterChart } from "echarts/charts";
 import {
@@ -145,7 +145,9 @@ function randArray(len: number, max: number) {
 
 function LazyChart({ index }: { index: number }) {
   const { mode } = useTheme();
-  const option = CHART_CONFIGS[index]!();
+  // Build the random option once per chart: a new option object on every render
+  // would call setOption again with fresh random data.
+  const [option] = useState(() => CHART_CONFIGS[index]!());
 
   const { ref } = useEcharts({ option, lazyInit: true, theme: mode });
 

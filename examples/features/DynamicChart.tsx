@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import * as echarts from "echarts/core";
 import { LineChart } from "echarts/charts";
 import { GridComponent, TitleComponent, TooltipComponent } from "echarts/components";
@@ -94,12 +94,10 @@ const DynamicChart: React.FC = () => {
     return () => window.clearInterval(timer);
   }, [running, setOption]);
 
-  const handleToggle = useCallback(() => setRunning((prev) => !prev), []);
-
   return (
     <div>
       <div className="controls">
-        <button type="button" className="btn" onClick={handleToggle}>
+        <button type="button" className="btn" onClick={() => setRunning((prev) => !prev)}>
           {running ? "Stop" : "Start"}
         </button>
         <span className="note-box">{count} data points</span>
