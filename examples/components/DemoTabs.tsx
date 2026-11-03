@@ -7,7 +7,7 @@ const LazyCodeBlock = React.lazy(() => import("./CodeBlock"));
 
 interface DemoTabsProps {
   readonly sourcePath: string;
-  readonly loadSource: () => Promise<{ default: string }>;
+  readonly loadSource: () => Promise<string>;
   readonly children: React.ReactNode;
 }
 
@@ -21,8 +21,8 @@ const DemoTabs: React.FC<DemoTabsProps> = ({ sourcePath, loadSource, children })
     if (tab !== "code" || source !== null) return;
     let disposed = false;
     loadSource()
-      .then((mod) => {
-        if (!disposed) setSource(mod.default);
+      .then((code) => {
+        if (!disposed) setSource(code);
       })
       .catch(() => {
         if (!disposed) setSource("// Failed to load source");

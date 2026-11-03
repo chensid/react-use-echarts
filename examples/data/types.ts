@@ -1,10 +1,7 @@
-import type React from "react";
+import type { DemoModule } from "./demo-modules";
 
-export interface DemoItem {
+export interface DemoItem extends DemoModule {
   readonly id: string;
   readonly title: string;
   readonly description: string;
-  readonly component: React.LazyExoticComponent<React.ComponentType>;
-  readonly source: () => Promise<{ default: string }>;
-  readonly sourcePath: string;
 }

@@ -1,4 +1,4 @@
-import React from "react";
+import { demoModule } from "./demo-modules";
 import type { DemoItem } from "./types";
 
 export const galleryItems: readonly DemoItem[] = [
@@ -6,65 +6,49 @@ export const galleryItems: readonly DemoItem[] = [
     id: "bar",
     title: "Bar",
     description: "Weekly sales with basic bars.",
-    component: React.lazy(() => import("../gallery/BarChart")),
-    source: () => import("../gallery/BarChart.tsx?raw"),
-    sourcePath: "examples/gallery/BarChart.tsx",
+    ...demoModule("gallery/BarChart.tsx"),
   },
   {
     id: "line",
     title: "Line",
     description: "Smooth trend line.",
-    component: React.lazy(() => import("../gallery/LineChart")),
-    source: () => import("../gallery/LineChart.tsx?raw"),
-    sourcePath: "examples/gallery/LineChart.tsx",
+    ...demoModule("gallery/LineChart.tsx"),
   },
   {
     id: "radar",
     title: "Radar",
     description: "Multi-dimensional comparison.",
-    component: React.lazy(() => import("../gallery/RadarChart")),
-    source: () => import("../gallery/RadarChart.tsx?raw"),
-    sourcePath: "examples/gallery/RadarChart.tsx",
+    ...demoModule("gallery/RadarChart.tsx"),
   },
   {
     id: "gauge",
     title: "Gauge",
     description: "Single-value indicator.",
-    component: React.lazy(() => import("../gallery/GaugeChart")),
-    source: () => import("../gallery/GaugeChart.tsx?raw"),
-    sourcePath: "examples/gallery/GaugeChart.tsx",
+    ...demoModule("gallery/GaugeChart.tsx"),
   },
   {
     id: "candlestick",
     title: "Candlestick",
     description: "Financial OHLC data.",
-    component: React.lazy(() => import("../gallery/CandlestickChart")),
-    source: () => import("../gallery/CandlestickChart.tsx?raw"),
-    sourcePath: "examples/gallery/CandlestickChart.tsx",
+    ...demoModule("gallery/CandlestickChart.tsx"),
   },
   {
     id: "heatmap",
     title: "Heatmap",
     description: "Matrix density visualization.",
-    component: React.lazy(() => import("../gallery/HeatmapChart")),
-    source: () => import("../gallery/HeatmapChart.tsx?raw"),
-    sourcePath: "examples/gallery/HeatmapChart.tsx",
+    ...demoModule("gallery/HeatmapChart.tsx"),
   },
   {
     id: "funnel",
     title: "Funnel",
     description: "Conversion funnel analysis.",
-    component: React.lazy(() => import("../gallery/FunnelChart")),
-    source: () => import("../gallery/FunnelChart.tsx?raw"),
-    sourcePath: "examples/gallery/FunnelChart.tsx",
+    ...demoModule("gallery/FunnelChart.tsx"),
   },
   {
     id: "treemap",
     title: "Treemap",
     description: "Hierarchical data proportions.",
-    component: React.lazy(() => import("../gallery/TreemapChart")),
-    source: () => import("../gallery/TreemapChart.tsx?raw"),
-    sourcePath: "examples/gallery/TreemapChart.tsx",
+    ...demoModule("gallery/TreemapChart.tsx"),
   },
 ];
 
