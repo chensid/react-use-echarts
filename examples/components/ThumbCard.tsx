@@ -9,11 +9,20 @@ interface ThumbCardProps {
   readonly to: string;
   readonly title: string;
   readonly description: string;
+  /** Repo path of the demo's source, e.g. `examples/gallery/BarChart.tsx`. */
+  readonly sourcePath: string;
   readonly option: EChartsOption;
   readonly tag?: string;
 }
 
-const ThumbCard: React.FC<ThumbCardProps> = ({ to, title, description, option, tag }) => {
+const ThumbCard: React.FC<ThumbCardProps> = ({
+  to,
+  title,
+  description,
+  sourcePath,
+  option,
+  tag,
+}) => {
   const { mode } = useTheme();
 
   const { ref } = useEcharts({ option, theme: mode });
@@ -21,7 +30,7 @@ const ThumbCard: React.FC<ThumbCardProps> = ({ to, title, description, option, t
   return (
     <Link to={to} className={styles.card}>
       <div className={styles.head}>
-        <span className={styles.headTitle}>{title}.tsx</span>
+        <span className={styles.headTitle}>{sourcePath.split("/").pop()}</span>
         {tag ? <span className={styles.headTag}>{tag}</span> : null}
       </div>
       <div className={styles.thumbWrap}>

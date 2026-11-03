@@ -80,6 +80,7 @@ const Home: React.FC = () => (
             to={`/gallery/${item.id}`}
             title={item.title}
             description={item.description}
+            sourcePath={item.sourcePath}
             option={thumbOptions[item.id]!}
           />
         ))}

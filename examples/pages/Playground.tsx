@@ -79,30 +79,57 @@ const buildOption = (s: State): EChartsOption => {
   };
 };
 
+const SERIES_MODULES: Record<SeriesType, string> = {
+  bar: "BarChart",
+  line: "LineChart",
+  scatter: "ScatterChart",
+};
+
+// Mirrors buildOption for the selected flags, including the modules to register
+// (this library leaves registration to the app). Layout-only settings (grid,
+// bar corners, transparent background) are left out to keep the sample short.
 const buildCodeSample = (state: State): string => {
+  const chart = SERIES_MODULES[state.series];
+  const components = [
+    "GridComponent",
+    ...(state.showLegend ? ["LegendComponent"] : []),
+    "TooltipComponent",
+  ];
+  const category = '{ type: "category", data: days }';
+  const value = state.showGrid
+    ? '{ type: "value" }'
+    : '{ type: "value", splitLine: { show: false } }';
   const lines = [
+    `import * as echarts from "echarts/core";`,
+    `import { ${chart} } from "echarts/charts";`,
+    `import { ${components.join(", ")} } from "echarts/components";`,
+    `import { CanvasRenderer } from "echarts/renderers";`,
     `import { useEcharts } from "react-use-echarts";`,
+    "",
+    `echarts.use([${[chart, ...components, "CanvasRenderer"].join(", ")}]);`,
     "",
     `const { ref } = useEcharts({`,
     `  option: {`,
-    `    legend: ${state.showLegend ? "{ bottom: 0 }" : "{ show: false }"},`,
-    `    xAxis: ${state.horizontal ? '{ type: "value" }' : '{ type: "category", data: days }'},`,
-    `    yAxis: ${state.horizontal ? '{ type: "category", data: days }' : '{ type: "value" }'},`,
+    `    tooltip: { trigger: "${state.series === "scatter" ? "item" : "axis"}" },`,
+    state.showLegend ? `    legend: { bottom: 0 },` : null,
+    `    xAxis: ${state.horizontal ? value : category},`,
+    `    yAxis: ${state.horizontal ? category : value},`,
     `    series: [`,
     `      {`,
+    `        name: "Series A",`,
     `        type: "${state.series}",`,
     `        data: a,`,
-    state.series === "line" ? `        smooth: ${state.smooth},` : "",
-    state.series === "line" && state.area ? `        areaStyle: { opacity: 0.2 },` : "",
-    state.stack ? `        stack: "total",` : "",
-    state.series !== "bar" ? `        symbolSize: ${state.itemSize},` : "",
+    state.series === "line" ? `        smooth: ${state.smooth},` : null,
+    state.series === "line" && state.area ? `        areaStyle: { opacity: 0.2 },` : null,
+    state.stack ? `        stack: "total",` : null,
+    state.series !== "bar" ? `        symbolSize: ${state.itemSize},` : null,
     `      },`,
     `      // ...Series B`,
     `    ],`,
     `  },`,
     `});`,
   ];
-  return lines.filter(Boolean).join("\n");
+  return lines.filter((line) => line !== null).join("\n");
 };
 
 const Playground: React.FC = () => {
