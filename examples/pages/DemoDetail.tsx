@@ -38,7 +38,9 @@ const DemoDetail: React.FC<DemoDetailProps> = ({ kind }) => {
           </>
         }
       />
-      <DemoTabs sourcePath={item.sourcePath} loadSource={item.source}>
+      {/* React reuses this page when only `:id` changes, so key the tabs by demo:
+          otherwise the open tab and loaded source carry over to the next demo. */}
+      <DemoTabs key={item.id} sourcePath={item.sourcePath} loadSource={item.source}>
         <React.Suspense fallback={<div className={styles.fallback} />}>
           <DemoComponent />
         </React.Suspense>
