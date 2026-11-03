@@ -268,6 +268,19 @@ export default defineConfig({
           },
         },
       },
+      {
+        // Examples smoke: globalSetup serves the examples app with `vp dev`
+        // (ECharts' missing-registration checks are dev-only), and the test
+        // opens every route in a fresh Chromium context, failing on any
+        // `console.error` or uncaught error.
+        test: {
+          name: "examples",
+          environment: "node",
+          include: ["examples/__tests__/**/*.test.ts"],
+          globalSetup: ["examples/__tests__/dev-server.ts"],
+          testTimeout: 30000,
+        },
+      },
     ],
   },
 });
