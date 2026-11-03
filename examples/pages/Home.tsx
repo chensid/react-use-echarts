@@ -44,7 +44,7 @@ const Home: React.FC = () => (
       <header className={styles.sectionHead}>
         <div>
           <span className={styles.kicker}>Why this lib</span>
-          <h2 className={styles.sectionTitle}>vs. raw ECharts &amp; alternatives</h2>
+          <h2 className={styles.sectionTitle}>vs. echarts-for-react</h2>
           <p className={styles.sectionLead}>
             A small wrapper that solves the predictable React integration problems — without locking
             you out of any ECharts API.
@@ -65,8 +65,8 @@ const Home: React.FC = () => (
           <h2 className={styles.sectionTitle}>Charts ready to copy</h2>
           <p className={styles.sectionLead}>
             Each example is a single component on the public API; only the site's light/dark{" "}
-            <code>useTheme()</code> hook is local. Hover into any card to see the chart, then jump
-            to the source.
+            <code>useTheme()</code> hook is local. Click any card for its full source and a live
+            preview.
           </p>
         </div>
         <Link to="/gallery" className={styles.headLink}>

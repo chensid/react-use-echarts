@@ -7,10 +7,21 @@ const Compare: React.FC = () => (
   <>
     <PageHeader
       eyebrow="Why this lib"
-      title="vs. raw ECharts &amp; alternatives"
+      title="vs. echarts-for-react"
       description="A small wrapper that solves predictable React integration problems — without taking anything away. ECharts itself stays the source of truth for options."
     />
     <CompareTable />
+    <p className={styles.migrate}>
+      Already using <code>echarts-for-react</code>? Most props map 1:1 — see{" "}
+      <a
+        href="https://github.com/chensid/react-use-echarts#migrating-from-echarts-for-react"
+        target="_blank"
+        rel="noreferrer"
+      >
+        Migrating from echarts-for-react
+      </a>
+      .
+    </p>
 
     <div className={styles.notes}>
       <div className={styles.note}>
