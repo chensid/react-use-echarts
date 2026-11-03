@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import Icon from "./Icon";
-import { githubUrl, stackblitzUrl } from "../utils/stackblitz";
+import { githubUrl } from "../utils/github";
 import styles from "./DemoTabs.module.css";
 
 const LazyCodeBlock = React.lazy(() => import("./CodeBlock"));
@@ -65,16 +65,6 @@ const DemoTabs: React.FC<DemoTabsProps> = ({ sourcePath, loadSource, children })
             title="View on GitHub"
           >
             <Icon name="github" size={14} />
-          </a>
-          <a
-            className={styles.iconLink}
-            href={stackblitzUrl(sourcePath)}
-            target="_blank"
-            rel="noreferrer"
-            aria-label="Open in StackBlitz"
-            title="Open in StackBlitz"
-          >
-            <Icon name="external" size={14} />
           </a>
         </div>
       </div>
