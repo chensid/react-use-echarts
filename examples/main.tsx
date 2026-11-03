@@ -23,7 +23,7 @@ import {
 } from "echarts/components";
 import { LabelLayout, UniversalTransition } from "echarts/features";
 import { CanvasRenderer, SVGRenderer } from "echarts/renderers";
-import { registerBuiltinThemes } from "../src/themes/registry";
+import { registerBuiltinThemes } from "react-use-echarts/themes/registry";
 import App from "./App";
 import { ThemeProvider } from "./components/ThemeProvider";
 import "./global.css";

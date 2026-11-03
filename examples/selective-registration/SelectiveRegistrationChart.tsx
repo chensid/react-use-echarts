@@ -18,7 +18,7 @@ import * as echarts from "echarts/core";
 import { LineChart } from "echarts/charts";
 import { GridComponent, TooltipComponent, TitleComponent } from "echarts/components";
 import { CanvasRenderer } from "echarts/renderers";
-import { useEcharts, type EChartsOption } from "../../src";
+import { useEcharts, type EChartsOption } from "react-use-echarts";
 import { useTheme } from "../components/theme-context";
 
 // Register only the pieces this chart needs. ECharts maintains a single

@@ -1,5 +1,5 @@
 import React, { useMemo } from "react";
-import { useEcharts, type EChartsOption } from "../../src";
+import { useEcharts, type EChartsOption } from "react-use-echarts";
 import { useTheme } from "../components/theme-context";
 
 const HOURS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];

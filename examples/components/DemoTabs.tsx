@@ -13,9 +13,6 @@ interface DemoTabsProps {
 
 type Tab = "preview" | "code";
 
-const fixImports = (src: string): string =>
-  src.replace(/from ["']\.\.\/\.\.\/src["']/g, 'from "react-use-echarts"');
-
 const DemoTabs: React.FC<DemoTabsProps> = ({ sourcePath, loadSource, children }) => {
   const [tab, setTab] = useState<Tab>("preview");
   const [source, setSource] = useState<string | null>(null);
@@ -25,7 +22,7 @@ const DemoTabs: React.FC<DemoTabsProps> = ({ sourcePath, loadSource, children })
     let disposed = false;
     loadSource()
       .then((mod) => {
-        if (!disposed) setSource(fixImports(mod.default));
+        if (!disposed) setSource(mod.default);
       })
       .catch(() => {
         if (!disposed) setSource("// Failed to load source");

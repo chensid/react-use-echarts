@@ -1,6 +1,6 @@
 import React from "react";
 import { Link } from "react-router";
-import { useEcharts, type EChartsOption } from "../../src";
+import { useEcharts, type EChartsOption } from "react-use-echarts";
 import { useTheme } from "./theme-context";
 import Icon from "./Icon";
 import styles from "./ThumbCard.module.css";

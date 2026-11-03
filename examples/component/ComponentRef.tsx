@@ -1,5 +1,5 @@
 import React, { useRef, useState } from "react";
-import { EChart, type EChartHandle, type EChartsOption } from "../../src";
+import { EChart, type EChartHandle, type EChartsOption } from "react-use-echarts";
 import { useTheme } from "../components/theme-context";
 
 const baseOption: EChartsOption = {
