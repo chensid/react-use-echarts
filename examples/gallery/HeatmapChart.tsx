@@ -1,4 +1,4 @@
-import React, { useMemo } from "react";
+import React, { useState } from "react";
 import * as echarts from "echarts/core";
 import { HeatmapChart } from "echarts/charts";
 import {
@@ -27,7 +27,9 @@ function generateData() {
 
 const HeatmapChartDemo: React.FC = () => {
   const { mode } = useTheme();
-  const heatmapData = useMemo(() => generateData(), []);
+  // Generate the random data once; useMemo is only a performance hint and may
+  // recompute, which would reshuffle the cells.
+  const [heatmapData] = useState(generateData);
 
   const option: EChartsOption = {
     backgroundColor: "transparent",
