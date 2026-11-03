@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from "react";
-import { useEcharts, type EChartsOption } from "../../src";
+import { useEcharts, type EChartsOption } from "react-use-echarts";
 import { useTheme } from "../components/theme-context";
 import PageHeader from "./PageHeader";
 import Icon from "../components/Icon";

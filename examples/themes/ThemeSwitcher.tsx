@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from "react";
-import { useEcharts, type EChartsOption } from "../../src";
+import { useEcharts, type EChartsOption } from "react-use-echarts";
 
 // "light" and "dark" ship with ECharts 6. "macarons" must be registered once at app
 // entry: `registerBuiltinThemes()` from "react-use-echarts/themes/registry".

@@ -1,3 +1,4 @@
+import { fileURLToPath } from "node:url";
 import { defineConfig, type Plugin } from "vite-plus";
 import babel from "@rolldown/plugin-babel";
 import react, { reactCompilerPreset } from "@vitejs/plugin-react";
@@ -88,9 +89,23 @@ const requireUseClient: Plugin = {
 // Drop the assertion once both resolve to one rolldown copy.
 const reactCompiler = () => babel({ presets: [reactCompilerPreset()] }) as Promise<Plugin>;
 
+// The examples import the library by its published name, so the source shown in
+// the Code tab and on GitHub is the code a consumer writes. Resolve that name to
+// `src/` (like dumi's autoAlias) so `vp dev` serves live source, not `dist/`.
+// `tsconfig.app.json` mirrors this in `paths`. Anchored so only the package
+// itself and its subpaths match.
+const srcDir = fileURLToPath(new URL("./src/", import.meta.url));
+const packageAlias = [
+  { find: /^react-use-echarts$/, replacement: `${srcDir}index.ts` },
+  { find: /^react-use-echarts\/(.+)$/, replacement: `${srcDir}$1` },
+];
+
 // https://viteplus.dev/config/
 export default defineConfig({
   base,
+  resolve: {
+    alias: packageAlias,
+  },
   build: {
     outDir: "site-dist",
   },

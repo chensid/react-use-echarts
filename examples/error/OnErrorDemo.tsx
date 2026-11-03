@@ -1,5 +1,5 @@
 import React, { useCallback, useState } from "react";
-import { useEcharts, type EChartsOption, type Payload } from "../../src";
+import { useEcharts, type EChartsOption, type Payload } from "react-use-echarts";
 import { useTheme } from "../components/theme-context";
 
 const validOption: EChartsOption = {

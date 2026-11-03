@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { useEcharts, type EChartsOption } from "../../src";
+import { useEcharts, type EChartsOption } from "react-use-echarts";
 import { useTheme } from "../components/theme-context";
 import type { ECElementEvent } from "echarts";
 

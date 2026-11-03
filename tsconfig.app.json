@@ -15,6 +15,11 @@
     "moduleDetection": "force",
     "noEmit": true,
     "jsx": "react-jsx",
+    /* Examples import the library by package name; mirrors `resolve.alias` in vite.config.ts */
+    "paths": {
+      "react-use-echarts": ["./src/index.ts"],
+      "react-use-echarts/*": ["./src/*"]
+    },
 
     /* Linting */
     "strict": true,
