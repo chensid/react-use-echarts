@@ -1,9 +1,9 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useRef, useState } from "react";
 import * as echarts from "echarts/core";
 import { LineChart } from "echarts/charts";
 import { GridComponent, TitleComponent, TooltipComponent } from "echarts/components";
 import { EChart, type EChartHandle, type EChartsOption } from "react-use-echarts";
-import { useTheme } from "../components/theme-context";
+import { useTheme, type ThemeMode } from "../components/theme-context";
 
 echarts.use([LineChart, GridComponent, TitleComponent, TooltipComponent]);
 
@@ -52,20 +52,11 @@ const baseOption: EChartsOption = {
   animation: false,
 };
 
-const ExportStream: React.FC = () => {
+const ExportStreamChart: React.FC<{ readonly mode: ThemeMode }> = ({ mode }) => {
   const chartRef = useRef<EChartHandle>(null);
-  const { mode } = useTheme();
   const [count, setCount] = useState(INITIAL_POINTS);
   const lastTsRef = useRef<number>(initialLast[0]);
   const lastValRef = useRef<number>(initialLast[1]);
-
-  // Theme switch recreates the chart instance and reapplies baseOption;
-  // resync local trackers so the count display matches reality.
-  useEffect(() => {
-    lastTsRef.current = initialLast[0];
-    lastValRef.current = initialLast[1];
-    setCount(INITIAL_POINTS);
-  }, [mode]);
 
   const handleAppend = () => {
     const batch: Point[] = [];
@@ -122,6 +113,16 @@ const ExportStream: React.FC = () => {
       />
     </div>
   );
+};
+
+// A theme change recreates the ECharts instance, which re-applies baseOption and
+// drops the appended points. Keying the chart by theme remounts it with the
+// instance, so its point counter and trackers reset too — React's way to reset
+// all state when a prop changes (react.dev, "Resetting all state when a prop
+// changes"), instead of resyncing them in an effect.
+const ExportStream: React.FC = () => {
+  const { mode } = useTheme();
+  return <ExportStreamChart key={mode} mode={mode} />;
 };
 
 export default ExportStream;
