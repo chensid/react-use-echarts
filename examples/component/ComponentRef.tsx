@@ -1,6 +1,11 @@
 import React, { useRef, useState } from "react";
+import * as echarts from "echarts/core";
+import { PieChart } from "echarts/charts";
+import { LegendComponent, TitleComponent, TooltipComponent } from "echarts/components";
 import { EChart, type EChartHandle, type EChartsOption } from "react-use-echarts";
 import { useTheme } from "../components/theme-context";
+
+echarts.use([PieChart, LegendComponent, TitleComponent, TooltipComponent]);
 
 const baseOption: EChartsOption = {
   backgroundColor: "transparent",

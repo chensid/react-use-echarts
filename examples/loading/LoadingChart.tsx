@@ -1,6 +1,11 @@
 import React, { useState } from "react";
+import * as echarts from "echarts/core";
+import { BarChart } from "echarts/charts";
+import { GridComponent, TitleComponent, TooltipComponent } from "echarts/components";
 import { useEcharts, type EChartsOption } from "react-use-echarts";
 import { useTheme } from "../components/theme-context";
+
+echarts.use([BarChart, GridComponent, TitleComponent, TooltipComponent]);
 
 const LoadingChart: React.FC = () => {
   const { mode } = useTheme();

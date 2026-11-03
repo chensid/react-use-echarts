@@ -1,6 +1,11 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
+import * as echarts from "echarts/core";
+import { LineChart } from "echarts/charts";
+import { GridComponent, TitleComponent, TooltipComponent } from "echarts/components";
 import { useEcharts, type EChartsOption } from "react-use-echarts";
 import { useTheme } from "../components/theme-context";
+
+echarts.use([LineChart, GridComponent, TitleComponent, TooltipComponent]);
 
 function formatTime(date: Date) {
   return date.toLocaleTimeString("en-US", { hour12: false });

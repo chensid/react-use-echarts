@@ -1,7 +1,12 @@
 import React, { useState } from "react";
+import * as echarts from "echarts/core";
+import { ScatterChart } from "echarts/charts";
+import { GridComponent, TitleComponent, TooltipComponent } from "echarts/components";
 import { useEcharts, type EChartsOption } from "react-use-echarts";
 import { useTheme } from "../components/theme-context";
 import type { ECElementEvent } from "echarts";
+
+echarts.use([ScatterChart, GridComponent, TitleComponent, TooltipComponent]);
 
 const option: EChartsOption = {
   backgroundColor: "transparent",

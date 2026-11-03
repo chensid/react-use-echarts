@@ -1,9 +1,15 @@
 import React, { useMemo, useState } from "react";
+import * as echarts from "echarts/core";
+import { BarChart, LineChart, ScatterChart } from "echarts/charts";
+import { GridComponent, LegendComponent, TooltipComponent } from "echarts/components";
 import { useEcharts, type EChartsOption } from "react-use-echarts";
 import { useTheme } from "../components/theme-context";
 import PageHeader from "./PageHeader";
 import Icon from "../components/Icon";
 import styles from "./Playground.module.css";
+
+// Every series type and component the playground controls can produce.
+echarts.use([BarChart, LineChart, ScatterChart, GridComponent, LegendComponent, TooltipComponent]);
 
 const SERIES_TYPES = ["bar", "line", "scatter"] as const;
 type SeriesType = (typeof SERIES_TYPES)[number];

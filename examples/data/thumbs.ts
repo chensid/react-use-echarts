@@ -1,13 +1,37 @@
+import * as echarts from "echarts/core";
+import {
+  BarChart,
+  CandlestickChart,
+  FunnelChart,
+  GaugeChart,
+  HeatmapChart,
+  LineChart,
+  RadarChart,
+  TreemapChart,
+} from "echarts/charts";
+import { GridComponent, RadarComponent, VisualMapComponent } from "echarts/components";
 import type { EChartsOption } from "react-use-echarts";
+
+// The modules the gallery thumbnails below render (Home and /gallery).
+echarts.use([
+  BarChart,
+  CandlestickChart,
+  FunnelChart,
+  GaugeChart,
+  HeatmapChart,
+  LineChart,
+  RadarChart,
+  TreemapChart,
+  GridComponent,
+  RadarComponent,
+  VisualMapComponent,
+]);
 
 const baseGrid = { top: 14, bottom: 14, left: 28, right: 14 };
 
 const stripAxes = (option: EChartsOption): EChartsOption => ({
   ...option,
   backgroundColor: "transparent",
-  title: undefined,
-  legend: undefined,
-  tooltip: undefined,
   grid: baseGrid,
   animation: false,
 });

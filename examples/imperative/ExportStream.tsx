@@ -1,6 +1,11 @@
 import React, { useEffect, useRef, useState } from "react";
+import * as echarts from "echarts/core";
+import { LineChart } from "echarts/charts";
+import { GridComponent, TitleComponent, TooltipComponent } from "echarts/components";
 import { EChart, type EChartHandle, type EChartsOption } from "react-use-echarts";
 import { useTheme } from "../components/theme-context";
+
+echarts.use([LineChart, GridComponent, TitleComponent, TooltipComponent]);
 
 const MAX_POINTS = 200;
 const APPEND_BATCH = 20;

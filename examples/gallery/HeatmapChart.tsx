@@ -1,6 +1,16 @@
 import React, { useMemo } from "react";
+import * as echarts from "echarts/core";
+import { HeatmapChart } from "echarts/charts";
+import {
+  GridComponent,
+  TitleComponent,
+  TooltipComponent,
+  VisualMapComponent,
+} from "echarts/components";
 import { useEcharts, type EChartsOption } from "react-use-echarts";
 import { useTheme } from "../components/theme-context";
+
+echarts.use([HeatmapChart, GridComponent, TitleComponent, TooltipComponent, VisualMapComponent]);
 
 const HOURS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 const SLOTS = ["Morning", "Afternoon", "Evening", "Night"];
@@ -15,7 +25,7 @@ function generateData() {
   return data;
 }
 
-const HeatmapChart: React.FC = () => {
+const HeatmapChartDemo: React.FC = () => {
   const { mode } = useTheme();
   const heatmapData = useMemo(() => generateData(), []);
 
@@ -57,4 +67,4 @@ const HeatmapChart: React.FC = () => {
   return <div ref={ref} className="chart-container-sm" />;
 };
 
-export default HeatmapChart;
+export default HeatmapChartDemo;

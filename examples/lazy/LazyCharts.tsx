@@ -1,6 +1,25 @@
 import React from "react";
+import * as echarts from "echarts/core";
+import { BarChart, LineChart, PieChart, ScatterChart } from "echarts/charts";
+import {
+  GridComponent,
+  LegendComponent,
+  TitleComponent,
+  TooltipComponent,
+} from "echarts/components";
 import { useEcharts, type EChartsOption } from "react-use-echarts";
 import { useTheme } from "../components/theme-context";
+
+echarts.use([
+  BarChart,
+  LineChart,
+  PieChart,
+  ScatterChart,
+  GridComponent,
+  LegendComponent,
+  TitleComponent,
+  TooltipComponent,
+]);
 
 const CHART_CONFIGS: (() => EChartsOption)[] = [
   () => ({

@@ -1,8 +1,18 @@
 import React from "react";
+import * as echarts from "echarts/core";
+import { RadarChart } from "echarts/charts";
+import {
+  LegendComponent,
+  RadarComponent,
+  TitleComponent,
+  TooltipComponent,
+} from "echarts/components";
 import { useEcharts, type EChartsOption } from "react-use-echarts";
 import { useTheme } from "../components/theme-context";
 
-const RadarChart: React.FC = () => {
+echarts.use([RadarChart, LegendComponent, RadarComponent, TitleComponent, TooltipComponent]);
+
+const RadarChartDemo: React.FC = () => {
   const { mode } = useTheme();
 
   const option: EChartsOption = {
@@ -37,4 +47,4 @@ const RadarChart: React.FC = () => {
   return <div ref={ref} className="chart-container-sm" />;
 };
 
-export default RadarChart;
+export default RadarChartDemo;
