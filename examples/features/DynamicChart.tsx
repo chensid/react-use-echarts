@@ -17,7 +17,12 @@ function randomValue(base: number) {
 
 const INITIAL_COUNT = 20;
 
-function generateInitialData() {
+interface SeriesData {
+  readonly times: string[];
+  readonly values: number[];
+}
+
+function generateInitialData(): SeriesData {
   const now = Date.now();
   const times: string[] = [];
   const values: number[] = [];
@@ -28,22 +33,17 @@ function generateInitialData() {
   return { times, values };
 }
 
-const DynamicChart: React.FC = () => {
-  const { mode } = useTheme();
-  const [running, setRunning] = useState(true);
-  const [count, setCount] = useState(INITIAL_COUNT);
-  const dataRef = useRef(generateInitialData());
-
-  const optionRef = useRef<EChartsOption>({
+function buildOption({ times, values }: SeriesData): EChartsOption {
+  return {
     backgroundColor: "transparent",
     title: { text: "Real-time Monitor" },
     tooltip: { trigger: "axis" },
-    xAxis: { type: "category", data: dataRef.current.times, boundaryGap: false },
+    xAxis: { type: "category", data: times, boundaryGap: false },
     yAxis: { type: "value", min: 20, max: 80 },
     series: [
       {
         type: "line",
-        data: dataRef.current.values,
+        data: values,
         smooth: true,
         areaStyle: { opacity: 0.2 },
         showSymbol: false,
@@ -51,9 +51,25 @@ const DynamicChart: React.FC = () => {
     ],
     grid: { top: 50, bottom: 30, left: 45, right: 20 },
     animation: false,
-  });
+  };
+}
 
-  const { ref, setOption } = useEcharts({ option: optionRef.current, theme: mode });
+const DynamicChart: React.FC = () => {
+  const { mode } = useTheme();
+  const [running, setRunning] = useState(true);
+  const [count, setCount] = useState(INITIAL_COUNT);
+  // Create the data and option once. The option keeps one reference for the
+  // component's lifetime, so re-renders (the point counter, Start/Stop) never
+  // re-apply it over the live chart; the interval below streams through
+  // setOption instead. A theme switch re-creates the chart from this option,
+  // whose arrays the interval has kept up to date.
+  const [initial] = useState(() => {
+    const data = generateInitialData();
+    return { data, option: buildOption(data) };
+  });
+  const dataRef = useRef(initial.data);
+
+  const { ref, setOption } = useEcharts({ option: initial.option, theme: mode });
 
   useEffect(() => {
     if (!running) return;
