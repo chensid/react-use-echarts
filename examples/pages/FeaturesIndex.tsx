@@ -10,7 +10,7 @@ const FeaturesIndex: React.FC = () => {
       <PageHeader
         eyebrow="Features"
         title="Library capabilities"
-        description={`${featureItems.length} capabilities for common ECharts work: reactivity, themes, renderer choice, chart linkage, events, loading, refs, export flows, lazy init, error handling, and selective registration.`}
+        description={`${featureItems.length} capabilities for common ECharts work, each with a live demo and its full source.`}
         meta={
           <>
             <span>{featureItems.length}</span> features

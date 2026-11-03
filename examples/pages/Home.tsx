@@ -23,9 +23,8 @@ const Home: React.FC = () => (
           <span className={styles.kicker}>Capabilities</span>
           <h2 className={styles.sectionTitle}>Built for real ECharts use</h2>
           <p className={styles.sectionLead}>
-            {featureItems.length} features cover the gaps people fill manually: reactivity, themes,
-            renderer choice, group linkage, events, loading, ref API, export, lazy initialization,
-            error handling, and selective registration.
+            {featureItems.length} features cover the gaps people otherwise fill by hand. Each card
+            opens a live demo with its source.
           </p>
         </div>
         <Link to="/features" className={styles.headLink}>
