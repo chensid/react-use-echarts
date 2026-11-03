@@ -6,6 +6,7 @@
 }
 .table {
   width: 100%;
+  table-layout: fixed;
   border-collapse: collapse;
   font-size: 13px;
 }
@@ -41,7 +42,7 @@
   border: 1px solid var(--c-border);
   border-radius: 3px;
   padding: 1px 5px;
-  margin-bottom: 4px;
+  margin: 0 8px 4px 0;
   text-transform: uppercase;
   letter-spacing: 0.05em;
 }
@@ -52,10 +53,11 @@
 }
 
 .thLabel {
-  width: 38%;
+  width: 20%;
 }
 .th {
-  width: 20.66%;
+  width: 40%;
+  text-align: left;
 }
 
 .tdLabel,
@@ -64,8 +66,8 @@
   border-bottom: 1px solid var(--c-border);
 }
 .td {
-  text-align: center;
-  vertical-align: middle;
+  text-align: left;
+  vertical-align: top;
 }
 .tdLabel {
   color: var(--c-text);
@@ -90,15 +92,16 @@
   background: var(--c-accent);
   border-radius: 50%;
 }
-.no {
-  color: var(--c-text-3);
-  font-family: var(--mono);
+.text {
+  color: var(--c-text-2);
+  line-height: 1.5;
 }
-.txt {
+.text code {
+  overflow-wrap: anywhere;
   font-family: var(--mono);
   font-size: 12px;
   color: var(--c-text);
-  padding: 2px 8px;
+  padding: 1px 5px;
   background: var(--c-surface-2);
   border: 1px solid var(--c-border);
   border-radius: 3px;
@@ -113,6 +116,6 @@
     font-size: 12px;
   }
   .thLabel {
-    width: 50%;
+    width: 24%;
   }
 }

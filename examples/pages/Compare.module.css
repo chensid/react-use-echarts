@@ -47,3 +47,17 @@
     grid-template-columns: 1fr;
   }
 }
+.migrate {
+  margin-top: 14px;
+  font-size: 13px;
+  color: var(--c-text-2);
+}
+.migrate a {
+  color: var(--c-text);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.migrate code {
+  font-family: var(--mono);
+  font-size: 12px;
+}
