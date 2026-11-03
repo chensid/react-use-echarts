@@ -1,24 +1,19 @@
-import React, { useMemo, useState } from "react";
+import React, { useState } from "react";
 import PageHeader from "../components/PageHeader";
 import ThumbCard from "../components/ThumbCard";
-import { CHART_COUNT, galleryItems } from "../data/gallery";
+import { CHART_COUNT, GALLERY_CATEGORIES, galleryItems } from "../data/gallery";
 import { thumbOptions } from "../data/thumbs";
 import styles from "./GalleryIndex.module.css";
 
-const GROUPS: Record<string, readonly string[]> = {
-  All: galleryItems.map((i) => i.id),
-  Common: ["bar", "line"],
-  Composite: ["radar", "gauge", "candlestick"],
-  Spatial: ["heatmap", "funnel", "treemap"],
-};
+const FILTERS = ["All", ...GALLERY_CATEGORIES] as const;
+type Filter = (typeof FILTERS)[number];
+
+const itemsFor = (filter: Filter) =>
+  filter === "All" ? galleryItems : galleryItems.filter((i) => i.category === filter);
 
 const GalleryIndex: React.FC = () => {
-  const [filter, setFilter] = useState<string>("All");
-
-  const items = useMemo(() => {
-    const allowed = new Set(GROUPS[filter]);
-    return galleryItems.filter((i) => allowed.has(i.id));
-  }, [filter]);
+  const [filter, setFilter] = useState<Filter>("All");
+  const items = itemsFor(filter);
 
   return (
     <>
@@ -34,7 +29,7 @@ const GalleryIndex: React.FC = () => {
       />
       <div className={styles.toolbar}>
         <div className={styles.filters} role="tablist">
-          {Object.keys(GROUPS).map((g) => (
+          {FILTERS.map((g) => (
             <button
               key={g}
               type="button"
@@ -44,7 +39,7 @@ const GalleryIndex: React.FC = () => {
               className={`${styles.filter} ${filter === g ? styles.filterActive : ""}`}
             >
               {g}
-              <span className={styles.filterCount}>{GROUPS[g]!.length}</span>
+              <span className={styles.filterCount}>{itemsFor(g).length}</span>
             </button>
           ))}
         </div>
