@@ -1,6 +1,6 @@
 import React from "react";
 import { Navigate, useParams } from "react-router";
-import PageHeader from "./PageHeader";
+import PageHeader from "../components/PageHeader";
 import DemoTabs from "../components/DemoTabs";
 import { findGalleryItem } from "../data/gallery";
 import { findFeatureItem } from "../data/features";

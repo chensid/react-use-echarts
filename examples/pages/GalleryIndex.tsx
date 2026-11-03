@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from "react";
-import PageHeader from "./PageHeader";
+import PageHeader from "../components/PageHeader";
 import ThumbCard from "../components/ThumbCard";
 import { CHART_COUNT, galleryItems } from "../data/gallery";
 import { thumbOptions } from "../data/thumbs";

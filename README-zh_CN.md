@@ -261,7 +261,7 @@ import { CanvasRenderer } from "echarts/renderers";
 echarts.use([LineChart, GridComponent, TooltipComponent, CanvasRenderer]);
 ```
 
-可运行示例参见 [`examples/selective-registration/SelectiveRegistrationChart.tsx`](./examples/selective-registration/SelectiveRegistrationChart.tsx)。
+可运行示例参见 [`examples/features/SelectiveRegistrationChart.tsx`](./examples/features/SelectiveRegistrationChart.tsx)。
 
 **第 3 档 —— 已有完整入口注册**：如果应用已经导入完整的 `"echarts"` 入口，ECharts 会执行内置注册，不需要再调用 `registerEchartsFull()`。第 1 档能更明确地表达“全量注册”；第 2 档仍是体积更小的生产方案。
 

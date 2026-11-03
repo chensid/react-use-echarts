@@ -4,7 +4,7 @@ import { BarChart, LineChart, ScatterChart } from "echarts/charts";
 import { GridComponent, LegendComponent, TooltipComponent } from "echarts/components";
 import { useEcharts, type EChartsOption } from "react-use-echarts";
 import { useTheme } from "../components/theme-context";
-import PageHeader from "./PageHeader";
+import PageHeader from "../components/PageHeader";
 import Icon from "../components/Icon";
 import styles from "./Playground.module.css";
 
