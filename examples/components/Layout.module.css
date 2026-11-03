@@ -35,3 +35,8 @@
     padding: 24px 0;
   }
 }
+
+/* Holds the footer below the fold while the first page chunk loads. */
+.pageFallback {
+  min-height: 70vh;
+}

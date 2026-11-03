@@ -21,7 +21,12 @@ const Layout: React.FC = () => {
           <Sidebar isOpen={sidebarOpen} onClose={() => setOpenOn(null)} />
           <main className={styles.main}>
             <div className={styles.inner}>
-              <Outlet />
+              {/* Pages are lazy (App.tsx). React Router runs navigations in a
+                  transition, so the current page stays up until the next one
+                  loads; this fallback can only cover the first page of a visit. */}
+              <React.Suspense fallback={<div className={styles.pageFallback} />}>
+                <Outlet />
+              </React.Suspense>
               <Footer />
             </div>
           </main>
