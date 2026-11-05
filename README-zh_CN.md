@@ -6,11 +6,8 @@
 [![NPM downloads](https://img.shields.io/npm/dm/react-use-echarts.svg)](https://www.npmjs.com/package/react-use-echarts)
 [![CI](https://github.com/chensid/react-use-echarts/actions/workflows/ci.yml/badge.svg)](https://github.com/chensid/react-use-echarts/actions/workflows/ci.yml)
 [![codecov](https://codecov.io/gh/chensid/react-use-echarts/graph/badge.svg)](https://codecov.io/gh/chensid/react-use-echarts)
-[![GitHub issues](https://img.shields.io/github/issues/chensid/react-use-echarts)](https://github.com/chensid/react-use-echarts/issues)
-[![GitHub pull requests](https://img.shields.io/github/issues-pr/chensid/react-use-echarts)](https://github.com/chensid/react-use-echarts/pulls)
 [![GitHub license](https://img.shields.io/github/license/chensid/react-use-echarts.svg)](https://github.com/chensid/react-use-echarts/blob/main/LICENSE.txt)
 [![minzipped size](https://img.shields.io/bundlephobia/minzip/react-use-echarts?label=minzipped)](https://bundlephobia.com/package/react-use-echarts)
-[![types included](https://img.shields.io/npm/types/react-use-echarts)](https://www.npmjs.com/package/react-use-echarts)
 
 React Hooks & 组件，用于 Apache ECharts — TypeScript、自动 resize、主题、懒加载。
 
@@ -49,38 +46,46 @@ React Hooks & 组件，用于 Apache ECharts — TypeScript、自动 resize、�
 
 - React 19.2+（`react` + `react-dom`）
 - ECharts 6.x
-- 本包自身不限制 Node.js 版本：它是仅浏览器的 ESM，只需满足你所用打包工具对 Node.js 的要求（本仓库 `devEngines` 中的 Node.js 范围仅用于[参与开发](./CONTRIBUTING.md)）
+- 仅支持 CSR —— ECharts 需要真实 DOM，不支持 SSR
+- 1.3.0 起仅提供 ESM —— 所有现代打包工具（Vite、Next.js、webpack 5+、Rspack、Parcel、Turbopack）和 Node 22.12+（`require(ESM)`）均可直接消费；如仍依赖 CJS-only 工具链，请固定在 `1.2.x`
+- 本包自身不限制 Node.js 版本 —— 它仅用于浏览器，只需满足你所用打包工具对 Node.js 的要求（本仓库 `devEngines` 中的 Node.js 范围仅用于[参与开发](./CONTRIBUTING.md)）
 
-> **仅支持 CSR。** ECharts 需要真实 DOM，不支持 SSR。
->
-> **1.3.0 起仅提供 ESM。** 包会为主 API（`dist/index.js`）以及 `preset-full`、`themes/registry` 子路径发布 ESM 入口。所有现代打包工具（Vite、Next.js、webpack 5+、Rspack、Parcel、Turbopack）和 Node 22.12+（`require(ESM)`）均可直接消费。如仍依赖 CJS-only 工具链，请固定在 `1.2.x`。
->
-> **开发版与生产版构建。** 主入口同时发布生产版（`default` 导出条件，已移除 dev 警告）和开发版（`development` 条件，含 dev 警告）。Vite、webpack、Rspack、Next.js（webpack 与 Turbopack）和 Vitest 在开发时会自动选用开发版；esbuild、Bun 和 Parcel 默认解析到生产版，如需 dev 警告请自行加上 `development` 条件。两份构建都不依赖全局 `process`。在 Node 环境运行的使用方测试（`NODE_ENV=test`）不会输出警告，Vitest 浏览器模式下则会输出。
+> **dev 警告**放在 `development` 导出条件对应的独立构建中；`default` 条件解析到生产版，两份构建都不依赖全局 `process`。Vite、webpack、Rspack、Next.js（webpack 与 Turbopack）和 Vitest 在开发时会自动选用开发版；esbuild、Bun 和 Parcel 默认解析到生产版，如需 dev 警告请自行加上 `development` 条件。在 Node 环境运行的使用方测试（`NODE_ENV=test`）不会输出警告，Vitest 浏览器模式下则会输出。
 
 ## 安装
 
 ```bash
 npm install react-use-echarts echarts
-# 或
-yarn add react-use-echarts echarts
-# 或
-pnpm add react-use-echarts echarts
 ```
 
 ## 注册 ECharts 模块
 
-从 v2.1 起 `react-use-echarts` 完全 modular —— 库本身不会自动注册任何图表/组件/渲染器/特性。请在应用入口（首次渲染前）调用以下其中之一：
+`react-use-echarts` 不会自动注册任何图表/组件/渲染器/特性（自 v2.1 起）：默认入口只导入 `echarts/core`，由各应用自行决定打包哪些内容。请在**首次 `useEcharts()` 渲染之前**注册，通常在应用入口调用一次：
 
 ```ts
-// 最简方式 —— 注册 ECharts 内置全套（ECharts 6.1 下约 370 KB gzip；
+// 注册 ECharts 内置全套（ECharts 6.1 下约 370 KB gzip；
 // 实际大小随 ECharts 版本和打包器而变化）
 import { registerEchartsFull } from "react-use-echarts/preset-full";
 registerEchartsFull();
 ```
 
-或者，为了在生产构建中获得更好的 tree-shake 效果，只显式注册实际用到的模块 —— 参见 [Tree-shaking](#tree-shaking)。
+### Tree-shaking
 
-> **原因**：`react-use-echarts` 默认入口只导入 `echarts/core`，不会强迫所有使用方都把完整 ECharts 打进产物。显式注册让应用可以自行选择一行完成的全套 preset，或更小的按需模块列表。
+生产构建建议只注册实际渲染的模块，打包器会 tree-shake 掉其余 ECharts：
+
+```ts
+import * as echarts from "echarts/core";
+import { LineChart } from "echarts/charts";
+import { GridComponent, TooltipComponent } from "echarts/components";
+import { CanvasRenderer } from "echarts/renderers";
+echarts.use([LineChart, GridComponent, TooltipComponent, CanvasRenderer]);
+```
+
+可运行示例参见 [`examples/features/SelectiveRegistrationChart.tsx`](./examples/features/SelectiveRegistrationChart.tsx)。
+
+如果应用已经导入完整的 `"echarts"` 入口，ECharts 会执行内置注册，不需要再调用 `registerEchartsFull()`。
+
+ECharts 维护单一全局 registry，`echarts.use([...])` 与 `registerEchartsFull()` 可自由组合，任意顺序，任意位置，只要在首次渲染之前完成即可。
 
 ## 快速开始
 
@@ -107,13 +112,11 @@ function MyChart() {
 }
 ```
 
-图表容器必须有明确尺寸。上例直接在 `<EChart />` 上设置高度；如果保留默认 `{ width: "100%", height: "100%" }`，则父容器必须有显式高度。
-
-通过 `ref` 可访问命令式 API —— 完整列表见 [返回值](#返回值)（`setOption`、`dispatchAction`、`clear`、`resize`、`appendData`、`getDataURL`、`convertToPixel` 等）。
+通过 `ref` 可访问[命令式 API](#返回值)。
 
 ### 2. 直接使用 Hook
 
-需要完全控制时，直接使用 Hook。它返回一个用于挂载到容器的 callback `ref`、响应式的 `instance` 字段，以及完整的命令式 API：
+需要完全控制时，直接使用 Hook。它返回一个用于挂载到容器的 callback `ref`、响应式的 `instance` 字段，以及完整的[命令式 API](#返回值)：
 
 ```tsx
 import { useEcharts } from "react-use-echarts";
@@ -129,8 +132,6 @@ function MyChart() {
   return <div ref={ref} style={{ width: "100%", height: "400px" }} />;
 }
 ```
-
-`instance` 在初始化前及销毁后为 `undefined`；通过 `useEffect([instance])` 即可订阅实时 ECharts 实例并在其上挂副作用。
 
 ## 使用示例
 
@@ -155,7 +156,7 @@ const customTheme = useMemo(() => ({ color: ["#fc8452", "#9a60b4", "#ea7ccc"] })
 useEcharts({ option, theme: customTheme });
 ```
 
-> 注意：直接通过 `echarts.registerTheme()` 注册的主题名（如上面的 `"vintage"`）可以正常使用，但由于本库无法感知这类注册，dev 环境下会触发一次性的警告。推荐改用本库导出的 `registerCustomTheme(name, config)` 按名称注册——注册会被本库跟踪，从而消除该警告。若必须使用 `echarts.registerTheme()`（例如由第三方包代为注册），只要注册发生在图表挂载之前，该警告可以安全忽略；生产构建中不会出现此警告。
+> 注意：直接通过 `echarts.registerTheme()` 注册的主题名（如上面的 `"vintage"`）可以正常使用，但本库无法感知这类注册，dev 环境下会触发一次性的警告。推荐改用本库导出的 `registerCustomTheme(name, config)`，即可消除该警告。若由第三方包代为注册，只要注册发生在图表挂载之前，该警告可以安全忽略。
 
 ### 事件处理
 
@@ -229,43 +230,10 @@ useEcharts({
 });
 ```
 
-启用懒加载后，未提供的观察器配置默认使用 `root: null`、
-`rootMargin: "50px"` 和 `threshold: 0.1`。独立导出的 `useLazyInit(options)`
-使用相同默认值，并返回自己的 `{ ref, isInView }` callback-ref 组合。
-
-公开参数类型保留为 `IntersectionObserverInit`，但当前实现只向原生观察器转发
-`root`、`rootMargin` 和 `threshold`；较新的 `scrollMargin` 字段暂不支持并会被忽略。
-
-> 注意：懒加载是一次性锁存——「懒」指「首次可见前推迟初始化」，而非持续追踪可见性。一旦元素相交过，图表在该 Hook 的生命周期内保持已初始化：更换容器 DOM 节点或将 `lazyInit` 关闭后再开启都不会重新观察。以立即模式启动的图表同理：初始化后再开启 `lazyInit` 不会销毁它（与 `<img loading>` 在加载完成后改为 `"lazy"` 的行为一致）。若需重新进入推迟状态，请重新挂载组件。
-
-> 非法的观察器配置不会导致图表不可用：超出范围的 `threshold`、缺少单位的 `rootMargin`、既非 `Element` 也非 `Document` 的 `root` 都会让 `IntersectionObserver` 构造函数抛错，此时 Hook 会通过 `console.error` 输出并降级为立即初始化——图表照常渲染，不会一直空白。
-
-### Tree-shaking
-
-库已完全 modular，可按需选择注册粒度：
-
-**第 1 档 —— 全套注册（开发 / 原型）**：一行代码，ECharts 6.1 下约 370 KB gzip（实际大小随版本和打包器而变化）：
-
-```ts
-import { registerEchartsFull } from "react-use-echarts/preset-full";
-registerEchartsFull();
-```
-
-**第 2 档 —— 按需注册（推荐用于生产）**：只注册实际渲染的模块，打包器会 tree-shake 掉其余 ECharts：
-
-```ts
-import * as echarts from "echarts/core";
-import { LineChart } from "echarts/charts";
-import { GridComponent, TooltipComponent } from "echarts/components";
-import { CanvasRenderer } from "echarts/renderers";
-echarts.use([LineChart, GridComponent, TooltipComponent, CanvasRenderer]);
-```
-
-可运行示例参见 [`examples/features/SelectiveRegistrationChart.tsx`](./examples/features/SelectiveRegistrationChart.tsx)。
-
-**第 3 档 —— 已有完整入口注册**：如果应用已经导入完整的 `"echarts"` 入口，ECharts 会执行内置注册，不需要再调用 `registerEchartsFull()`。第 1 档能更明确地表达“全量注册”；第 2 档仍是体积更小的生产方案。
-
-> ECharts 维护单一全局 registry，`echarts.use([...])` 与 `registerEchartsFull()` 可自由组合，任意顺序，任意位置；但必须在首次 `useEcharts()` 渲染**之前**完成。
+- **默认值** — 未提供的观察器配置默认使用 `root: null`、`rootMargin: "50px"` 和 `threshold: 0.1`。独立导出的 `useLazyInit(options)` 使用相同默认值，并返回自己的 `{ ref, isInView }` callback-ref 组合。
+- **支持的配置** — 参数类型为 `IntersectionObserverInit`，但只有 `root`、`rootMargin` 和 `threshold` 会转发给观察器；较新的 `scrollMargin` 字段会被忽略。
+- **一次性锁存** — 「懒」指「首次可见前推迟初始化」，而非持续追踪可见性。一旦元素相交过，图表在该 Hook 的生命周期内保持已初始化：更换容器 DOM 节点或将 `lazyInit` 关闭后再开启都不会重新观察；立即模式初始化后再开启 `lazyInit` 也不会销毁图表（与 `<img loading>` 在加载完成后改为 `"lazy"` 的行为一致）。若需重新进入推迟状态，请重新挂载组件。
+- **非法配置不会导致图表不可用** — 超出范围的 `threshold`、缺少单位的 `rootMargin`、既非 `Element` 也非 `Document` 的 `root` 都会让 `IntersectionObserver` 构造函数抛错，此时 Hook 会通过 `console.error`（而非 `onError`）输出并降级为立即初始化。
 
 ### 在 Next.js（App Router）中使用
 
@@ -295,15 +263,6 @@ export function MyChart() {
 }
 ```
 
-```tsx
-// app/page.tsx（Server Component）—— 直接 import 客户端组件
-import { MyChart } from "./components/MyChart";
-
-export default function Page() {
-  return <MyChart />;
-}
-```
-
 > **仅 Pages Router：** 如果需要在 `getServerSideProps` / `getStaticProps`
 > 的页面中强制仅在客户端渲染，可使用
 > `dynamic(() => import("./components/MyChart").then((m) => m.MyChart), { ssr: false })`。
@@ -312,15 +271,13 @@ export default function Page() {
 
 ## 注意事项
 
-- **容器必须有明确尺寸** — 高度为 0 时图表不可见；请为容器设置 `height`（以及 `width` 如果不是 100%）。
-- **不要忘记注册 ECharts 模块** — `useEcharts()` 在 ECharts 全局 registry 上初始化实例，所以图表/组件/渲染器/特性必须先注册（通过 `registerEchartsFull()` 或 `echarts.use([...])`）。忘记注册通常表现为 `Renderer 'undefined' is not imported` 报错，或图表静默不渲染；参见 [注册 ECharts 模块](#注册-echarts-模块)。开发模式下若 init 抛出 `… is not a constructor`，库还会打印一次性提示指向此处。
-- **内联 `onEvents` 无需缓存** — 每个事件名只绑定一次代理函数，触发时调用最新一次渲染中的 handler，因此 handler 引用变化（内联 lambda、闭包捕获新 state）既不会重新绑定，也不会读到过期的 props。只有增删事件名、`query` 变化（浅比较）或 `context` 引用变化才会重新绑定。由于 ECharts 持有的是代理函数而非你的 handler，直接调用 `instance.off(name, yourHandler)` 无法移除通过 `onEvents` 绑定的监听，请改为从 `onEvents` 中删除对应条目。
+- **容器必须有明确尺寸** — 高度为 0 时图表不可见；请为容器设置 `height`（以及 `width` 如果不是 100%）。`<EChart />` 默认 `{ width: "100%", height: "100%" }`，未自行设置高度时父容器必须有显式高度。
+- **不要忘记注册 ECharts 模块** — 忘记注册通常表现为 `Renderer 'undefined' is not imported` 报错，或图表静默不渲染；参见 [注册 ECharts 模块](#注册-echarts-模块)。开发模式下若 init 抛出 `… is not a constructor`，库还会打印一次性提示指向此处。
+- **内联 `onEvents` 无需缓存** — 每个事件名只绑定一次代理函数，触发时调用最新一次渲染中的 handler，因此 handler 引用变化既不会重新绑定，也不会读到过期的 props。只有增删事件名、`query` 变化（浅比较）或 `context` 引用变化才会重新绑定。由于 ECharts 持有的是代理函数而非你的 handler，直接调用 `instance.off(name, yourHandler)` 无法移除通过 `onEvents` 绑定的监听，请改为从 `onEvents` 中删除对应条目。
 - **不要让多个 `useEcharts` 共享同一个 DOM 元素** — 实例缓存会复用同一个 ECharts 实例并在开发模式下打印警告；多个 hook 的更新会互相覆盖。
-- **`initOpts` 和自定义 `theme` 对象按序列化内容生成 key** — 对可序列化对象，只有 `JSON.stringify` 输出相同时才视为相同；属性插入顺序会影响输出，因此语义等价但顺序不同的对象会重建实例。memo 能避免重复序列化并让意图更清楚。不要原地修改这两个对象：相同引用会被视为未变化。
 - **`option` 更新由引用驱动** — 每个新的 `option` 引用都会调用 `setOption`；原地修改同一对象不会被观察到。父组件频繁渲染时应缓存昂贵 option，并在图表数据变化时替换外层对象。
-- **`setOptionOpts` 按值比较** — 以 `JSON.stringify` 输出作为 key（属性顺序会影响 key），因此内联的 `setOptionOpts={{ replaceMerge: ["series"] }}` 不会在每次渲染时重新调用 `setOption`；值变化时会重新应用当前 `option`。
+- **`initOpts`、自定义 `theme` 对象和 `setOptionOpts` 以 `JSON.stringify` 输出作为 key** — 分别创建但输出相同的对象视为未变化，因此可以内联；属性插入顺序会影响输出，字段相同但顺序不同也算变化。`initOpts` 或 `theme` 变化会重建实例，`setOptionOpts` 变化会重新应用当前 `option`。memo 能避免重复序列化。不要原地修改这些对象：相同引用会被视为未变化。
 - **命令式更新保留到下一次真实的 prop 变化** — `setOption`、`clear`、`appendData` 留在图表上的状态不受无关的重新渲染影响；下一次传入新的 `option` 引用或改变 `setOptionOpts` 的值时，会重新应用声明式 option。
-- **StrictMode 安全** — 双挂载/卸载由带引用计数的实例缓存正确处理。
 
 ## API 参考
 
@@ -342,25 +299,25 @@ export default function Page() {
 
 #### Options
 
-| 选项            | 类型                                  | 默认值     | 说明                                                                                                                                                                                                                                           |
-| --------------- | ------------------------------------- | ---------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `option`        | `EChartsOption`                       | （必需）   | ECharts 配置选项                                                                                                                                                                                                                               |
-| `theme`         | `string \| object`                    | —          | 任意已注册主题名或自定义主题对象                                                                                                                                                                                                               |
-| `renderer`      | `'canvas' \| 'svg'`                   | `'canvas'` | 渲染器类型                                                                                                                                                                                                                                     |
-| `lazyInit`      | `boolean \| IntersectionObserverInit` | `false`    | 基于 IntersectionObserver 的懒加载                                                                                                                                                                                                             |
-| `group`         | `string`                              | —          | 图表联动组 ID                                                                                                                                                                                                                                  |
-| `setOptionOpts` | `SetOptionOpts`                       | —          | `setOption` 的默认选项，按值比较                                                                                                                                                                                                               |
-| `showLoading`   | `boolean`                             | `false`    | 是否显示加载指示器                                                                                                                                                                                                                             |
-| `loadingOption` | `LoadingOption`                       | —          | 加载指示器配置                                                                                                                                                                                                                                 |
-| `onEvents`      | `EChartsEvents`                       | —          | 事件处理器（`fn` 或 `{ handler, query?, context? }`）                                                                                                                                                                                          |
-| `autoResize`    | `boolean`                             | `true`     | 通过 ResizeObserver 自动 resize                                                                                                                                                                                                                |
-| `initOpts`      | `EChartsInitOpts`                     | —          | 传递给 `echarts.init()`（devicePixelRatio、locale、width 等）                                                                                                                                                                                  |
-| `onError`       | `(error: unknown) => void`            | —          | 处理库已包裹的图表操作和命令式 API 错误；动态事件重绑中的 `off` 异常不在路由保证范围内。未提供时，已包裹的 effect 操作失败走 `console.error`，命令式方法则直接抛出。`lazyInit` 的观察器参数无效时始终走 `console.error`（见[懒加载](#懒加载)） |
+| 选项            | 类型                                  | 默认值     | 说明                                                                                                                                                                                        |
+| --------------- | ------------------------------------- | ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `option`        | `EChartsOption`                       | （必需）   | ECharts 配置选项                                                                                                                                                                            |
+| `theme`         | `string \| object`                    | —          | 任意已注册主题名或自定义主题对象                                                                                                                                                            |
+| `renderer`      | `'canvas' \| 'svg'`                   | `'canvas'` | 渲染器类型                                                                                                                                                                                  |
+| `lazyInit`      | `boolean \| IntersectionObserverInit` | `false`    | 基于 IntersectionObserver 的懒加载                                                                                                                                                          |
+| `group`         | `string`                              | —          | 图表联动组 ID                                                                                                                                                                               |
+| `setOptionOpts` | `SetOptionOpts`                       | —          | `setOption` 的默认选项，按值比较                                                                                                                                                            |
+| `showLoading`   | `boolean`                             | `false`    | 是否显示加载指示器                                                                                                                                                                          |
+| `loadingOption` | `LoadingOption`                       | —          | 加载指示器配置                                                                                                                                                                              |
+| `onEvents`      | `EChartsEvents`                       | —          | 事件处理器（`fn` 或 `{ handler, query?, context? }`）                                                                                                                                       |
+| `autoResize`    | `boolean`                             | `true`     | 通过 ResizeObserver 自动 resize                                                                                                                                                             |
+| `initOpts`      | `EChartsInitOpts`                     | —          | 传递给 `echarts.init()`（devicePixelRatio、locale、width 等）                                                                                                                               |
+| `onError`       | `(error: unknown) => void`            | —          | 接收 `init`、`setOption`、事件绑定、loading、resize、group 联动和命令式调用的错误。未提供时，effect 操作失败走 `console.error`，命令式方法直接抛出。动态事件重绑中的 `off()` 异常会直接抛出 |
 
 #### 返回值
 
 > 优先使用声明式 props（`option`、`theme`、`showLoading` 等），命令式方法仅在 props 未覆盖的场景下使用——例如导出图片、坐标转换、流式追加等。
-> 实例未初始化时所有方法均为 no-op 或返回安全默认值。实例抛出错误时：提供 `onError` 时路由错误并返回默认值；未提供 `onError` 时直接重新抛出（读取方法亦同，不会回退到 `console.error`）。
+> 实例未初始化时所有方法均为 no-op 或返回安全默认值。实例抛出错误时：提供 `onError` 时路由错误并返回默认值；未提供时直接重新抛出（读取方法亦同）。
 
 返回的对象**引用稳定**：只有实时 `instance` 或容器元素变化时（初始化、销毁、容器替换）其引用才会改变，无关的重渲染不会。可以直接放进依赖数组。
 
@@ -373,13 +330,13 @@ export default function Page() {
 
 **生命周期 / 更新**
 
-| 方法             | 类型                                                                                 | 说明                                                                                                          |
-| ---------------- | ------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------- |
-| `setOption`      | `(option: EChartsOption, opts?: SetOptionOpts) => void`                              | 动态更新图表配置；保留到下一次 `option` / `setOptionOpts` 变化                                                |
-| `dispatchAction` | `(payload: Payload, opt?: boolean \| { silent?: boolean; flush?: boolean }) => void` | 派发 ECharts 动作（`highlight`、`downplay`、`showTip` 等）                                                    |
-| `clear`          | `() => void`                                                                         | 清空当前图表内容                                                                                              |
-| `resize`         | `(opts?: ResizeOpts) => void`                                                        | 手动触发 resize；`ResizeOpts` 支持 `width`/`height`/`animation`/`silent`                                      |
-| `appendData`     | `(params: Parameters<ECharts["appendData"]>[0]) => void`                             | 向 series 流式追加数据；会使 prop 同步记录失效，以便下一次 `option` / `setOptionOpts` 变化时恢复声明式 option |
+| 方法             | 类型                                                                                 | 说明                                                                     |
+| ---------------- | ------------------------------------------------------------------------------------ | ------------------------------------------------------------------------ |
+| `setOption`      | `(option: EChartsOption, opts?: SetOptionOpts) => void`                              | 动态更新图表配置                                                         |
+| `dispatchAction` | `(payload: Payload, opt?: boolean \| { silent?: boolean; flush?: boolean }) => void` | 派发 ECharts 动作（`highlight`、`downplay`、`showTip` 等）               |
+| `clear`          | `() => void`                                                                         | 清空当前图表内容                                                         |
+| `resize`         | `(opts?: ResizeOpts) => void`                                                        | 手动触发 resize；`ResizeOpts` 支持 `width`/`height`/`animation`/`silent` |
+| `appendData`     | `(params: Parameters<ECharts["appendData"]>[0]) => void`                             | 向 series 流式追加数据                                                   |
 
 **读取 / 内省**
 
@@ -402,14 +359,14 @@ export default function Page() {
 
 **坐标转换**
 
-| 方法               | 类型                                                                                                                                                                                | 说明                                                        |
-| ------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------- |
-| `convertToPixel`   | `(finder: ChartFinder, value: ChartScaleValue \| Array<ChartScaleValue \| ChartScaleValue[] \| null \| undefined>, opt?: unknown) => number \| number[] \| undefined`               | 逻辑坐标 → 像素坐标                                         |
-| `convertToLayout`  | `(finder: ChartFinder, value: ChartScaleValue \| null \| undefined \| Array<ChartScaleValue \| ChartScaleValue[] \| null \| undefined>, opt?: unknown) => ChartLayout \| undefined` | calendar / matrix 坐标 → 单元格布局（`rect` 等）；ECharts 6 |
-| `convertFromPixel` | `(finder: ChartFinder, value: number \| number[], opt?: unknown) => number \| number[] \| undefined`                                                                                | 像素坐标 → 逻辑坐标                                         |
-| `containPixel`     | `(finder: ChartFinder, value: number[]) => boolean`                                                                                                                                 | 像素点是否落在指定组件内（实例未初始化时返回 false）        |
+| 方法               | 类型                                                       | 说明                                                        |
+| ------------------ | ---------------------------------------------------------- | ----------------------------------------------------------- |
+| `convertToPixel`   | `(finder, value, opt?) => number \| number[] \| undefined` | 逻辑坐标 → 像素坐标                                         |
+| `convertToLayout`  | `(finder, value, opt?) => ChartLayout \| undefined`        | calendar / matrix 坐标 → 单元格布局（`rect` 等）；ECharts 6 |
+| `convertFromPixel` | `(finder, value, opt?) => number \| number[] \| undefined` | 像素坐标 → 逻辑坐标                                         |
+| `containPixel`     | `(finder, value) => boolean`                               | 像素点是否落在指定组件内（实例未初始化时返回 false）        |
 
-`ChartFinder` 为字符串简写（`"series"`）或以任意 `<组件类型>Index | Id | Name` 为键的查询对象（`seriesIndex`、`calendarIndex`、`matrixId` 等，与 ECharts 文档一致）。`ChartScaleValue` 为 `number | string | Date`。`opt` 由坐标系定义，例如 `matrix` 的 `{ clamp, ignoreMergeCells }`。`ChartLayout` 为 ECharts 返回的 `{ rect?, contentRect?, matrixXYLocatorRange? }`。
+`finder` 类型为 `ChartFinder`：字符串简写（`"series"`）或以任意 `<组件类型>Index | Id | Name` 为键的查询对象（`seriesIndex`、`calendarIndex`、`matrixId` 等，与 ECharts 文档一致）。`convertToPixel` / `convertToLayout` 的 `value` 为 `ChartScaleValue`（`number | string | Date`）或其数组；`convertFromPixel` 的 `value` 为 `number | number[]`，`containPixel` 的 `value` 为 `number[]`。`opt` 由坐标系定义，例如 `matrix` 的 `{ clamp, ignoreMergeCells }`。`ChartLayout` 为 ECharts 返回的 `{ rect?, contentRect?, matrixXYLocatorRange? }`。
 
 ### 其他导出
 
@@ -424,11 +381,10 @@ import { registerEchartsFull } from "react-use-echarts/preset-full"; // 一行�
 // EChartProps, EChartHandle, EChartsEvents, EChartsEventConfig, EChartsEventHandler,
 // EChartsEventPayloadMap, EChartsInitOpts, BuiltinTheme, LoadingOption,
 // ChartFinder, ChartLayout, ChartScaleValue, Payload。
-// EChartsOption、SetOptionOpts、ResizeOpts 也从此处转出（源自 "echarts" 包），
-// 可与上面的类型一起从 react-use-echarts 统一导入，无需再单独 import "echarts"。
+// EChartsOption、SetOptionOpts、ResizeOpts 也从 "echarts" 转出，方便统一导入。
 ```
 
-`mergeRefs` 返回一个 callback ref，将节点分发到每个传入的 ref —— 支持 `RefObject`、旧式 callback ref、以及带 cleanup 的 React 19 callback ref —— 并对每次调用做 try/catch 隔离，第三方 ref 抛错不会拖垮图表。需要同时拿到 Hook 提供的 ref 和你自己的 ref 时使用：
+`mergeRefs` 将节点分发到每个传入的 ref —— 支持 `RefObject`、旧式 callback ref、以及带 cleanup 的 React 19 callback ref —— 并对每次调用做隔离，第三方 ref 抛错不会拖垮图表：
 
 ```tsx
 const myRef = useRef<HTMLDivElement>(null);
@@ -438,27 +394,20 @@ return <div ref={mergeRefs(ref, myRef)} style={{ height: 400 }} />;
 
 ## 从 `echarts-for-react` 迁移
 
-绝大多数 prop 是 1:1 对应，少数被并入现有选项。速查表：
+绝大多数 prop 是 1:1 对应：`option`、`showLoading`、`loadingOption`、`className` 和 `autoResize`（3.0.3+）完全一致。其余对应关系：
 
-| `echarts-for-react`       | `react-use-echarts`                       | 说明                                                                                                                                                              |
-| ------------------------- | ----------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `option`                  | `option`                                  | 一致                                                                                                                                                              |
-| `theme`                   | `theme`                                   | 一致；`"macarons"` 需先调用 `registerBuiltinThemes()`（见[主题](#主题)）                                                                                          |
-| `notMerge` / `lazyUpdate` | `setOptionOpts: { notMerge, lazyUpdate }` | 合并为单个对象传给 `setOption`                                                                                                                                    |
-| `showLoading`             | `showLoading`                             | 一致                                                                                                                                                              |
-| `loadingOption`           | `loadingOption`                           | 一致                                                                                                                                                              |
-| `onEvents`                | `onEvents`                                | 形态一致；也可写 `{ handler, query?, context? }` 进行 query/context 绑定                                                                                          |
-| `onChartReady`            | `useEcharts` + 响应式 `instance`          | `useEffect(() => { if (instance) onReady(instance); }, [instance, onReady])`——Hook 返回值会在 init/dispose 完成时 re-render；`<EChart>` 的对象 ref 仅供命令式访问 |
-| `opts.renderer`           | `renderer: 'canvas' \| 'svg'`             | 提升为顶层字段                                                                                                                                                    |
-| `opts`（其他字段）        | `initOpts`                                | 结构相同，但不含 `renderer`（见上方顶层字段）和 `ssr`（不支持；本包仅支持 CSR）                                                                                   |
-| `style`                   | `style`                                   | `<EChart />` 默认 `{ width: '100%', height: '100%' }`，父容器仍需显式高度                                                                                         |
-| `className`               | `className`                               | 一致                                                                                                                                                              |
-| `lazyUpdate`（顶层）      | `setOptionOpts: { lazyUpdate: true }`     | 见 `notMerge` 行                                                                                                                                                  |
-| `shouldSetOption`         | 在父组件中自行控制 `option`               | 新的 `option` 引用会触发 `setOption`；如需自定义判断（深比较、节流、按应用状态门控），请在父组件中 memoize 或跳过 `option` prop                                   |
-| `autoResize`（3.0.3+）    | `autoResize`                              | 默认值同为 `true`；底层使用 ResizeObserver + RAF                                                                                                                  |
-| _无_                      | `lazyInit`                                | 新增：容器进入视口时再初始化                                                                                                                                      |
-| _无_                      | `group`                                   | 新增：通过组 ID 实现图表联动                                                                                                                                      |
-| _无_                      | `onError`                                 | 新增：路由受保护的 `init`、`setOption`、事件绑定、loading、resize、group 联动和命令式调用错误；不保证路由动态事件重绑中的 `off` 异常                              |
+| `echarts-for-react`       | `react-use-echarts`                       | 说明                                                                                                                            |
+| ------------------------- | ----------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| `theme`                   | `theme`                                   | 一致；`"macarons"` 需先调用 `registerBuiltinThemes()`（见[主题](#主题)）                                                        |
+| `notMerge` / `lazyUpdate` | `setOptionOpts: { notMerge, lazyUpdate }` | 合并为单个对象传给 `setOption`                                                                                                  |
+| `onEvents`                | `onEvents`                                | 形态一致；也可写 `{ handler, query?, context? }` 进行 query/context 绑定                                                        |
+| `onChartReady`            | `useEcharts` + 响应式 `instance`          | 见下方 effect 示例                                                                                                              |
+| `opts.renderer`           | `renderer: 'canvas' \| 'svg'`             | 提升为顶层字段                                                                                                                  |
+| `opts`（其他字段）        | `initOpts`                                | 结构相同，但不含 `renderer`（见上方顶层字段）和 `ssr`（不支持；本包仅支持 CSR）                                                 |
+| `style`                   | `style`                                   | `<EChart />` 默认 `{ width: '100%', height: '100%' }`，父容器仍需显式高度                                                       |
+| `shouldSetOption`         | 在父组件中自行控制 `option`               | 新的 `option` 引用会触发 `setOption`；如需自定义判断（深比较、节流、按应用状态门控），请在父组件中 memoize 或跳过 `option` prop |
+
+`lazyInit`、`group` 和 `onError` 是新增能力，`echarts-for-react` 中没有对应项。
 
 并排示例：
 
@@ -490,8 +439,7 @@ return <div ref={mergeRefs(ref, myRef)} style={{ height: 400 }} />;
 // instance 变化时，对象 ref 不会通知父组件。
 ```
 
-若要获得类似 `onChartReady` 的响应式通知，请直接使用 Hook 返回的 `instance`
-并通过 effect 订阅：
+若要获得类似 `onChartReady` 的响应式通知，请直接使用 Hook 返回的 `instance`（init/dispose 完成时触发 re-render），并通过 effect 订阅：
 
 ```tsx
 const { ref, instance } = useEcharts({ option });
@@ -505,52 +453,21 @@ return <div ref={ref} style={{ height: 400 }} />;
 
 ## 从 v2.x 迁移
 
-v3 移除了旧的 `react-use-echarts/core` 子入口。如果你的代码已经从 `react-use-echarts` 导入，并且已经在首个图表渲染前注册 ECharts 模块，则无需改动。
+v3 移除了旧的 `react-use-echarts/core` 子入口：请把所有残留的 `from "react-use-echarts/core"` 替换为 `from "react-use-echarts"`。
 
-如果你是从 v2.0 的全量默认入口升级，或应用仍依赖 `import "echarts"` 的副作用注册，请在应用入口**加一次注册调用**：
-
-```ts
-// 应用入口（如 main.tsx, index.tsx）
-import { registerEchartsFull } from "react-use-echarts/preset-full";
-registerEchartsFull();
-```
-
-该调用与 v2.0 的自动 ECharts 注册等价，同样提供全套体验（ECharts 6.1 下约 370 KB gzip；实际大小随版本和打包器而变化）。生产构建若只渲染少数图表类型，请改用 `echarts.use([...])` 按需注册 —— 参见 [Tree-shaking](#tree-shaking)。
-
-请把所有残留的 `from "react-use-echarts/core"` 替换为 `from "react-use-echarts"`。
+如果你是从 v2.0 的全量默认入口升级，或应用仍依赖 `import "echarts"` 的副作用注册，还需在应用入口加一次注册调用：`registerEchartsFull()` 与 v2.0 的自动注册等价，也可改用 `echarts.use([...])` 按需注册（见[注册 ECharts 模块](#注册-echarts-模块)）。已经在首个图表渲染前注册 ECharts 模块的应用无需其他改动。
 
 ## 从 v1 迁移
 
-v2.0 翻转了 Hook 形态：返回 callback ref + 响应式 `instance`，对齐 `floating-ui/react`、`react-aria`、`downshift`、`react-hook-form` 等社区现代约定。`<EChart />` 组件对外 props 完全不变，只有直接使用 Hook 的调用方以及 `<EChart ref>` 的类型需要迁移。
+v2.0 翻转了 Hook 形态：返回 callback ref + 响应式 `instance`。`<EChart />` 组件对外 props 完全不变，只有直接使用 Hook 的调用方以及 `<EChart ref>` 的类型需要迁移。
 
-| v1                                               | v2                                              | 说明                                                                                                                                 |
-| ------------------------------------------------ | ----------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
-| `const ref = useRef(); useEcharts(ref, options)` | `const { ref } = useEcharts(options)`           | Hook 自己持有 callback ref，挂到你的容器即可                                                                                         |
-| 返回对象上的 `getInstance()` 方法                | 同一返回对象上的 `instance` 字段                | 响应式 —— init/dispose 完成时触发 re-render，可用 `useEffect([instance])` 订阅                                                       |
-| `useLazyInit(ref, options)` 返回 `boolean`       | `useLazyInit(options)` 返回 `{ ref, isInView }` | 同样改为 callback ref 形态                                                                                                           |
-| `useRef<UseEchartsReturn>(null)` 配 `<EChart>`   | `useRef<EChartHandle>(null)` 配 `<EChart>`      | `EChartHandle = Omit<UseEchartsReturn, 'ref'>` —— 容器 ref 改由 `<EChart>` 内部自管，不再暴露给外部，杜绝通过 handle 重定向 DOM 节点 |
-| 手写合并多个 ref                                 | `mergeRefs(chartRef, myRef)`                    | 新增公开工具（见[其他导出](#其他导出)）                                                                                              |
-
-并排 Hook 示例：
-
-```tsx
-// v1
-const chartRef = useRef<HTMLDivElement>(null);
-const { setOption, getInstance } = useEcharts(chartRef, { option });
-useEffect(() => {
-  getInstance()?.on("finished", handler);
-}, []);
-return <div ref={chartRef} style={{ height: 400 }} />;
-
-// v2
-const { ref, instance, setOption } = useEcharts({ option });
-useEffect(() => {
-  if (!instance) return;
-  instance.on("finished", handler);
-  return () => instance.off("finished", handler);
-}, [instance]);
-return <div ref={ref} style={{ height: 400 }} />;
-```
+| v1                                               | v2                                              | 说明                                                                              |
+| ------------------------------------------------ | ----------------------------------------------- | --------------------------------------------------------------------------------- |
+| `const ref = useRef(); useEcharts(ref, options)` | `const { ref } = useEcharts(options)`           | Hook 自己持有 callback ref，挂到你的容器即可                                      |
+| 返回对象上的 `getInstance()` 方法                | 同一返回对象上的 `instance` 字段                | 响应式 —— init/dispose 完成时触发 re-render，可用 `useEffect([instance])` 订阅    |
+| `useLazyInit(ref, options)` 返回 `boolean`       | `useLazyInit(options)` 返回 `{ ref, isInView }` | 同样改为 callback ref 形态                                                        |
+| `useRef<UseEchartsReturn>(null)` 配 `<EChart>`   | `useRef<EChartHandle>(null)` 配 `<EChart>`      | `EChartHandle = Omit<UseEchartsReturn, 'ref'>` —— 容器 ref 由 `<EChart>` 内部自管 |
+| 手写合并多个 ref                                 | `mergeRefs(chartRef, myRef)`                    | 新增公开工具（见[其他导出](#其他导出)）                                           |
 
 ## 贡献
 

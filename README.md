@@ -6,11 +6,8 @@
 [![NPM downloads](https://img.shields.io/npm/dm/react-use-echarts.svg)](https://www.npmjs.com/package/react-use-echarts)
 [![CI](https://github.com/chensid/react-use-echarts/actions/workflows/ci.yml/badge.svg)](https://github.com/chensid/react-use-echarts/actions/workflows/ci.yml)
 [![codecov](https://codecov.io/gh/chensid/react-use-echarts/graph/badge.svg)](https://codecov.io/gh/chensid/react-use-echarts)
-[![GitHub issues](https://img.shields.io/github/issues/chensid/react-use-echarts)](https://github.com/chensid/react-use-echarts/issues)
-[![GitHub pull requests](https://img.shields.io/github/issues-pr/chensid/react-use-echarts)](https://github.com/chensid/react-use-echarts/pulls)
 [![GitHub license](https://img.shields.io/github/license/chensid/react-use-echarts.svg)](https://github.com/chensid/react-use-echarts/blob/main/LICENSE.txt)
 [![minzipped size](https://img.shields.io/bundlephobia/minzip/react-use-echarts?label=minzipped)](https://bundlephobia.com/package/react-use-echarts)
-[![types included](https://img.shields.io/npm/types/react-use-echarts)](https://www.npmjs.com/package/react-use-echarts)
 
 React hooks & component for Apache ECharts — TypeScript, auto-resize, themes, lazy init.
 
@@ -49,38 +46,46 @@ Already using `echarts-for-react`? Most props map 1:1 — see [Migrating from ec
 
 - React 19.2+ (`react` + `react-dom`)
 - ECharts 6.x
-- No Node.js version requirement of its own: the package is browser-only ESM, so only your bundler's Node.js support applies (the Node.js range in this repo's `devEngines` is for [contributing](./CONTRIBUTING.md))
+- Client-side rendering only — ECharts needs a live DOM, so SSR is not supported
+- ESM-only since 1.3.0 — every modern bundler (Vite, Next.js, webpack 5+, Rspack, Parcel, Turbopack) and Node 22.12+ (`require(ESM)`) consume it natively; if you still depend on CJS-only tooling, pin to `1.2.x`
+- No Node.js version requirement of its own — the package is browser-only, so only your bundler's Node.js support applies (the Node.js range in this repo's `devEngines` is for [contributing](./CONTRIBUTING.md))
 
-> **CSR only.** ECharts needs a live DOM; SSR is not supported.
->
-> **ESM-only since 1.3.0.** The package publishes ESM entries for the main API (`dist/index.js`) plus the `preset-full` and `themes/registry` subpaths. Every modern bundler (Vite, Next.js, webpack 5+, Rspack, Parcel, Turbopack) and Node 22.12+ (`require(ESM)`) consume them natively. If you still depend on CJS-only tooling, pin to `1.2.x`.
->
-> **Development and production builds.** The main entry ships a production build (`default` export condition, dev-only warnings removed) and a development build (`development` condition, with the dev-only warnings). Vite, webpack, Rspack, Next.js (webpack and Turbopack) and Vitest pick the development build automatically in dev; esbuild, Bun and Parcel's defaults resolve the production build, so add the `development` condition there to get the warnings. Neither build needs a `process` global. Consumer tests in a Node environment (`NODE_ENV=test`) stay quiet, while Vitest browser mode shows the warnings.
+> **Dev-only warnings** ship in a separate build under the `development` export condition; the `default` condition resolves the production build, and neither needs a `process` global. Vite, webpack, Rspack, Next.js (webpack and Turbopack) and Vitest pick the development build automatically in dev; esbuild, Bun and Parcel's defaults resolve the production build, so add the `development` condition there to get the warnings. Consumer tests in a Node environment (`NODE_ENV=test`) stay quiet, while Vitest browser mode shows the warnings.
 
 ## Installation
 
 ```bash
 npm install react-use-echarts echarts
-# or
-yarn add react-use-echarts echarts
-# or
-pnpm add react-use-echarts echarts
 ```
 
 ## Register ECharts modules
 
-Since v2.1 `react-use-echarts` is fully modular — it does not auto-register any ECharts chart, component, renderer or feature. Call one of the registrars below **once at your application entry**, before the first chart renders:
+`react-use-echarts` does not auto-register any ECharts chart, component, renderer or feature (since v2.1): the default entry imports only `echarts/core`, so each app decides what ends up in its bundle. Register **before the first `useEcharts()` render**, usually once at your application entry:
 
 ```ts
-// Simplest — registers everything ECharts ships with (~370 KB gzip with ECharts 6.1;
+// Registers everything ECharts ships with (~370 KB gzip with ECharts 6.1;
 // exact size varies by ECharts version and bundler).
 import { registerEchartsFull } from "react-use-echarts/preset-full";
 registerEchartsFull();
 ```
 
-Or, for tree-shake-friendly production builds, register only what you actually render — see [Tree-shaking](#tree-shaking) for the recipe.
+### Tree-shaking
 
-> **Why?** The default `react-use-echarts` entry imports only `echarts/core`, so it does not force the full ECharts surface into every consumer bundle. Explicit registration lets each app choose the one-line full preset or a smaller selective module list.
+For production builds, register only what you render (recommended) — bundlers tree-shake the rest of ECharts away:
+
+```ts
+import * as echarts from "echarts/core";
+import { LineChart } from "echarts/charts";
+import { GridComponent, TooltipComponent } from "echarts/components";
+import { CanvasRenderer } from "echarts/renderers";
+echarts.use([LineChart, GridComponent, TooltipComponent, CanvasRenderer]);
+```
+
+See [`examples/features/SelectiveRegistrationChart.tsx`](./examples/features/SelectiveRegistrationChart.tsx) for a runnable demo.
+
+If your app already imports the full `"echarts"` entry, ECharts performs its built-in registrations and you do not need `registerEchartsFull()` as well.
+
+ECharts maintains a single global registry, so `echarts.use([...])` and `registerEchartsFull()` compose freely — in any order, anywhere in your app, as long as they run before the first render.
 
 ## Quick Start
 
@@ -107,13 +112,11 @@ function MyChart() {
 }
 ```
 
-The chart container must have an explicit size. The example above sets it on `<EChart />`; if you keep the default `{ width: "100%", height: "100%" }`, make sure the parent has an explicit height.
-
-Pass `ref` to access the imperative API — see [Returns](#returns) for the full list (`setOption`, `dispatchAction`, `clear`, `resize`, `appendData`, `getDataURL`, `convertToPixel`, …).
+Pass `ref` to access the [imperative API](#returns).
 
 ### 2. Use the Hook Directly
 
-For full control, use the hook directly. It returns a callback `ref` to attach to your container plus a reactive `instance` field and the full imperative API:
+For full control, use the hook directly. It returns a callback `ref` to attach to your container, a reactive `instance` field and the full [imperative API](#returns):
 
 ```tsx
 import { useEcharts } from "react-use-echarts";
@@ -129,8 +132,6 @@ function MyChart() {
   return <div ref={ref} style={{ width: "100%", height: "400px" }} />;
 }
 ```
-
-`instance` is `undefined` before init and after dispose; subscribe via `useEffect([instance])` to run side effects against the live ECharts instance.
 
 ## Recipes
 
@@ -155,7 +156,7 @@ const customTheme = useMemo(() => ({ color: ["#fc8452", "#9a60b4", "#ea7ccc"] })
 useEcharts({ option, theme: customTheme });
 ```
 
-> Note: theme names registered directly via `echarts.registerTheme()` (like `"vintage"` above) work, but trigger a one-time dev-only warning because the library cannot see that registration. Prefer `registerCustomTheme(name, config)` from `react-use-echarts` — it registers the theme by name through the library, which silences the warning. If you must register via `echarts.registerTheme()` (e.g. a third-party package does it for you), the warning is safe to ignore as long as registration happens before the chart mounts; it never appears in production builds.
+> Note: theme names registered directly via `echarts.registerTheme()` (like `"vintage"` above) work, but the library cannot see that registration, so they trigger a one-time dev-only warning. Prefer `registerCustomTheme(name, config)` from `react-use-echarts`, which silences it. If a third-party package registers the theme for you, the warning is safe to ignore as long as registration happens before the chart mounts.
 
 ### Event Handling
 
@@ -229,45 +230,10 @@ useEcharts({
 });
 ```
 
-When lazy mode is enabled, omitted observer settings default to `root: null`,
-`rootMargin: "50px"`, and `threshold: 0.1`. The standalone `useLazyInit(options)`
-export uses the same defaults and returns its own `{ ref, isInView }`
-callback-ref pair.
-
-The public option type remains `IntersectionObserverInit`, but the current
-implementation forwards only `root`, `rootMargin`, and `threshold` to the
-observer. The newer `scrollMargin` field is not currently supported and is ignored.
-
-> Note: lazy init is a one-shot latch — "lazy" means "defer until first visible", not "track visibility". Once the element has intersected, the chart stays initialized for the hook's lifetime: replacing the container DOM node or toggling `lazyInit` off and back on does not re-arm observation. The same holds for a chart that started eager: switching `lazyInit` on after it initialized keeps it alive (like `<img loading>` changing to `"lazy"` after load). To start deferring again, remount the component.
-
-> Invalid observer settings never break the chart: an out-of-range `threshold`, a unit-less `rootMargin`, or a `root` that is neither an `Element` nor a `Document` makes the `IntersectionObserver` constructor throw, so the hook logs via `console.error` and degrades to eager init — the chart renders immediately instead of staying blank.
-
-### Tree-shaking
-
-The library is fully modular — pick the registration tier that matches your build target:
-
-**Tier 1 — All-in-one (development / prototyping).** One line, ~370 KB gzip with ECharts 6.1 (exact size varies by version and bundler):
-
-```ts
-import { registerEchartsFull } from "react-use-echarts/preset-full";
-registerEchartsFull();
-```
-
-**Tier 2 — Selective (recommended for production).** Register only what you render — bundlers tree-shake the rest of ECharts away:
-
-```ts
-import * as echarts from "echarts/core";
-import { LineChart } from "echarts/charts";
-import { GridComponent, TooltipComponent } from "echarts/components";
-import { CanvasRenderer } from "echarts/renderers";
-echarts.use([LineChart, GridComponent, TooltipComponent, CanvasRenderer]);
-```
-
-See [`examples/features/SelectiveRegistrationChart.tsx`](./examples/features/SelectiveRegistrationChart.tsx) for a runnable demo.
-
-**Tier 3 — Existing full-entry registration.** If your app already imports the full `"echarts"` entry, ECharts performs its built-in registrations and you do not need to call `registerEchartsFull()` as well. Tier 1 makes the full-registration choice explicit; Tier 2 remains the smaller production path.
-
-> ECharts maintains a single global registry — `echarts.use([...])` and `registerEchartsFull()` compose freely. You can call them in any order, anywhere in your app, but they must run **before** the first `useEcharts()` render.
+- **Defaults** — omitted observer settings default to `root: null`, `rootMargin: "50px"` and `threshold: 0.1`. The standalone `useLazyInit(options)` export uses the same defaults and returns its own `{ ref, isInView }` callback-ref pair.
+- **Supported settings** — the option type is `IntersectionObserverInit`, but only `root`, `rootMargin` and `threshold` reach the observer; the newer `scrollMargin` field is ignored.
+- **One-shot latch** — "lazy" means "defer until first visible", not "track visibility". Once the element has intersected, the chart stays initialized for the hook's lifetime: replacing the container DOM node or toggling `lazyInit` off and back on does not re-arm observation, and switching `lazyInit` on after an eager init keeps the chart alive (like `<img loading>` changing to `"lazy"` after load). To start deferring again, remount the component.
+- **Invalid settings never break the chart** — an out-of-range `threshold`, a unit-less `rootMargin`, or a `root` that is neither an `Element` nor a `Document` makes the `IntersectionObserver` constructor throw, so the hook logs via `console.error` (not `onError`) and degrades to eager init.
 
 ### Use with Next.js (App Router)
 
@@ -298,15 +264,6 @@ export function MyChart() {
 }
 ```
 
-```tsx
-// app/page.tsx (Server Component) — imports the Client Component directly
-import { MyChart } from "./components/MyChart";
-
-export default function Page() {
-  return <MyChart />;
-}
-```
-
 > **Pages Router only:** if you need to load the chart inside `getServerSideProps` /
 > `getStaticProps` pages and force client-only rendering, use
 > `dynamic(() => import("./components/MyChart").then((m) => m.MyChart), { ssr: false })`.
@@ -315,15 +272,13 @@ export default function Page() {
 
 ## Gotchas
 
-- **Container needs explicit size** — the chart won't render in a zero-height div; give the container `height` (and `width` if not 100%).
-- **Forgetting to register ECharts modules** — `useEcharts()` initializes a chart against ECharts' shared global registry, so charts/components/renderers/features must be registered (via `registerEchartsFull()` or `echarts.use([...])`) **before** the first render. A missing registration usually shows up as `Renderer 'undefined' is not imported` or a chart that silently never paints; see [Register ECharts modules](#register-echarts-modules). In dev, if init throws `… is not a constructor`, the library also prints a one-time hint pointing you here.
-- **Inline `onEvents` is fine** — each event name is bound once to a proxy that calls the handler from the latest render, so new handler references (inline lambdas, handlers closing over fresh state) never rebind and never see stale props. Only adding/removing an event name, changing a `query` (compared shallowly), or changing a `context` reference rebinds. Because ECharts holds the proxy rather than your function, `instance.off(name, yourHandler)` does not remove a listener bound through `onEvents` — remove the entry from `onEvents` instead.
+- **Container needs explicit size** — the chart won't render in a zero-height div; give the container `height` (and `width` if not 100%). `<EChart />` defaults to `{ width: "100%", height: "100%" }`, so without a `height` of its own the parent needs an explicit one.
+- **Forgetting to register ECharts modules** — usually shows up as `Renderer 'undefined' is not imported` or a chart that silently never paints; see [Register ECharts modules](#register-echarts-modules). In dev, if init throws `… is not a constructor`, the library also prints a one-time hint pointing you here.
+- **Inline `onEvents` is fine** — each event name is bound once to a proxy that calls the handler from the latest render, so new handler references never rebind and never see stale props. Only adding/removing an event name, changing a `query` (compared shallowly), or changing a `context` reference rebinds. Because ECharts holds the proxy rather than your function, `instance.off(name, yourHandler)` does not remove a listener bound through `onEvents` — remove the entry from `onEvents` instead.
 - **Don't share one DOM element across multiple `useEcharts` hooks** — the instance cache reuses a single ECharts instance and emits a dev warning; updates from different hooks will overwrite each other.
-- **`initOpts` and custom `theme` objects are keyed by `JSON.stringify` output** — separately allocated objects that produce the same JSON string do not recreate the instance. Property order affects that string, so objects with the same fields in a different insertion order do recreate it. Memoizing avoids repeated serialization and makes intent clear. Never mutate either object in place: the same reference is treated as unchanged.
 - **`option` updates are reference-driven** — every new `option` reference calls `setOption`, while in-place mutation of the same object is not observed. Memoize expensive options when parent renders are frequent, and replace the wrapper object when chart data changes.
-- **`setOptionOpts` is compared by value** — it is keyed by its `JSON.stringify` output (property order affects the key), so an inline `setOptionOpts={{ replaceMerge: ["series"] }}` does not re-run `setOption` on every render. Changing its value re-applies the current `option`.
+- **`initOpts`, custom `theme` objects and `setOptionOpts` are keyed by `JSON.stringify` output** — separately allocated objects that produce the same string count as unchanged, so inline objects are fine; property order affects the string, so the same fields in a different insertion order count as changed. A changed `initOpts` or `theme` recreates the instance; a changed `setOptionOpts` re-applies the current `option`. Memoizing avoids repeated serialization. Never mutate these objects in place: the same reference is treated as unchanged.
 - **Imperative updates last until the next real prop change** — whatever `setOption`, `clear` or `appendData` leave on the chart survives unrelated re-renders; the next new `option` reference or changed `setOptionOpts` value re-applies the declarative option.
-- **StrictMode is safe** — double mount/unmount is handled by the reference-counted instance cache.
 
 ## API Reference
 
@@ -346,25 +301,25 @@ All other native `div` attributes are forwarded to the chart container, includin
 
 #### Options
 
-| Option          | Type                                  | Default    | Description                                                                                                                                                                                                                                                                                                                                    |
-| --------------- | ------------------------------------- | ---------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `option`        | `EChartsOption`                       | (required) | ECharts configuration                                                                                                                                                                                                                                                                                                                          |
-| `theme`         | `string \| object`                    | —          | Any registered theme name, or custom theme object                                                                                                                                                                                                                                                                                              |
-| `renderer`      | `'canvas' \| 'svg'`                   | `'canvas'` | Renderer type                                                                                                                                                                                                                                                                                                                                  |
-| `lazyInit`      | `boolean \| IntersectionObserverInit` | `false`    | Lazy initialization via IntersectionObserver                                                                                                                                                                                                                                                                                                   |
-| `group`         | `string`                              | —          | Chart linkage group ID                                                                                                                                                                                                                                                                                                                         |
-| `setOptionOpts` | `SetOptionOpts`                       | —          | Default options for `setOption` calls, compared by value                                                                                                                                                                                                                                                                                       |
-| `showLoading`   | `boolean`                             | `false`    | Show loading indicator                                                                                                                                                                                                                                                                                                                         |
-| `loadingOption` | `LoadingOption`                       | —          | Loading indicator configuration                                                                                                                                                                                                                                                                                                                |
-| `onEvents`      | `EChartsEvents`                       | —          | Event handlers (`fn` or `{ handler, query?, context? }`)                                                                                                                                                                                                                                                                                       |
-| `autoResize`    | `boolean`                             | `true`     | Auto-resize via ResizeObserver                                                                                                                                                                                                                                                                                                                 |
-| `initOpts`      | `EChartsInitOpts`                     | —          | Passed to `echarts.init()` (devicePixelRatio, locale, width, etc.)                                                                                                                                                                                                                                                                             |
-| `onError`       | `(error: unknown) => void`            | —          | Receives handled effect-operation and imperative API failures. Without it, handled effect failures log via `console.error`; imperative methods rethrow. During dynamic event rebinding, `off()` errors surface directly. Invalid `lazyInit` observer settings always log via `console.error` (see [Lazy Initialization](#lazy-initialization)) |
+| Option          | Type                                  | Default    | Description                                                                                                                                                                                                                                                        |
+| --------------- | ------------------------------------- | ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `option`        | `EChartsOption`                       | (required) | ECharts configuration                                                                                                                                                                                                                                              |
+| `theme`         | `string \| object`                    | —          | Any registered theme name, or custom theme object                                                                                                                                                                                                                  |
+| `renderer`      | `'canvas' \| 'svg'`                   | `'canvas'` | Renderer type                                                                                                                                                                                                                                                      |
+| `lazyInit`      | `boolean \| IntersectionObserverInit` | `false`    | Lazy initialization via IntersectionObserver                                                                                                                                                                                                                       |
+| `group`         | `string`                              | —          | Chart linkage group ID                                                                                                                                                                                                                                             |
+| `setOptionOpts` | `SetOptionOpts`                       | —          | Default options for `setOption` calls, compared by value                                                                                                                                                                                                           |
+| `showLoading`   | `boolean`                             | `false`    | Show loading indicator                                                                                                                                                                                                                                             |
+| `loadingOption` | `LoadingOption`                       | —          | Loading indicator configuration                                                                                                                                                                                                                                    |
+| `onEvents`      | `EChartsEvents`                       | —          | Event handlers (`fn` or `{ handler, query?, context? }`)                                                                                                                                                                                                           |
+| `autoResize`    | `boolean`                             | `true`     | Auto-resize via ResizeObserver                                                                                                                                                                                                                                     |
+| `initOpts`      | `EChartsInitOpts`                     | —          | Passed to `echarts.init()` (devicePixelRatio, locale, width, etc.)                                                                                                                                                                                                 |
+| `onError`       | `(error: unknown) => void`            | —          | Receives failures from `init`, `setOption`, event binding, loading, resize, group linkage and imperative calls. Without it, effect failures log via `console.error` and imperative methods rethrow. `off()` errors during dynamic event rebinding surface directly |
 
 #### Returns
 
 > Prefer the declarative props (`option`, `theme`, `showLoading`, …) over imperative methods. Use these methods only when a prop does not cover the action — image export, coordinate conversion, streaming append, etc.
-> All methods are no-ops or return safe defaults when the instance is not yet initialized. When the instance throws, errors are routed through `onError` if provided (and the call returns the fallback); otherwise the error is rethrown — including from readers (no `console.error` fallback for imperative methods).
+> All methods are no-ops or return safe defaults when the instance is not yet initialized. When the instance throws, `onError` receives the error and the call returns the fallback; without `onError` the error is rethrown, including from readers.
 
 The returned object is **referentially stable**: its identity changes only when the live `instance` or the container element changes (init, dispose, container swap), never on an unrelated re-render. You can pass it straight into a dependency array.
 
@@ -377,13 +332,13 @@ The returned object is **referentially stable**: its identity changes only when 
 
 **Lifecycle / updates**
 
-| Method           | Type                                                                                 | Description                                                                                                                                          |
-| ---------------- | ------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `setOption`      | `(option: EChartsOption, opts?: SetOptionOpts) => void`                              | Update chart configuration; kept until the next `option` / `setOptionOpts` change                                                                    |
-| `dispatchAction` | `(payload: Payload, opt?: boolean \| { silent?: boolean; flush?: boolean }) => void` | Dispatch an ECharts action (`highlight`, `downplay`, `showTip`, etc.)                                                                                |
-| `clear`          | `() => void`                                                                         | Clear current chart content                                                                                                                          |
-| `resize`         | `(opts?: ResizeOpts) => void`                                                        | Manually trigger chart resize. `ResizeOpts` accepts `width`/`height`/`animation`/`silent`                                                            |
-| `appendData`     | `(params: Parameters<ECharts["appendData"]>[0]) => void`                             | Append data to a series (streaming). Invalidates prop-sync bookkeeping so the next `option` / `setOptionOpts` change restores the declarative option |
+| Method           | Type                                                                                 | Description                                                                               |
+| ---------------- | ------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------- |
+| `setOption`      | `(option: EChartsOption, opts?: SetOptionOpts) => void`                              | Update chart configuration                                                                |
+| `dispatchAction` | `(payload: Payload, opt?: boolean \| { silent?: boolean; flush?: boolean }) => void` | Dispatch an ECharts action (`highlight`, `downplay`, `showTip`, etc.)                     |
+| `clear`          | `() => void`                                                                         | Clear current chart content                                                               |
+| `resize`         | `(opts?: ResizeOpts) => void`                                                        | Manually trigger chart resize. `ResizeOpts` accepts `width`/`height`/`animation`/`silent` |
+| `appendData`     | `(params: Parameters<ECharts["appendData"]>[0]) => void`                             | Append data to a series (streaming)                                                       |
 
 **Read / introspect**
 
@@ -406,14 +361,14 @@ The returned object is **referentially stable**: its identity changes only when 
 
 **Coordinate conversion**
 
-| Method             | Type                                                                                                                                                                                | Description                                                               |
-| ------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------- |
-| `convertToPixel`   | `(finder: ChartFinder, value: ChartScaleValue \| Array<ChartScaleValue \| ChartScaleValue[] \| null \| undefined>, opt?: unknown) => number \| number[] \| undefined`               | Logical → pixel coordinates                                               |
-| `convertToLayout`  | `(finder: ChartFinder, value: ChartScaleValue \| null \| undefined \| Array<ChartScaleValue \| ChartScaleValue[] \| null \| undefined>, opt?: unknown) => ChartLayout \| undefined` | Calendar / matrix coordinate → cell layout (`rect`, …); ECharts 6         |
-| `convertFromPixel` | `(finder: ChartFinder, value: number \| number[], opt?: unknown) => number \| number[] \| undefined`                                                                                | Pixel → logical coordinates                                               |
-| `containPixel`     | `(finder: ChartFinder, value: number[]) => boolean`                                                                                                                                 | Whether a pixel point is inside the matched component (false when uninit) |
+| Method             | Type                                                       | Description                                                               |
+| ------------------ | ---------------------------------------------------------- | ------------------------------------------------------------------------- |
+| `convertToPixel`   | `(finder, value, opt?) => number \| number[] \| undefined` | Logical → pixel coordinates                                               |
+| `convertToLayout`  | `(finder, value, opt?) => ChartLayout \| undefined`        | Calendar / matrix coordinate → cell layout (`rect`, …); ECharts 6         |
+| `convertFromPixel` | `(finder, value, opt?) => number \| number[] \| undefined` | Pixel → logical coordinates                                               |
+| `containPixel`     | `(finder, value) => boolean`                               | Whether a pixel point is inside the matched component (false when uninit) |
 
-`ChartFinder` is a string shorthand (`"series"`) or a finder object keyed by any `<componentType>Index | Id | Name` (`seriesIndex`, `calendarIndex`, `matrixId`, …), as documented by ECharts. `ChartScaleValue` is `number | string | Date`. `opt` is defined by the coordinate system — e.g. `{ clamp, ignoreMergeCells }` for `matrix`. `ChartLayout` is the `{ rect?, contentRect?, matrixXYLocatorRange? }` object returned by ECharts.
+`finder` is a `ChartFinder`: a string shorthand (`"series"`) or a finder object keyed by any `<componentType>Index | Id | Name` (`seriesIndex`, `calendarIndex`, `matrixId`, …), as documented by ECharts. For `convertToPixel` / `convertToLayout`, `value` is a `ChartScaleValue` (`number | string | Date`) or an array of them; for `convertFromPixel` it is `number | number[]`, and for `containPixel` `number[]`. `opt` is defined by the coordinate system — e.g. `{ clamp, ignoreMergeCells }` for `matrix`. `ChartLayout` is the `{ rect?, contentRect?, matrixXYLocatorRange? }` object returned by ECharts.
 
 ### Other Exports
 
@@ -428,12 +383,10 @@ import { registerEchartsFull } from "react-use-echarts/preset-full"; // one-line
 // EChartProps, EChartHandle, EChartsEvents, EChartsEventConfig, EChartsEventHandler,
 // EChartsEventPayloadMap, EChartsInitOpts, BuiltinTheme, LoadingOption,
 // ChartFinder, ChartLayout, ChartScaleValue, Payload.
-// EChartsOption, SetOptionOpts, ResizeOpts are also re-exported here for
-// convenience (they originate in the "echarts" package), so you can import them
-// from react-use-echarts alongside the types above instead of reaching into echarts.
+// EChartsOption, SetOptionOpts and ResizeOpts are re-exported from "echarts" for convenience.
 ```
 
-`mergeRefs` returns a callback ref that fans the node out to every input — `RefObject`, legacy callback ref, or React 19 callback ref with cleanup — and isolates each invocation so a throwing 3rd-party ref can't strand the chart. Reach for it when you need both the hook-provided ref and your own:
+`mergeRefs` fans the node out to every input — `RefObject`, legacy callback ref, or React 19 callback ref with cleanup — and isolates each invocation so a throwing 3rd-party ref can't strand the chart:
 
 ```tsx
 const myRef = useRef<HTMLDivElement>(null);
@@ -443,27 +396,20 @@ return <div ref={mergeRefs(ref, myRef)} style={{ height: 400 }} />;
 
 ## Migrating from `echarts-for-react`
 
-Most props map 1:1; a few are folded into existing options. Quick reference:
+Most props map 1:1: `option`, `showLoading`, `loadingOption`, `className` and `autoResize` (3.0.3+) are identical. The rest:
 
-| `echarts-for-react`       | `react-use-echarts`                       | Notes                                                                                                                                                                                                     |
-| ------------------------- | ----------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `option`                  | `option`                                  | Same                                                                                                                                                                                                      |
-| `theme`                   | `theme`                                   | Same; `"macarons"` needs `registerBuiltinThemes()` first (see [Themes](#themes))                                                                                                                          |
-| `notMerge` / `lazyUpdate` | `setOptionOpts: { notMerge, lazyUpdate }` | Folded into a single object passed to `setOption`                                                                                                                                                         |
-| `showLoading`             | `showLoading`                             | Same                                                                                                                                                                                                      |
-| `loadingOption`           | `loadingOption`                           | Same                                                                                                                                                                                                      |
-| `onEvents`                | `onEvents`                                | Same shape; also accepts `{ handler, query?, context? }` for query/context binding                                                                                                                        |
-| `onChartReady`            | `useEcharts` + the reactive `instance`    | `useEffect(() => { if (instance) onReady(instance); }, [instance, onReady])` — the hook return re-renders when init/dispose completes; an `<EChart>` object ref is imperative-only                        |
-| `opts.renderer`           | `renderer: 'canvas' \| 'svg'`             | Promoted to a top-level option                                                                                                                                                                            |
-| `opts` (rest)             | `initOpts`                                | Same shape except `renderer` (the top-level row above) and `ssr` (unsupported; this package is CSR-only)                                                                                                  |
-| `style`                   | `style`                                   | `<EChart />` defaults to `{ width: '100%', height: '100%' }` so the parent needs size                                                                                                                     |
-| `className`               | `className`                               | Same                                                                                                                                                                                                      |
-| `lazyUpdate` (top-level)  | `setOptionOpts: { lazyUpdate: true }`     | See `notMerge` row                                                                                                                                                                                        |
-| `shouldSetOption`         | Gate the `option` prop yourself           | A new `option` reference triggers `setOption`; for custom predicates (deep comparison, throttling, app-state gating), memoize or skip the `option` prop in the parent component                           |
-| `autoResize` (3.0.3+)     | `autoResize`                              | Same default (`true`); resize uses ResizeObserver + RAF                                                                                                                                                   |
-| _none_                    | `lazyInit`                                | New: defer init until the container scrolls into viewport                                                                                                                                                 |
-| _none_                    | `group`                                   | New: chart linkage via shared group ID                                                                                                                                                                    |
-| _none_                    | `onError`                                 | New: route handled failures through a callback (`init`, `setOption`, event binding, loading, resize, group linkage, and imperative calls); `off()` errors during dynamic event rebinding surface directly |
+| `echarts-for-react`       | `react-use-echarts`                       | Notes                                                                                                                                                                           |
+| ------------------------- | ----------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `theme`                   | `theme`                                   | Same; `"macarons"` needs `registerBuiltinThemes()` first (see [Themes](#themes))                                                                                                |
+| `notMerge` / `lazyUpdate` | `setOptionOpts: { notMerge, lazyUpdate }` | Folded into a single object passed to `setOption`                                                                                                                               |
+| `onEvents`                | `onEvents`                                | Same shape; also accepts `{ handler, query?, context? }` for query/context binding                                                                                              |
+| `onChartReady`            | `useEcharts` + the reactive `instance`    | See the effect example below                                                                                                                                                    |
+| `opts.renderer`           | `renderer: 'canvas' \| 'svg'`             | Promoted to a top-level option                                                                                                                                                  |
+| `opts` (rest)             | `initOpts`                                | Same shape except `renderer` (the row above) and `ssr` (unsupported; this package is CSR-only)                                                                                  |
+| `style`                   | `style`                                   | `<EChart />` defaults to `{ width: '100%', height: '100%' }` so the parent needs size                                                                                           |
+| `shouldSetOption`         | Gate the `option` prop yourself           | A new `option` reference triggers `setOption`; for custom predicates (deep comparison, throttling, app-state gating), memoize or skip the `option` prop in the parent component |
+
+`lazyInit`, `group` and `onError` are new, with no `echarts-for-react` counterpart.
 
 Side-by-side example:
 
@@ -495,8 +441,7 @@ Side-by-side example:
 // an object ref does not notify the parent when the instance changes.
 ```
 
-For an `onChartReady`-style reactive notification, use the hook's `instance`
-field and subscribe with an effect:
+For an `onChartReady`-style reactive notification, use the hook's `instance` field, which re-renders when init/dispose completes, and subscribe with an effect:
 
 ```tsx
 const { ref, instance } = useEcharts({ option });
@@ -510,52 +455,21 @@ return <div ref={ref} style={{ height: 400 }} />;
 
 ## Migrating from v2.x
 
-v3 removes the legacy `react-use-echarts/core` subpath. If you already import from `react-use-echarts` and already register ECharts modules before the first chart render, no code changes are needed.
+v3 removes the legacy `react-use-echarts/core` subpath: replace any `from "react-use-echarts/core"` imports with `from "react-use-echarts"`.
 
-If you are upgrading from v2.0's everything-included default entry, or from an app that still relied on `import "echarts"` side effects, add **one registration call** at your application entry:
-
-```ts
-// app entry (e.g. main.tsx, index.tsx)
-import { registerEchartsFull } from "react-use-echarts/preset-full";
-registerEchartsFull();
-```
-
-That call is equivalent to v2.0's automatic ECharts registration and gives you the same everything-included experience (~370 KB gzip with ECharts 6.1; exact size varies by version and bundler). For production builds that only render a few chart types, replace it with a selective `echarts.use([...])` — see [Tree-shaking](#tree-shaking).
-
-Replace any remaining `from "react-use-echarts/core"` imports with `from "react-use-echarts"`.
+If you are upgrading from v2.0's everything-included default entry, or from an app that still relied on `import "echarts"` side effects, also add one registration call at your application entry: `registerEchartsFull()` is equivalent to v2.0's automatic registration, or use a selective `echarts.use([...])` (see [Register ECharts modules](#register-echarts-modules)). Apps that already register modules before the first chart render need no other change.
 
 ## Migrating from v1
 
-v2.0 flips the hook to return a callback ref + reactive `instance`, aligning with the modern community convention used by `floating-ui/react`, `react-aria`, `downshift`, and `react-hook-form`. `<EChart />` external props are unchanged — only direct hook consumers and `<EChart ref>` typings migrate.
+v2.0 flips the hook to return a callback ref + reactive `instance`. `<EChart />` external props are unchanged — only direct hook consumers and `<EChart ref>` typings migrate.
 
-| v1                                               | v2                                                   | Notes                                                                                                                                                                        |
-| ------------------------------------------------ | ---------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `const ref = useRef(); useEcharts(ref, options)` | `const { ref } = useEcharts(options)`                | Hook owns the callback ref; attach it to your container                                                                                                                      |
-| `getInstance()` method on the hook return        | `instance` field on the same return                  | Reactive — re-renders when init/dispose completes; use `useEffect([instance])` to subscribe                                                                                  |
-| `useLazyInit(ref, options)` returning `boolean`  | `useLazyInit(options)` returning `{ ref, isInView }` | Same callback-ref pattern                                                                                                                                                    |
-| `useRef<UseEchartsReturn>(null)` for `<EChart>`  | `useRef<EChartHandle>(null)` for `<EChart>`          | `EChartHandle = Omit<UseEchartsReturn, 'ref'>` — the container ref is intentionally not exposed on the imperative handle, so callers cannot redirect the DOM node through it |
-| Compose refs by hand                             | `mergeRefs(chartRef, myRef)`                         | New public utility (see [Other Exports](#other-exports))                                                                                                                     |
-
-Side-by-side hook example:
-
-```tsx
-// v1
-const chartRef = useRef<HTMLDivElement>(null);
-const { setOption, getInstance } = useEcharts(chartRef, { option });
-useEffect(() => {
-  getInstance()?.on("finished", handler);
-}, []);
-return <div ref={chartRef} style={{ height: 400 }} />;
-
-// v2
-const { ref, instance, setOption } = useEcharts({ option });
-useEffect(() => {
-  if (!instance) return;
-  instance.on("finished", handler);
-  return () => instance.off("finished", handler);
-}, [instance]);
-return <div ref={ref} style={{ height: 400 }} />;
-```
+| v1                                               | v2                                                   | Notes                                                                                       |
+| ------------------------------------------------ | ---------------------------------------------------- | ------------------------------------------------------------------------------------------- |
+| `const ref = useRef(); useEcharts(ref, options)` | `const { ref } = useEcharts(options)`                | Hook owns the callback ref; attach it to your container                                     |
+| `getInstance()` method on the hook return        | `instance` field on the same return                  | Reactive — re-renders when init/dispose completes; use `useEffect([instance])` to subscribe |
+| `useLazyInit(ref, options)` returning `boolean`  | `useLazyInit(options)` returning `{ ref, isInView }` | Same callback-ref pattern                                                                   |
+| `useRef<UseEchartsReturn>(null)` for `<EChart>`  | `useRef<EChartHandle>(null)` for `<EChart>`          | `EChartHandle = Omit<UseEchartsReturn, 'ref'>` — the container ref stays inside `<EChart>`  |
+| Compose refs by hand                             | `mergeRefs(chartRef, myRef)`                         | New public utility (see [Other Exports](#other-exports))                                    |
 
 ## Contributing
 
