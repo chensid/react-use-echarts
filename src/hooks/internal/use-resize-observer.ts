@@ -44,6 +44,7 @@ export function useResizeObserver(
     try {
       resizeObserver = new ResizeObserver(() => {
         cancelPendingResize();
+        // eslint-disable-next-line react/immutability -- false positive on an effect-local `let` (oxc#28401); remove once Vite+ bundles an oxlint with oxc#28820
         rafId = requestAnimationFrame(safeResize);
       });
       resizeObserver.observe(element);
