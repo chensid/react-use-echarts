@@ -4,7 +4,7 @@ Thanks for your interest in improving `react-use-echarts`!
 
 ## Prerequisites
 
-- Node.js 22.19+ on 22.x, 24.11+ on 24.x, or 26+ (CI covers the 22.x minimum and latest 24.x); the pre-commit hook's `vp staged` needs 22.22.1+ on 22.x. The range lives in `package.json` → `devEngines.runtime`, which Vite+ uses to select Node.js and pnpm checks on install. It is deliberately not `engines`, which package managers would apply to consumers' installs of this browser-only package.
+- Node.js 24.11+ on 24.x, or 26+ (CI covers the 24.x minimum and latest 26.x). The range lives in `package.json` → `devEngines.runtime`, which Vite+ uses to select Node.js and pnpm checks on install. It is deliberately not `engines`, which package managers would apply to consumers' installs of this browser-only package.
 - Vite+ CLI (`vp`) available in your shell
 - Git 2.32+ (required by `vp staged`)
 
@@ -27,7 +27,7 @@ Thanks for your interest in improving `react-use-echarts`!
 - `vp build` – build the examples application into `site-dist/`.
 - `vp pack` – build the library (ESM) and type declarations into `dist/`. Runs `publint` + `attw` automatically.
 
-After installing Chromium, run `vp check --deny-warnings && vp test` before opening a pull request; this covers the unit, browser and examples projects. `--deny-warnings` matches CI, which fails on lint warnings as well as errors. CI additionally packs the library, enforces coverage and bundle budgets, repeats the unit project across its Node matrix, and runs the browser and examples projects on Node 24.
+After installing Chromium, run `vp check --deny-warnings && vp test` before opening a pull request; this covers the unit, browser and examples projects. `--deny-warnings` matches CI, which fails on lint warnings as well as errors. CI additionally packs the library, enforces coverage and bundle budgets, repeats the unit project across its Node matrix, and runs the browser and examples projects on Node 26.
 
 ## Editor and TypeScript 7
 
@@ -68,7 +68,7 @@ Releases are driven by [changesets](https://github.com/changesets/changesets):
 
 Hotfixes follow the same flow. `changeset version` output (CHANGELOG / version bumps) belongs only in the auto-generated release PR, never in feature PRs.
 
-The release PR needs one manual step. Changesets opens it with `GITHUB_TOKEN`, so GitHub parks its `pull_request` run in the `action_required` state: `test (22)` / `test (24)` never report, and because both are required the merge is refused with `405 2 of 2 required status checks are expected`. Anyone with write access can approve the parked run, then merge once it passes — choose **Approve and run** on the run (PR checks tab or Actions tab), or from the CLI:
+The release PR needs one manual step. Changesets opens it with `GITHUB_TOKEN`, so GitHub parks its `pull_request` run in the `action_required` state: `test (24)` / `test (26)` never report, and because both are required the merge is refused with `405 2 of 2 required status checks are expected`. Anyone with write access can approve the parked run, then merge once it passes — choose **Approve and run** on the run (PR checks tab or Actions tab), or from the CLI:
 
 ```bash
 gh run list --workflow CI --branch changeset-release/main --event pull_request --limit 1
