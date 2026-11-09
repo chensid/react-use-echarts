@@ -23,10 +23,10 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - node: "22"
-            nodeVersion: "22.19.0"
           - node: "24"
-            nodeVersion: "24"
+            nodeVersion: "24.11.0"
+          - node: "26"
+            nodeVersion: "26"
     steps:
       - uses: actions/checkout@v7
 
@@ -46,30 +46,30 @@ jobs:
         run: vp pack
 
       - name: Build showcase
-        if: matrix.node == '24'
+        if: matrix.node == '26'
         run: vp build
 
       - name: Test with coverage (unit project)
         run: vp test run --coverage --project unit
 
       - name: Install Playwright Chromium
-        if: matrix.node == '24'
+        if: matrix.node == '26'
         run: vp exec playwright install --with-deps chromium
 
       - name: Test (browser project)
-        if: matrix.node == '24'
+        if: matrix.node == '26'
         run: vp test run --project browser
 
       - name: Smoke-test the examples app (examples project)
-        if: matrix.node == '24'
+        if: matrix.node == '26'
         run: vp test run --project examples
 
       - name: Bundle size budget
-        if: matrix.node == '24'
+        if: matrix.node == '26'
         run: vp run size
 
       - name: Upload coverage to Codecov
-        if: matrix.node == '24'
+        if: matrix.node == '26'
         uses: codecov/codecov-action@v7
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
