@@ -28,16 +28,28 @@ vp check                      # format + lint + typecheck (typecheck via tsgolin
 
 **Pre-PR checklist:** install Chromium once, then run `vp check --deny-warnings && vp test` (all projects). CI fails on lint warnings, so plain `vp check` passing locally is not enough.
 
-### Vite+ toolchain
+### Dependency pins
 
-Vite+ manages Vite, Rolldown, Vitest, Oxfmt, Oxlint, oxlint-tsgolint, and tsdown as one toolchain. Read the current Vite+ pins from `pnpm-workspace.yaml` and run `vp toolchain` for bundled tool versions. Do not add the obsolete `@voidzero-dev/vite-plus-test` package. Consequences for dependency management:
+Vite+ manages Vite, Rolldown, Vitest, Oxfmt, Oxlint, oxlint-tsgolint, and tsdown as one toolchain. Read the current Vite+ pins from `pnpm-workspace.yaml` and run `vp toolchain` for bundled tool versions. Consequences for dependency management:
 
 - Dependency versions live in the root `pnpm-workspace.yaml` `catalog`. `package.json` uses `catalog:` for `vite`, `vite-plus`, `vitest`, `@vitest/browser-playwright`, and `@vitest/coverage-v8`.
 - Keep `pnpm-workspace.yaml` overrides for both `vite` → `@voidzero-dev/vite-plus-core` and `vitest` → the exact bundled Vitest version. This keeps Vite+ internals, browser providers, coverage, and `vp test` on one runner copy. The override keys carry an explicit `@*` range (`vite@*` / `vitest@*`): a bare key matches every spec including `catalog:`, so `vp up` would rewrite the catalog reference to a concrete version. Do not drop the `@*`.
 - Toolchain upgrades (Vite+ / pnpm pin): follow `CONTRIBUTING.md` → Toolchain Updates. Keep Vitest and its browser/coverage packages at the Vite+-bundled version, even when npm offers a newer major.
-- pnpm enforces a built-in 24h `minimumReleaseAge` gate and, in loose mode, self-populates `minimumReleaseAgeExclude` in `pnpm-workspace.yaml` whenever an install pulls a version younger than 24h — so entries accumulate on their own. Each entry is a no-op once its version ages past 24h. `minimumReleaseAgeExcludePrune: true` (pnpm 11.22+) is enabled in `pnpm-workspace.yaml`, but by design it only drops entries the freshly written lockfile no longer resolves (a version or package that is gone); it never prunes by age, so an entry whose version is still locked stays after it matures. Check real publish times (`npm view <pkg> time`) and prune matured entries by hand in every dependency-bump PR. Treat the list as generated installation policy, not permanent dependency configuration. Retain entries while their versions are still inside the release-age window; do not assume the list should be empty after an upgrade. Verify with `vp install --frozen-lockfile`, which is what CI runs: it re-validates the lockfile against the gate and fails with `ERR_PNPM_MINIMUM_RELEASE_AGE_VIOLATION` on any unexcluded immature version.
-- Tests import from `vite-plus/test`. Browser-mode providers are **opt-in peers**: `@vitest/browser-playwright` (its `playwright` peer is installed too), imported from `vite-plus/test/browser-playwright`. Keep provider and coverage package versions aligned to the catalog's bundled Vitest pin.
-- The project uses stable TypeScript 7; read its pin from `package.json`. `vp exec tsc -b` checks the solution projects, while `vp check` uses tsgolint. Each declaration-emitting `pack[]` entry explicitly pairs `tsconfig: "tsconfig.lib.json"` with `dts: { generator: "tsgo" }` (the `development/index` entry sets `dts: false`; its types come from `dist/index.d.ts`) so native declaration emission uses the library's leaf project. The bundled declaration plugin can infer `tsgo` for TS 7, but keep the explicit configuration for clarity. TypeScript 7's programmatic API is still experimental; the pack warning concerns that API, not the stability of the compiler release. Validate declaration changes with `vp pack` (including publint/ATTW), not type checking alone.
+- Tests import from `vite-plus/test`, not from `vitest`. The `vitest` package is present only as an exact Vite+ catalog/override pin so Vite+ internals and opt-in providers share the bundled runner copy. Don't add the obsolete `@voidzero-dev/vite-plus-test` package.
+- Browser-mode providers are **opt-in peers**: `@vitest/browser-playwright` (its `playwright` peer is installed too), imported from `vite-plus/test/browser-playwright`. Keep provider and coverage package versions aligned to the catalog's bundled Vitest pin.
+
+### Release-age gate
+
+pnpm enforces a built-in 24h `minimumReleaseAge` gate. The `minimumReleaseAgeExclude` list in `pnpm-workspace.yaml` is generated installation policy, not permanent dependency configuration:
+
+- In loose mode, pnpm self-populates `minimumReleaseAgeExclude` whenever an install pulls a version younger than 24h, so entries accumulate on their own. Each entry is a no-op once its version ages past 24h.
+- `minimumReleaseAgeExcludePrune: true` (pnpm 11.22+) is enabled in `pnpm-workspace.yaml`, but by design it only drops entries the freshly written lockfile no longer resolves (a version or package that is gone). It never prunes by age, so an entry whose version is still locked stays after it matures.
+- In every dependency-bump PR, check real publish times (`npm view <pkg> time`) and prune matured entries by hand. Retain entries while their versions are still inside the release-age window; do not assume the list should be empty after an upgrade.
+- Verify with `vp install --frozen-lockfile`, which is what CI runs: it re-validates the lockfile against the gate and fails with `ERR_PNPM_MINIMUM_RELEASE_AGE_VIOLATION` on any unexcluded immature version.
+
+### TypeScript 7
+
+The project uses stable TypeScript 7; read its pin from `package.json`. `vp exec tsc -b` checks the solution projects, while `vp check` uses tsgolint. Each declaration-emitting `pack[]` entry explicitly pairs `tsconfig: "tsconfig.lib.json"` with `dts: { generator: "tsgo" }` (the `development/index` entry sets `dts: false`; its types come from `dist/index.d.ts`) so native declaration emission uses the library's leaf project. The bundled declaration plugin can infer `tsgo` for TS 7, but keep the explicit configuration for clarity. TypeScript 7's programmatic API is still experimental; the pack warning concerns that API, not the stability of the compiler release. Validate declaration changes with `vp pack` (including publint/ATTW), not type checking alone.
 
 ## Architecture
 
@@ -53,20 +65,17 @@ Hook decomposition (`useChartCore` / `useResizeObserver` effects) and the key de
 
 ## Conventions
 
-- **Commit format:** `feat|fix|docs|test|refactor|chore: <subject>`
+- **Commit format:** `<type>: <subject>` or `<type>(<scope>): <subject>`, with type one of `feat|fix|docs|test|refactor|perf|chore|ci` (e.g. `chore(deps-dev): bump playwright to 1.65.0`)
 - **Types-first:** define types in `src/types/index.ts` before implementing
 - **Resource cleanup:** effects that create subscriptions, listeners, observers, timers/RAFs, or other persistent resources must return paired cleanup; state/config synchronization effects need no cleanup when they acquire no resource
-- **ECharts registration is the consumer's responsibility** — this library does NOT auto-register charts/components/renderers/features. Apps call `registerEchartsFull()` (from `react-use-echarts/preset-full`) for the everything-included path, or `echarts.use([...])` selectively. Mirrors `vue-echarts` / `nuxt-echarts` / `react-chartjs-2`. See `src/preset-full.ts` for the why.
+- **ECharts registration is the consumer's responsibility** — this library does not auto-register charts/components/renderers/features. Apps call `registerEchartsFull()` (from `react-use-echarts/preset-full`) for the everything-included path, or `echarts.use([...])` selectively. Mirrors `vue-echarts` / `nuxt-echarts` / `react-chartjs-2`. See `src/preset-full.ts` for the why. For the same reason, don't add `import "echarts"` to `src/index.ts`: the root entry must stay modular and must not force the full ECharts registry into every consumer bundle.
 
 ## Anti-patterns
 
-- Don't leave subscriptions, listeners, observers, timers/RAFs, or other persistent resources created by an effect without paired cleanup; synchronization-only effects are exempt
 - Don't mutate `theme`, `initOpts` or `setOptionOpts` objects in place; distinct objects dedup only when their `JSON.stringify` output matches (property order affects the key), while memoization avoids repeated serialization
 - Don't duplicate API reference from `README.md` into this file
 - Don't re-add the removed `react-use-echarts/core` subpath — v3 consumers should import from `react-use-echarts`.
 - Don't ship a raw `process` reference: `dist/index.js` and the subpaths are built with NODE_ENV defined as `"production"`, `dist/development/index.js` (the `development` export condition) with a `typeof process`-guarded expression, and `forbidRawProcess` in `vite.config.ts` fails `vp pack` otherwise
-- Don't re-add `import "echarts"` to `src/index.ts` — the root entry must stay modular and must not force the full ECharts registry into every consumer bundle. Registration belongs in consumer-side code (their app entry or `registerEchartsFull()`).
-- Don't import from `vitest` in tests or add `@voidzero-dev/vite-plus-test`. The `vitest` package is present only as an exact Vite+ catalog/override pin so Vite+ internals and opt-in providers share the bundled runner copy.
 
 ## Troubleshooting
 
