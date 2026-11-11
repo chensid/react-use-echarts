@@ -87,7 +87,17 @@ const requireUseClient: Plugin = {
 // recursive `Plugin` type with Vite+'s bundled copy overflows TypeScript (TS2321,
 // then TS2322 against `TsdownPluginOption`; cf. voidzero-dev/vite-plus#2269).
 // Drop the assertion once both resolve to one rolldown copy.
-const reactCompiler = () => babel({ presets: [reactCompilerPreset()] }) as Promise<Plugin>;
+const reactCompiler = (options?: Parameters<typeof reactCompilerPreset>[0]) =>
+  babel({ presets: [reactCompilerPreset(options)] }) as Promise<Plugin>;
+
+// The published builds compile without the compiler's HMR cache reset. Left at
+// its default the compiler decides from NODE_ENV at build time, and `vp pack`
+// runs as "development", so every compiled function shipped a source-hash check
+// (`if ($[0] !== "<sha256>")`) and a spare cache slot. That check only matters
+// while a dev server hot-swaps the file being edited, which `vp dev` still gets
+// from the default; a published file never changes under a running app.
+const packReactCompiler = () =>
+  reactCompiler({ environment: { enableResetCacheOnSourceFileChanges: false } });
 
 // The examples import the library by its published name, so the source shown in
 // the Code tab and on GitHub is the code a consumer writes. Resolve that name to
@@ -175,7 +185,7 @@ export default defineConfig({
       platform: "browser",
       outputOptions: stripDocComments,
       define: productionNodeEnv,
-      plugins: [reactCompiler(), requireUseClient, forbidRawProcess()],
+      plugins: [packReactCompiler(), requireUseClient, forbidRawProcess()],
     },
     {
       deps: { resolveDepSubpath: false },
@@ -212,7 +222,11 @@ export default defineConfig({
       platform: "browser",
       outputOptions: stripDocComments,
       define: developmentNodeEnv,
-      plugins: [reactCompiler(), requireUseClient, forbidRawProcess(developmentNodeEnvExpression)],
+      plugins: [
+        packReactCompiler(),
+        requireUseClient,
+        forbidRawProcess(developmentNodeEnvExpression),
+      ],
     },
   ],
   server: {
