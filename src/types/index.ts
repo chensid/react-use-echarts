@@ -194,7 +194,6 @@ export interface EChartsEvents extends KnownEChartsEvents {
   // Open fallback for custom event names. `any` keeps the index-signature
   // variance compatible with the typed known events above; consumers can
   // narrow per-event with an explicit handler parameter type.
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   [eventName: string]: EChartsEventConfig<any> | undefined;
 }
 
