@@ -158,6 +158,9 @@ export default defineConfig({
     options: {
       typeAware: true,
       typeCheck: true,
+      // A suppression that no longer suppresses anything is a warning, so
+      // CI's `vp check --deny-warnings` rejects it.
+      reportUnusedDisableDirectives: "warn",
     },
   },
   fmt: {},
