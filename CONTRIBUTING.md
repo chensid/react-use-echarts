@@ -20,7 +20,7 @@ Thanks for your interest in improving `react-use-echarts`!
 ## Development Commands
 
 - `vp dev` – run the Vite dev server with the examples under `examples/`.
-- `vp check` – run format + lint + typecheck (via tsgolint) in one command; `vp lint` runs Oxlint alone.
+- `vp check` – run format + lint + typecheck (via tsrs) in one command; `vp lint` runs Oxlint alone.
 - `vp test` – run all three Vitest projects once. Add `--project unit` (happy-dom), `--project browser` (real Chromium) or `--project examples` (smoke-tests every route of the examples app, served by `vp dev` on port 3190) to run just one.
 - `vp test watch` – run the suite in watch mode.
 - `vp test --coverage --project unit` – generate the v8 coverage reports, matching CI.

@@ -23,14 +23,14 @@ vp test --project examples    # Examples app smoke (vp dev on :3190 + Chromium)
 vp test watch                 # Watch mode
 vp test --coverage --project unit # Coverage report (v8), matching CI
 vp lint                       # Oxlint
-vp check                      # format + lint + typecheck (typecheck via tsgolint)
+vp check                      # format + lint + typecheck (typecheck via tsrs)
 ```
 
 **Pre-PR checklist:** install Chromium once, then run `vp check --deny-warnings && vp test` (all projects). CI fails on lint warnings, so plain `vp check` passing locally is not enough.
 
 ### Dependency pins
 
-Vite+ manages Vite, Rolldown, Vitest, Oxfmt, Oxlint, oxlint-tsgolint, and tsdown as one toolchain. Read the current Vite+ pins from `pnpm-workspace.yaml` and run `vp toolchain` for bundled tool versions. Consequences for dependency management:
+Vite+ manages Vite, Rolldown, Vitest, Oxfmt, Oxlint, tsrs, and tsdown as one toolchain. Read the current Vite+ pins from `pnpm-workspace.yaml` and run `vp toolchain` for bundled tool versions. Consequences for dependency management:
 
 - Dependency versions live in the root `pnpm-workspace.yaml` `catalog`. `package.json` uses `catalog:` for `vite`, `vite-plus`, `vitest`, `@vitest/browser-playwright`, and `@vitest/coverage-v8`.
 - Keep `pnpm-workspace.yaml` overrides for both `vite` → `@voidzero-dev/vite-plus-core` and `vitest` → the exact bundled Vitest version. This keeps Vite+ internals, browser providers, coverage, and `vp test` on one runner copy. The override keys carry an explicit `@*` range (`vite@*` / `vitest@*`): a bare key matches every spec including `catalog:`, so `vp up` would rewrite the catalog reference to a concrete version. Do not drop the `@*`.
@@ -49,7 +49,7 @@ pnpm enforces a built-in 24h `minimumReleaseAge` gate. The `minimumReleaseAgeExc
 
 ### TypeScript 7
 
-The project uses stable TypeScript 7; read its pin from `package.json`. `vp exec tsc -b` checks the solution projects, while `vp check` uses tsgolint. Each declaration-emitting `pack[]` entry explicitly pairs `tsconfig: "tsconfig.lib.json"` with `dts: { generator: "tsgo" }` (the `development/index` entry sets `dts: false`; its types come from `dist/index.d.ts`) so native declaration emission uses the library's leaf project. The bundled declaration plugin can infer `tsgo` for TS 7, but keep the explicit configuration for clarity. TypeScript 7's programmatic API is still experimental; the pack warning concerns that API, not the stability of the compiler release. Validate declaration changes with `vp pack` (including publint/ATTW), not type checking alone.
+The project uses stable TypeScript 7; read its pin from `package.json`. `vp exec tsc -b` checks the solution projects with that pin, while `vp check` type-checks through the Vite+-bundled tsrs (a Rust port of TypeScript 7 whose TypeScript version can run ahead of the pin, so its diagnostics can differ; `vp --version` shows it). Each declaration-emitting `pack[]` entry explicitly pairs `tsconfig: "tsconfig.lib.json"` with `dts: { generator: "tsgo" }` (the `development/index` entry sets `dts: false`; its types come from `dist/index.d.ts`) so native declaration emission uses the library's leaf project. The bundled declaration plugin can infer `tsgo` for TS 7, but keep the explicit configuration for clarity. TypeScript 7's programmatic API is still experimental; the pack warning concerns that API, not the stability of the compiler release. Validate declaration changes with `vp pack` (including publint/ATTW), not type checking alone.
 
 ## Architecture
 
