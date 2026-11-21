@@ -381,7 +381,7 @@ describe("useEcharts", () => {
 
       expect(echarts.init).toHaveBeenCalledWith(element, "light", expect.any(Object));
     });
-    it("should not warn in development for light/dark, which ECharts 6 provides natively", () => {
+    it("should not warn in development for light/dark, which need no registration", () => {
       const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
       withNodeEnv("development", () => {
         for (const theme of ["light", "dark", "default"] as const) {
@@ -3645,9 +3645,11 @@ describe("useEcharts", () => {
     });
 
     it("routes resize errors to the latest onError after rerender", () => {
-      const originalDescriptor = Object.getOwnPropertyDescriptor(Document.prototype, "hidden");
+      // Mock on the instance: a getter on the global `Document.prototype` is
+      // never read (see "visibilitychange resume" above).
+      const ownDescriptor = Object.getOwnPropertyDescriptor(document, "hidden");
       let hiddenValue = false;
-      Object.defineProperty(Document.prototype, "hidden", {
+      Object.defineProperty(document, "hidden", {
         configurable: true,
         get: () => hiddenValue,
       });
@@ -3682,13 +3684,15 @@ describe("useEcharts", () => {
         hiddenValue = false;
         document.dispatchEvent(new Event("visibilitychange"));
 
+        // Once: the event dispatched while hidden must not resize.
+        expect(onError2).toHaveBeenCalledTimes(1);
         expect(onError2).toHaveBeenCalledWith(resizeError);
         expect(onError1).not.toHaveBeenCalled();
       } finally {
-        if (originalDescriptor) {
-          Object.defineProperty(Document.prototype, "hidden", originalDescriptor);
+        if (ownDescriptor) {
+          Object.defineProperty(document, "hidden", ownDescriptor);
         } else {
-          delete (Document.prototype as unknown as { hidden?: boolean }).hidden;
+          delete (document as unknown as { hidden?: boolean }).hidden;
         }
       }
     });

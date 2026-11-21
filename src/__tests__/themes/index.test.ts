@@ -42,7 +42,7 @@ describe("themes utilities", () => {
   });
 
   describe("builtin theme registration state", () => {
-    it("should treat light/dark as always registered (ECharts 6 native)", () => {
+    it("should treat light/dark as always registered (no registry needed)", () => {
       expect(isBuiltinThemeRegistered("light")).toBe(true);
       expect(isBuiltinThemeRegistered("dark")).toBe(true);
     });
