@@ -8,7 +8,6 @@ import { clearGroups } from "../../utils/connect";
 import type { EChartHandle, EChartProps } from "../../types";
 import { createMockInstance, MockResizeObserver, MockIntersectionObserver } from "../helpers";
 
-// Mock ECharts
 vi.mock("echarts/core", () => ({
   init: vi.fn(),
   connect: vi.fn(),

@@ -43,8 +43,9 @@ describe("visibility-coordinator", () => {
   });
 
   it("fires subscribers only when the tab becomes visible", () => {
-    // Mock on the instance — happy-dom defines `hidden` as an own property on
-    // `document`, which shadows any Document.prototype getter we'd install.
+    // Mock on the instance — the global `Document.prototype` is not on the
+    // prototype chain of happy-dom's `document`, so a getter installed there
+    // would never be read.
     const ownDescriptor = Object.getOwnPropertyDescriptor(document, "hidden");
     let hidden = false;
     Object.defineProperty(document, "hidden", {
@@ -108,7 +109,7 @@ describe("visibility-coordinator", () => {
     }
   });
 
-  it("__resetForTesting__ detaches an active listener", () => {
+  it("__resetVisibilityCoordinatorForTesting__ detaches an active listener", () => {
     const removeSpy = vi.spyOn(document, "removeEventListener");
 
     // Make the coordinator attach a listener.

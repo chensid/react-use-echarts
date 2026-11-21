@@ -3,7 +3,6 @@ import * as echarts from "echarts/core";
 import { __resetThemeStateForTesting__, isBuiltinThemeRegistered } from "../../themes";
 import { registerBuiltinThemes } from "../../themes/registry";
 
-// Mock ECharts
 vi.mock("echarts/core", () => ({
   registerTheme: vi.fn(),
 }));

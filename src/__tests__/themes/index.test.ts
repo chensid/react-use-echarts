@@ -9,7 +9,6 @@ import {
   __resetThemeStateForTesting__,
 } from "../../themes";
 
-// Mock ECharts
 vi.mock("echarts/core", () => ({
   registerTheme: vi.fn(),
 }));

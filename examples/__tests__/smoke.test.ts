@@ -41,7 +41,8 @@ test.concurrent.for(ROUTES)("%s renders without errors", async (route, { expect 
 
   try {
     await page.goto(`${EXAMPLES_URL}#${route}`, { waitUntil: "networkidle" });
-    // An unknown id redirects to "/", which would pass with Home's errors.
+    // An unknown id redirects to its list page, which would pass with that
+    // page's errors.
     expect(new URL(page.url()).hash).toBe(`#${route}`);
     await page.locator("main h1").first().waitFor();
     // Let mount effects (chart init, setOption) run and report.

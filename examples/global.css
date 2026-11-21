@@ -165,7 +165,7 @@ pre {
   border-color: var(--c-border-strong);
 }
 
-/* legacy utility classes still used by chart examples */
+/* utility classes used by the chart examples */
 .btn {
   display: inline-flex;
   align-items: center;

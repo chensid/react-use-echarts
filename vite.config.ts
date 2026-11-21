@@ -133,8 +133,8 @@ export default defineConfig({
           "@typescript-eslint/triple-slash-reference": "off",
           "react-hooks/exhaustive-deps": "warn",
           "react/only-export-components": ["error", { allowConstantExport: true }],
-          // Regression guards (0 findings at adoption): promise misuse and ESM
-          // import cycles / self-imports. None flags `import "echarts"`.
+          // Regression guards: promise misuse and ESM import cycles /
+          // self-imports. None flags `import "echarts"`.
           "promise/valid-params": "error",
           "promise/no-new-statics": "error",
           "promise/no-return-in-finally": "error",
@@ -149,7 +149,7 @@ export default defineConfig({
           "@typescript-eslint/unbound-method": "off",
           // Test harnesses publish the hook result to an outer ref during render
           // (`chartRef.current = chart`) so the test body can drive the imperative
-          // API. Deliberate in a harness, so keep this oxlint 1.79 rule to src/.
+          // API. Deliberate in a harness, so the rule is off for tests only.
           "react/refs": "off",
         },
         env: { es2020: true, browser: true, node: true },
@@ -171,8 +171,9 @@ export default defineConfig({
   pack: [
     {
       // tsdown 0.23's default: keep external subpath imports (`echarts/core`)
-      // as written. Stated explicitly in every entry because `vp migrate`
-      // inserts the pre-0.23 `true` wherever the key is absent.
+      // as written. Stated explicitly in every entry: when `vp migrate` cannot
+      // tell that the installed tsdown is 0.23+, it inserts the pre-0.23 `true`
+      // wherever the key is absent.
       deps: { resolveDepSubpath: false },
       entry: "src/index.ts",
       format: ["esm"],
@@ -182,7 +183,7 @@ export default defineConfig({
       dts: { generator: "tsgo" },
       publint: true,
       // Also tsdown 0.23's default, kept explicit for the same reason: a bare
-      // `attw: true` gets the pre-0.23 `strict` profile from `vp migrate`, whose
+      // `attw: true` would then get the pre-0.23 `strict` profile, whose
       // node10/CJS checks flag every entry of this ESM-only package.
       attw: { profile: "esm-only" },
       platform: "browser",
@@ -257,8 +258,9 @@ export default defineConfig({
     restoreMocks: true,
     projects: [
       {
-        // Default unit-test project: happy-dom + ECharts mocked.
-        // Excludes browser smoke tests so they only run via the browser project.
+        // Default unit-test project: happy-dom, with `echarts/core` mocked
+        // wherever a test would otherwise create a real chart. Excludes browser
+        // smoke tests so they only run via the browser project.
         test: {
           name: "unit",
           pool: "threads",
@@ -288,7 +290,7 @@ export default defineConfig({
       {
         // Examples smoke: globalSetup serves the examples app with `vp dev`
         // (ECharts' missing-registration checks are dev-only), and the test
-        // opens every route in a fresh Chromium context, failing on any
+        // opens every route in a fresh Chromium page, failing on any
         // `console.error` or uncaught error.
         test: {
           name: "examples",
