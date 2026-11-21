@@ -2896,10 +2896,10 @@ describe("useEcharts", () => {
         });
         unmount();
 
-        // Cache is cleared on unmount, so even if the listener leaked the
-        // resize call would no-op. Assert through the listener API: a fresh
-        // event after unmount does not bring the disposed instance's resize
-        // back to life.
+        // A fresh event after unmount must not reach the disposed instance.
+        // The cache is already empty by then, so this alone would pass with a
+        // leaked listener; the visibility-coordinator tests assert the
+        // removeEventListener call itself.
         mockInstance.resize.mockClear();
         document.dispatchEvent(new Event("visibilitychange"));
         expect(mockInstance.resize).not.toHaveBeenCalled();
@@ -3564,10 +3564,9 @@ describe("useEcharts", () => {
       expect(onError1).not.toHaveBeenCalled();
     });
 
-    // React 19.2.x only refreshes useEffectEvent callbacks on plain function
-    // component fibers, not on memo() / forwardRef ones (fixed in 19.3,
-    // facebook/react#34831). Callers routinely memo-wrap chart components, so
-    // effect-time routing must reach the latest onError there as well.
+    // memo() / forwardRef consumers are where React 19.2.x's useEffectEvent
+    // goes stale (see utils/error.ts). Callers routinely wrap chart components
+    // this way, so effect-time routing must reach the latest onError there too.
     describe.each([
       [
         "memo()",

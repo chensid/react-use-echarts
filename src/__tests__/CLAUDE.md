@@ -2,7 +2,7 @@
 
 > Loaded when working under `src/__tests__/`. Project layout, coverage thresholds, and the `vitest`-import prohibition live in the root `CLAUDE.md`.
 
-- Shared mocks in `src/__tests__/helpers.ts`: `createMockInstance`, `MockResizeObserver`, `MockIntersectionObserver`, `boundProxy` (the proxy the hook bound via `on(eventName, …)` — `onEvents` binds proxies, so invoke this instead of matching the consumer's handler), and `withNodeEnv` (sets `process.env.NODE_ENV` for a sync block and restores it in `finally`); import test APIs from `"vite-plus/test"` explicitly (the projects set `globals: true`, but no test file uses the bare globals)
+- Shared mocks in `src/__tests__/helpers.ts`: `createMockInstance`, `MockResizeObserver`, `MockIntersectionObserver`, `boundProxy` (the proxy the hook bound via `on(eventName, …)` — `onEvents` binds proxies, so invoke this instead of matching the consumer's handler), and `withNodeEnv` (sets `process.env.NODE_ENV` for a sync block and restores it in `finally`); import test APIs from `"vite-plus/test"` explicitly (the projects set `globals: true` because Testing Library registers its auto-cleanup through a global `afterEach`; test files themselves use no bare globals)
 
 ## Test Gotchas
 
