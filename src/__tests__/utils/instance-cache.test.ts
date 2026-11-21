@@ -177,8 +177,8 @@ describe("instance-cache utilities", () => {
       setCachedInstance(el1, instance1);
       setCachedInstance(el2, instance2);
 
-      // Per-instance failure must not strand the rest, and outer finally
-      // resets the cache so subsequent tests start clean.
+      // A per-instance failure must not strand the rest, and the cache is
+      // still emptied so subsequent tests start clean.
       expect(() => clearInstanceCache()).not.toThrow();
       expect(instance2.dispose).toHaveBeenCalled();
       expect(getCachedInstance(el1)).toBeUndefined();
@@ -187,7 +187,7 @@ describe("instance-cache utilities", () => {
 
     it("should leave group memberships before disposing", () => {
       // Without leaveGroup integration, clearInstanceCache disposes instances
-      // but leaves stale references in groupRegistry until pruneDisposed runs.
+      // but leaves stale references in groupMembers until pruneDisposed runs.
       clearGroups();
 
       const element = document.createElement("div");
@@ -219,7 +219,7 @@ describe("instance-cache utilities", () => {
       releaseCachedInstance(element);
 
       // Centralized protocol: release path drops group ownership before
-      // dispose so groupRegistry doesn't carry a disposed reference.
+      // dispose so groupMembers doesn't carry a disposed reference.
       expect(getGroupInstances("released-group")).not.toContain(instance);
       expect(instance.dispose).toHaveBeenCalled();
     });

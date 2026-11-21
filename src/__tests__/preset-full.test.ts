@@ -19,8 +19,8 @@ describe("registerEchartsFull", () => {
     expect(Array.isArray(arg)).toBe(true);
     const installers = arg as unknown[];
 
-    // echarts 6.1.0 ships 2 renderers + 21 charts + 31 components + 5 features
-    // = 59 install functions. Assert ≥ 50 to stay resilient against minor
+    // echarts 6.1.0 ships 2 renderers + 23 charts + 32 components + 5 features
+    // = 62 install functions. Assert ≥ 50 to stay resilient against minor
     // upstream additions while still catching accidental namespace omissions.
     expect(installers.length).toBeGreaterThanOrEqual(50);
     for (const installer of installers) {

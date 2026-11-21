@@ -30,7 +30,6 @@ import {
   withNodeEnv,
 } from "../helpers";
 
-// Mock ECharts
 vi.mock("echarts/core", () => ({
   init: vi.fn(),
   connect: vi.fn(),
@@ -291,7 +290,7 @@ describe("useEcharts", () => {
         MockIntersectionObserver as unknown as typeof IntersectionObserver;
     });
 
-    it("should recreate the instance when ref.current changes to a new element", async () => {
+    it("should recreate the instance when the ref is attached to a new element", async () => {
       const element1 = document.createElement("div");
       const element2 = document.createElement("div");
       const option1: EChartsOption = { series: [{ type: "line", data: [1, 2, 3] }] };
@@ -753,9 +752,8 @@ describe("useEcharts", () => {
         result.current.ref(element);
       });
 
-      // A bare throw in the lifecycle effect would skip the cleanup return
-      // and leak the cached instance. Routing through onError keeps the
-      // return reachable so unmount can dispose.
+      // The failure is reported through onError and the lifecycle effect still
+      // returns its cleanup, so unmount disposes the instance.
       expect(onError).toHaveBeenCalledWith(loadingError);
 
       unmount();
@@ -1380,7 +1378,6 @@ describe("useEcharts", () => {
         result.current.setOption(newOption);
       });
 
-      // Wait for queueMicrotask
       await waitFor(() => {
         expect(mockInstance.setOption).toHaveBeenCalledWith(newOption, expect.any(Object));
       });
@@ -1499,7 +1496,7 @@ describe("useEcharts", () => {
         expect(mockInstance.setOption).toHaveBeenCalledTimes(1);
       });
 
-      // Control: changing setOptionOpts value (not shallow-equal) must trigger setOption again.
+      // Control: a setOptionOpts with a different value must trigger setOption again.
       rerender({ option: stableOption, opts: { notMerge: true } });
       await waitFor(() => {
         expect(mockInstance.setOption).toHaveBeenCalledTimes(2);
@@ -1508,8 +1505,8 @@ describe("useEcharts", () => {
 
     it("should dedup inline setOptionOpts with nested values by value", () => {
       // `replaceMerge` is an array and `transition` an object, so a shallow
-      // compare never matched a fresh inline wrapper and Option Sync re-ran
-      // setOption on mount and on every later render.
+      // compare would never match a fresh inline wrapper. Option Sync compares
+      // the opts by value instead.
       const element = document.createElement("div");
       const mockInstance = createMockInstance(element);
       (echarts.init as ReturnType<typeof vi.fn>).mockReturnValue(mockInstance);
@@ -1552,8 +1549,7 @@ describe("useEcharts", () => {
 
     it("should keep an imperative setOption until the next real prop change", async () => {
       // An unrelated render (same option ref, fresh but value-equal inline
-      // opts) must not re-apply the declarative option over an imperative one;
-      // previously it did, but only when the opts wrapper was inline.
+      // opts) must not re-apply the declarative option over an imperative one.
       const element = document.createElement("div");
       const mockInstance = createMockInstance(element);
       (echarts.init as ReturnType<typeof vi.fn>).mockReturnValue(mockInstance);
@@ -1651,10 +1647,10 @@ describe("useEcharts", () => {
   });
 
   describe("method identity stability", () => {
-    // Regression: useChartCore wraps its imperative API in useMemo([element]),
-    // and useEcharts spreads it into a Compiler-cached return literal. The net
-    // effect is that consumers can place `setOption` (and friends) into effect
-    // dependency arrays without thrashing — for example,
+    // useChartCore wraps its imperative API in useMemo(…, []), and useEcharts
+    // merges it with `ref` in a useMemo of its own (neither hook is
+    // compiler-cached). The net effect is that consumers can place `setOption`
+    // (and friends) into effect dependency arrays without thrashing — for example,
     // `useEffect(() => { setInterval(setOption, …) }, [running, setOption])`
     // must not recreate the interval on every parent render.
     it("keeps imperative method identities stable across unrelated rerenders", () => {
@@ -1717,7 +1713,6 @@ describe("useEcharts", () => {
     it("should not throw when instance is undefined", () => {
       const { result } = renderHook(() => useEcharts({ option: baseOption }));
 
-      // Should not throw
       act(() => {
         result.current.resize();
       });
@@ -1824,7 +1819,6 @@ describe("useEcharts", () => {
     it("should be a no-op when instance is not initialized", () => {
       const { result } = renderHook(() => useEcharts({ option: baseOption }));
 
-      // Should not throw
       act(() => {
         result.current.dispatchAction({ type: "highlight" });
       });
@@ -2077,7 +2071,7 @@ describe("useEcharts", () => {
     });
   });
 
-  describe("imperative API additions", () => {
+  describe("imperative getters, export and coordinate conversion", () => {
     function setupReady() {
       const element = document.createElement("div");
       const mockInstance = createMockInstance(element);
@@ -2798,8 +2792,9 @@ describe("useEcharts", () => {
     });
 
     describe("visibilitychange resume", () => {
-      // Mock on the instance — happy-dom defines `hidden` as an own property on
-      // `document`, which shadows any Document.prototype getter we'd install.
+      // Mock on the instance — the global `Document.prototype` is not on the
+      // prototype chain of happy-dom's `document`, so a getter installed there
+      // would never be read.
       const ownDescriptor = Object.getOwnPropertyDescriptor(document, "hidden");
       let hiddenValue = false;
 
@@ -2829,8 +2824,7 @@ describe("useEcharts", () => {
           result.current.ref(element);
         });
 
-        // Reset resize calls from initial mount (e.g. from ResizeObserver firing
-        // on observe() in happy-dom).
+        // Ignore any resize calls made during mount.
         mockInstance.resize.mockClear();
 
         hiddenValue = true;
@@ -2902,10 +2896,10 @@ describe("useEcharts", () => {
         });
         unmount();
 
-        // Cache is cleared on unmount, so even if the listener leaked the
-        // resize call would no-op. Assert through the listener API: a fresh
-        // event after unmount does not bring the disposed instance's resize
-        // back to life.
+        // A fresh event after unmount must not reach the disposed instance.
+        // The cache is already empty by then, so this alone would pass with a
+        // leaked listener; the visibility-coordinator tests assert the
+        // removeEventListener call itself.
         mockInstance.resize.mockClear();
         document.dispatchEvent(new Event("visibilitychange"));
         expect(mockInstance.resize).not.toHaveBeenCalled();
@@ -3235,8 +3229,8 @@ describe("useEcharts", () => {
       const element = document.createElement("div");
       const mockInstance = createMockInstance(element);
       const setOptionError = new Error("initial setOption failed");
-      // Only throw once (during the lifecycle effect's initial setOption);
-      // subsequent calls from the OPTION-SYNC effect should succeed.
+      // Throw from the lifecycle effect's initial setOption. It is the only
+      // call: Option Sync dedups against the recorded attempt.
       mockInstance.setOption
         .mockImplementationOnce(() => {
           throw setOptionError;
@@ -3254,18 +3248,16 @@ describe("useEcharts", () => {
       expect(onError).toHaveBeenCalledWith(setOptionError);
     });
 
-    // Regression: lifecycle setOption and Option-Sync setOption both fire on
-    // mount. Before the try/finally fix, a throw in the lifecycle path left
-    // `lastAppliedRef` null, so Option-Sync (running on the same render)
-    // would re-invoke setOption with the SAME args, throw again, and report
-    // the same failure twice via onError. The fix records the attempt
-    // unconditionally so Option-Sync dedups against it.
+    // The lifecycle effect and Option Sync both run on mount. The lifecycle
+    // effect records its attempt in `lastAppliedRef` even when setOption
+    // throws; otherwise Option Sync would re-invoke setOption with the same
+    // args, throw again, and report the same failure twice via onError.
     it("does not double-fire onError when setOption keeps throwing for the same option", () => {
       const element = document.createElement("div");
       const mockInstance = createMockInstance(element);
       const setOptionError = new Error("malformed option");
-      // Persistent throw (no mockImplementationOnce): both the lifecycle and
-      // the Option-Sync path would attempt the same setOption call.
+      // Persistent throw (no mockImplementationOnce): a second attempt from
+      // Option Sync would throw, and be reported, again.
       mockInstance.setOption.mockImplementation(() => {
         throw setOptionError;
       });
@@ -3279,8 +3271,8 @@ describe("useEcharts", () => {
 
       expect(onError).toHaveBeenCalledTimes(1);
       expect(onError).toHaveBeenCalledWith(setOptionError);
-      // Only the lifecycle attempt fires setOption; Option-Sync's same-render
-      // re-attempt is suppressed by the recorded lastAppliedRef.
+      // Only the lifecycle attempt calls setOption; Option Sync dedups against
+      // the recorded lastAppliedRef.
       expect(mockInstance.setOption).toHaveBeenCalledTimes(1);
     });
 
@@ -3288,8 +3280,8 @@ describe("useEcharts", () => {
       const element = document.createElement("div");
       const mockInstance = createMockInstance(element);
       const setOptionError = new Error("initial setOption failed");
-      // Only throw once (during the lifecycle effect's initial setOption);
-      // subsequent calls from the OPTION-SYNC effect should succeed.
+      // Throw from the lifecycle effect's initial setOption. It is the only
+      // call: Option Sync dedups against the recorded attempt.
       mockInstance.setOption
         .mockImplementationOnce(() => {
           throw setOptionError;
@@ -3355,7 +3347,6 @@ describe("useEcharts", () => {
     it("should do nothing when imperative setOption is called without instance", () => {
       const { result } = renderHook(() => useEcharts({ option: baseOption }));
 
-      // Should not throw — early return because no instance
       act(() => {
         result.current.setOption({ series: [] });
       });
@@ -3573,10 +3564,9 @@ describe("useEcharts", () => {
       expect(onError1).not.toHaveBeenCalled();
     });
 
-    // React 19.2.x only refreshes useEffectEvent callbacks on plain function
-    // component fibers, not on memo() / forwardRef ones (fixed in 19.3,
-    // facebook/react#34831). Callers routinely memo-wrap chart components, so
-    // effect-time routing must reach the latest onError there as well.
+    // memo() / forwardRef consumers are where React 19.2.x's useEffectEvent
+    // goes stale (see utils/error.ts). Callers routinely wrap chart components
+    // this way, so effect-time routing must reach the latest onError there too.
     describe.each([
       [
         "memo()",

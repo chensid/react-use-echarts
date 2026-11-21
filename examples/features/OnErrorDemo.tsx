@@ -46,10 +46,8 @@ const OnErrorDemo: React.FC = () => {
 
   const triggerError = (): void => {
     setLastError(null);
-    // Imperative dispatchAction is wrapped in the hook's try/catch; the
-    // proxy's get trap fires when ECharts reads `payload.type`, the throw
-    // escapes dispatchAction's call frame, and the hook hands the error to
-    // onError instead of re-throwing.
+    // The hook catches the throw and hands it to onError instead of
+    // re-throwing.
     dispatchAction(throwingPayload);
   };
 

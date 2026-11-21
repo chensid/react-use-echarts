@@ -464,7 +464,7 @@ export function useChartCore(
       isDisposed: () => withInstance((instance) => instance.isDisposed(), true),
       getDataURL: (opts) => withInstance((instance) => instance.getDataURL(opts), undefined),
       // ECharts 6.1.0 reads `opts.type` without defaulting `opts` (fixed on its
-      // release branch, apache/echarts#21736), so a no-argument call threw.
+      // release branch, apache/echarts#21736), so a no-argument call throws.
       getConnectedDataURL: (opts) =>
         withInstance((instance) => instance.getConnectedDataURL(opts ?? {}), undefined),
       renderToSVGString: (opts) =>

@@ -35,8 +35,8 @@ const option: EChartsOption = {
 };
 
 const describePointEvent = (name: string, params: ECElementEvent): string => {
-  // `params` is inferred as ECElementEvent thanks to the typed
-  // onEvents map; only narrow `value` to a number tuple here.
+  // The typed onEvents map infers `params` as ECElementEvent at the call
+  // sites below; only `value` needs narrowing, to a number tuple.
   const [x = 0, y = 0] = params.value as number[];
   return `${name}: [${x}, ${y}]`;
 };

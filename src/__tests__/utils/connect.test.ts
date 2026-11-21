@@ -10,7 +10,6 @@ import {
 } from "../../utils/connect";
 import { createMockInstance as createBaseMockInstance } from "../helpers";
 
-// Mock ECharts
 vi.mock("echarts/core", () => ({
   connect: vi.fn(),
   disconnect: vi.fn(),

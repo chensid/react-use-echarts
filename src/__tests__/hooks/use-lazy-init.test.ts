@@ -59,8 +59,8 @@ describe("useLazyInit", () => {
 
   // The public type forbids null, but a JS caller can still pass it (e.g.
   // useEcharts({ lazyInit: null }) — the `= false` default only fills undefined).
-  // `typeof null === "object"` previously made the option reads deref null and
-  // throw during render. null must be treated like false (lazy disabled).
+  // `typeof null === "object"`, so the option reads must not deref it: null is
+  // treated like false (lazy disabled).
   it("treats null options like false (lazy disabled) instead of throwing", () => {
     const element = document.createElement("div");
 
@@ -75,8 +75,8 @@ describe("useLazyInit", () => {
 
   // A malformed IntersectionObserverInit (out-of-range threshold here) makes the
   // native constructor throw synchronously. Without the effect's try/catch this
-  // escaped useEffect and tore down the React tree. It must instead degrade to
-  // eager init (visible) — these values are type-valid, so TS callers hit it too.
+  // would escape useEffect and tear down the React tree. It must instead degrade
+  // to eager init (visible) — these values are type-valid, so TS callers hit it too.
   it("falls back to eager init (visible) instead of throwing on invalid options", () => {
     class ThrowingObserver {
       constructor(_cb: IntersectionObserverCallback, options?: IntersectionObserverInit) {
@@ -390,9 +390,8 @@ describe("useLazyInit", () => {
     expect(mockObserve).not.toHaveBeenCalled();
   });
 
-  // Regression: the hook once seeded `isInView` via `useState(!isLazyMode)`,
-  // so enabling lazy mode after mount never installed the observer. Before an
-  // element is attached nothing has initialized, so lazy mode must still defer.
+  // Enabling lazy mode after mount must still install the observer: before an
+  // element is attached nothing has initialized, so lazy mode can still defer.
   it("starts observing when lazy mode is enabled before an element is attached", async () => {
     const element = document.createElement("div");
 

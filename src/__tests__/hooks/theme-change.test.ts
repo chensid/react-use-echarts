@@ -8,7 +8,6 @@ import type { BuiltinTheme } from "../../types";
 import { __resetThemeStateForTesting__ } from "../../themes";
 import { createMockInstance, MockResizeObserver, MockIntersectionObserver } from "../helpers";
 
-// Mock ECharts
 vi.mock("echarts/core", () => ({
   init: vi.fn(),
   connect: vi.fn(),
@@ -34,14 +33,11 @@ describe("Theme change behavior", () => {
     const mockInstance1 = createMockInstance(element);
     const mockInstance2 = createMockInstance(element);
 
-    // First call returns instance1
     (echarts.init as ReturnType<typeof vi.fn>).mockReturnValueOnce(mockInstance1);
-    // Second call (theme change) returns instance2
     (echarts.init as ReturnType<typeof vi.fn>).mockReturnValueOnce(mockInstance2);
 
     const baseOption = { series: [{ type: "line" as const, data: [1, 2, 3] }] };
 
-    // First render with light theme
     const { result, rerender } = renderHook<ReturnType<typeof useEcharts>, { theme: BuiltinTheme }>(
       ({ theme }) => useEcharts({ option: baseOption, theme }),
       {
@@ -55,19 +51,16 @@ describe("Theme change behavior", () => {
       result.current.ref(element);
     });
 
-    // Should have created first instance
     expect(echarts.init).toHaveBeenCalledTimes(1);
     expect(mockInstance1.setOption).toHaveBeenCalled();
 
-    // Rerender with dark theme
     rerender({ theme: "dark" });
 
-    // Should have disposed old instance and created new one
+    // The old instance is disposed and a new one created.
     expect(mockInstance1.dispose).toHaveBeenCalledTimes(1);
     expect(echarts.init).toHaveBeenCalledTimes(2);
     expect(mockInstance2.setOption).toHaveBeenCalled();
 
-    // Cache should contain the new instance
     expect(getCachedInstance(element)).toBe(mockInstance2);
   });
 });
