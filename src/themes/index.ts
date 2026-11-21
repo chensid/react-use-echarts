@@ -89,7 +89,8 @@ export function isKnownTheme(themeName: string): boolean {
 
 /**
  * Whether a built-in theme is usable: `"light"` / `"dark"` always are (ECharts 6
- * provides them), `"macarons"` only after `registerBuiltinThemes()`.
+ * registers `"dark"`, and `"light"` falls through to its default theme),
+ * `"macarons"` only after `registerBuiltinThemes()`.
  * Used internally for dev-time warnings without importing preset JSON.
  */
 export function isBuiltinThemeRegistered(themeName: BuiltinTheme): boolean {

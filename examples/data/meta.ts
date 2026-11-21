@@ -20,6 +20,6 @@ export const ECHARTS_MAJOR = majorOf(pkg.peerDependencies?.echarts);
 // Measured consumer-minified size of the full barrel (min+gzip): the production
 // build `dist/index.js` (the `default` export condition, not `dist/development/`)
 // after `vp pack`, minified with rolldown's oxc `minifySync` (compress + mangle),
-// then gzipped. 4,074 B at 3.3.0. Re-measure the same way and update on significant
+// then gzipped. 3,762 B at 3.3.7. Re-measure the same way and update on significant
 // surface changes. Quoted once here so hero/stats/compare can't drift.
-export const BUNDLE_SIZE = "4.1 kB";
+export const BUNDLE_SIZE = "3.8 kB";
